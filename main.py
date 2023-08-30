@@ -136,6 +136,54 @@ class Person:
             if self.balance < 0:
                 self.balance = 0
 
+    def marriage_chance(self):
+        if self.age >= 18 and self.married == False:
+            if self.career == 'Student':
+                chance = 0.1
+            elif self.career == 'Cannot Work':
+                chance = 0.15
+            elif self.career == 'Base':
+                chance = 0.3
+            elif self.career == 'Medium':
+                chance = 0.35
+            elif self.career == 'High':
+                chance = 0.5
+            else:
+                chance = 0.0
+            if np.random.random() < chance:
+                self.marriage()
+                _, total_cost = self.calculate_marriage_cost()
+                self.balance -= total_cost
+   
+                
+    def calculate_marriage_cost(self):
+        # Average cost per person
+        avg_cost_per_person = 34000 / 100  # assuming average 100 guests
+        
+        # Randomize number of guests, more concentrated on 50 to 100
+        guests = np.random.normal(loc=75, scale=20).astype(int)
+        guests = np.clip(guests, 50, 300)
+        
+        # Calculate cost based on random additional percentage up to 40%
+        additional_percentage = np.random.uniform(0, 0.4)
+        cost_per_person = avg_cost_per_person * (1 + additional_percentage)
+        total_cost = guests * cost_per_person
+        
+        return guests, total_cost
+
+
+    def marriage(self):
+        if self.age >= 18 and self.married == False:
+            if self.gender == "Male":
+                spouse_gender = 'Female' if np.random.random() < 0.75 else 'Male'
+            else:
+                spouse_gender = 'Male' if np.random.random() < 0.75 else 'Female'
+            spouse = Person(spouse_gender)
+            spouse.married = True
+            self.spouse = spouse
+            self.married = True
+            self.update_history()
+
     def age_up(self):
         self.age += 1
         if self.age >= 18:
@@ -148,6 +196,8 @@ class Person:
             self.promotion()
             self.work()
             self.spend()
+            self.marriage_chance()
+            
         self.update_history()
 
     def update_history(self):
@@ -163,23 +213,46 @@ class Person:
         while self.age < 95:
             self.age_up()
 
-class Marriage:
-    def __init__(self, p1, p2):
-        self.p1 = p1
-        self.p2 = p2
-        self.married = False
-        self.children = []
 
-    def marry(self):
-        self.p1.married = True
-        self.p2.married = True
-        self.married = True
+        ...
 
-    def divorce(self):
-        self.p1.married = False
-        self.p2.married = False
-        self.married = False
+    def age_up(self):
+        self.age += 1
+        self.update_history()
+        if self.age >= 18 and self.married == False:
+            self.marriage()
+        if self.married and np.random.rand() <= 0.05:
+            self.have_child()
+        ...
+
+
 
     def have_child(self):
-        child = Person(np.random.choice(['Male', 'Female']))
-        self.children.append(child)
+        if self.gender == 'Female':
+            mother = self
+        else:
+            mother = self.spouse
+
+        age = mother.age
+        education_level = {'Base': 1.2, 'Medium': 1, 'High': 0.8, 'Very High': 0.5}
+        education_factor = education_level[mother.career]
+
+        if age <= 28:
+            base_prob = 0.5
+        else:
+            base_prob = 0.5 * np.exp(-0.1 * (age - 28))
+
+        # Reduce probability with number of children
+        child_factor = np.exp(-0.5 * len(self.children))
+
+        # Calculate final probability
+        prob = base_prob * child_factor * education_factor
+
+        if np.random.random() < prob:
+            child = Person(np.random.choice(['Male', 'Female']))
+            self.children.append(child)
+
+    ...
+
+
+
