@@ -9,7 +9,7 @@ spender_profile = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75}
 class Person:
     def __init__(self, gender, age_range=None):
         self.gender = gender
-        self.initial_age()
+        self.initial_age(age_range)
         self.spender_prof = np.random.choice(['Average', 'Big Spender', 'Small Spender'], p=[0.5, 0.3, 0.2])
         self.student_and_career_path_check()
         self.initial_income()
@@ -50,7 +50,7 @@ class Person:
             age_range = 'Adult'
         else:
             age_range = 'Elder'
-        self.age_range
+        self.age_range = age_range
 
     def student_and_career_path_check(self):
         if self.age < 18:
@@ -114,7 +114,7 @@ class Person:
         else:
             self.career = np.random.choice(['Base', 'Medium', 'High', 'Very High'], p=[0.4, 0.3, 0.2, 0.1])
 
-    def initial_income(self):
+    def initial_income(self, gender_bias=None):
         if self.career == 'Student' or self.career == 'Cannot Work':
             self.income = 0
         else:
@@ -126,6 +126,9 @@ class Person:
                 self.income = np.random.normal(100000, 20000)
             else:
                 self.income = np.random.normal(200000, 40000)
+        if gender_bias and self.gender == 'Female':
+            ### multiply by a random number between 0.8 and 1.0
+            self.income *= np.random.uniform(0.8, 1.0)
 
     def student_loan(self):
         if self.career == 'Student':
@@ -144,6 +147,21 @@ class Person:
         else:
             self.loan = 0
             self.loan_term = 0
+
+    def get_loan(self):
+        ### if the person is an adult or elder, and has a career or is a student
+        ### check if the person has a loan
+        ### check if the person is married
+        ### if the person is married, check if the spouse has a loan
+        ### if neither has a loan, get a loan and split it between the two
+        ### if one of them has a loan, add the current amount due to the new loan, erase the old loan
+        ### if both have a loan, add both the current amount due to the new loan, erase the old loan for both
+        ### if they are not married, get a loan for the person
+        ### check if the person has income
+        ### add a maximum of 35% of the income to the loan
+        ### if the person is a student, add a maximum of 50% of the income to the loan
+        pass
+        
 
     def pay_loan(self):
         if self.loan > 0 and self.loan_term > 0:
@@ -191,12 +209,18 @@ class Person:
                 chance = 0.35
             elif self.career == 'High':
                 chance = 0.5
+            elif self.career == 'Very High':
+                chance = 0.8
             else:
                 chance = 0.0
             if np.random.random() < chance:
                 self.marriage()
-                _, total_cost = self.calculate_marriage_cost()
-                self.balance -= total_cost
+                _, marriage_expense = self.calculate_marriage_cost()
+                total_balance = self.balance + self.spouse.balance
+                if total_balance < marriage_expense:
+                    self.loan += (marriage_expense - total_balance) / 2
+                    self.loan += (marriage_expense - total_balance) / 2
+                    self.loan_term = 10  # assume a fixed loan term
 
     def calculate_marriage_cost(self):
         # Average cost per person
@@ -269,8 +293,6 @@ class Person:
         if self.married and np.random.rand() <= 0.05:
             self.have_child()
         ...
-
-
 
     def have_child(self):
         if self.gender == 'Female':
