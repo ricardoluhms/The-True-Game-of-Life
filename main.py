@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from collections import defaultdict
-
+import random
 years_of_study = {'Base': 2, 'Medium': 3, 'High': 5, 'Very High': 7}
 tuition = {'Base': 1000, 'Medium': 3000, 'High': 6000, 'Very High': 10000}
 spender_profile = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75}
@@ -18,6 +18,7 @@ class Person:
         self.loan_term = 0
         self.married = False
         self.history = []
+        self.children = []
 
     def initial_age(self, age_range=None):
         if age_range == 'Baby':
@@ -148,26 +149,72 @@ class Person:
             self.loan = 0
             self.loan_term = 0
 
-    def get_loan(self):
-        ### if the person is an adult or elder, and has a career or is a student
-        ### check if the person has a loan
-        ### check if the person is married
-        ### if the person is married, check if the spouse has a loan
-        ### if neither has a loan, get a loan and split it between the two
-        ### if one of them has a loan, add the current amount due to the new loan, erase the old loan
-        ### if both have a loan, add both the current amount due to the new loan, erase the old loan for both
-        ### if they are not married, get a loan for the person
-        ### check if the person has income
-        ### add a maximum of 35% of the income to the loan
-        ### if the person is a student, add a maximum of 50% of the income to the loan
-        pass
-        
+    def composed_interest(self, principal_loan_amount, interest_rate, loan_term=10):
+        loan_term = 10  # assume a fixed loan term
+        # compound interest formula: A = P (1 + r/n)^(nt)
+        # where: 
+        # A = the money accumulated after n years, including interest.
+        # P = principal amount (the initial money before interest)
+        # r = annual interest rate (in decimal form)
+        # n = number of times that interest is compounded per year
+        # t = the time the money is invested for, in years
+        n = 1  # assume the interest is compounded annually
+        compound_loan_amount = principal_loan_amount * (1 + interest_rate/n)**(n*loan_term)
+        return compound_loan_amount
 
+    def get_loan(self, interest_rate=None, desired_loan_amount=None, loan_term_years=10):
+        # Set Interest Rate
+        if interest_rate is None:
+            interest_rate = random.uniform(0.02, 0.12)
+
+        # Check Income
+        if self.married:
+            total_income = self.income + self.spouse.income
+        else:
+            total_income = self.income
+
+        # Check Current Loan(s)
+        if self.married and self.loan > 0 and self.spouse.loan > 0:
+            current_loan_amount = self.loan + self.spouse.loan + desired_loan_amount
+        elif self.married and self.loan > 0:
+            current_loan_amount = self.loan + desired_loan_amount
+        elif self.married and self.spouse.loan > 0:
+            current_loan_amount = self.spouse.loan + desired_loan_amount
+        elif self.loan > 0:
+            current_loan_amount = self.loan + desired_loan_amount
+        else:
+            current_loan_amount = desired_loan_amount   
+        
+        # Check max loan amount
+        max_loan_amount = total_income * 0.45 if not self.student else total_income * 0.50
+        desired_loan_amount = max_loan_amount - current_loan_amount
+        
+        if current_loan_amount > max_loan_amount:
+            # warning message without raising error
+            print('You cannot get more loans. You have reached the maximum loan amount.')
+            return None
+        else:
+            # calculate the compounded interest
+            future_value = desired_loan_amount * ((1 + interest_rate)**loan_term_years)
+            future_value = self.composed_interest(desired_loan_amount, interest_rate, loan_term_years)
+            yearly_payment = future_value / loan_term_years
+            
+            if self.married:
+                self.loan = future_value / 2
+                self.spouse.loan = future_value / 2
+                self.loan_yearly_payment = yearly_payment / 2
+                self.spouse.loan_yearly_payment = yearly_payment / 2
+                self.loan_term = loan_term_years
+                self.spouse.loan_term = loan_term_years
+            else:
+                self.loan = future_value
+                self.loan_yearly_payment = yearly_payment
+                self.loan_term = loan_term_years
+    
     def pay_loan(self):
         if self.loan > 0 and self.loan_term > 0:
-            monthly_payment = self.loan / (self.loan_term * 12)
-            self.balance -= monthly_payment
-            self.loan -= monthly_payment
+            self.balance -= self.yearly_payment
+            self.loan -= self.yearly_payment
             if self.loan < 0:
                 self.balance += abs(self.loan)
                 self.loan = 0
@@ -188,14 +235,18 @@ class Person:
                     self.income = np.random.normal(200000, 40000)
 
     def work(self):
-        if self.career != 'Student' and self.career != 'Cannot Work':
-            self.balance += self.income * (1 - spender_profile[self.spender_prof])
+        # Tax Brackets
+        if self.income <= 30000:
+           tax = 0.10  # 10% tax
+        elif 30000 < self.income <= 50000:
+            tax = 0.20  # 20% tax
+        elif 50000 < self.income <= 100000:
+            tax = 0.30  # 30% tax
+        else:
+            tax = 0.40  # 30% tax
 
-    def spend(self):
-        if self.balance > 0:
-            self.balance -= self.income * spender_profile[self.spender_prof]
-            if self.balance < 0:
-                self.balance = 0
+        if self.career != 'Student' and self.career != 'Cannot Work':
+            self.balance += self.income * (1 - spender_profile[self.spender_prof]- tax)
 
     def marriage_chance(self):
         if self.age >= 18 and self.married == False:
@@ -218,9 +269,9 @@ class Person:
                 _, marriage_expense = self.calculate_marriage_cost()
                 total_balance = self.balance + self.spouse.balance
                 if total_balance < marriage_expense:
-                    self.loan += (marriage_expense - total_balance) / 2
-                    self.loan += (marriage_expense - total_balance) / 2
-                    self.loan_term = 10  # assume a fixed loan term
+                    get_loan_status = self.get_loan(desired_loan_amount=marriage_expense-total_balance)
+                    if  get_loan_status is None:
+                        print('You cannot afford the marriage expense. You have reached the maximum loan amount.')
 
     def calculate_marriage_cost(self):
         # Average cost per person
@@ -266,17 +317,19 @@ class Person:
             self.have_child()
         elif self.married == False and self.age >= 18 and np.random.rand() <= 0.025:
             self.have_child()
-  
+        self.marriage_chance()
         self.update_history()
 
     def update_history(self):
         self.history.append({'Age': self.age,
+                             'Age Range': self.age_range,
                              'Career': self.career,
                              'Income': self.income,
                              'Loan': self.loan,
                              'Loan Term': self.loan_term,
                              'Balance': self.balance,
-                             'Married': self.married})
+                             'Married': self.married,
+                             'Children': self.children})
 
     def run_life(self):
         while self.age < 95:
@@ -318,3 +371,51 @@ class Person:
         if np.random.random() < prob:
             child = Person(np.random.choice(['Male', 'Female']))
             self.children.append(child)
+### to do
+### add buy insurance
+### check for life events that could lead to insurance
+### add likelihood of getting insurance
+### add buy house or rent
+### add buy car
+### chances of death
+### add current year in history
+
+### in city - generate starting population
+### in city - if there were life events that adds new people to the city, add them to the city
+### check if spouse is randomly generated or not if true then add to city else update relationship
+### check for children events and add them to the city
+### check for death events and change their status to dead and the year they died
+### for kids, add their parents in the relationship list
+
+### create a marketing campaign class
+### this class will generate a random list of a subset of the population and send them insurance offers
+### if the person is not insured, check if they are targets with high likelihood of getting insurance
+### -	Create a unique measure of risk to evaluate if they are going to buy or not insurance.
+### We would assume that a normal campaign would have X% of open ratio, 
+### ... and Y% out of the X that opened would engage with the website
+###	Z% would be the ones that opened, engaged and bought insurance
+### this class will keep record of the campaign and the results
+### this will count the amount of policies sold and the amount of money made from the campaign
+### the campaign will have a cost associated with it based on the number of people targeted
+### the campaign will also track the number of people that were eligible for the campaign but were not targeted
+### and check if they bought insurance or not 
+
+class City:
+    def __init__(self, name):
+        self.name = name
+        self.citizens = []
+        self.relationship_changes = []
+        
+    def add_citizen(self, person):
+        self.citizens.append(person)
+        
+    def form_relationship(self, person1, person2, relationship):
+        person1.form_relationship(person2, relationship)
+        self.relationship_changes.append({
+            'Person1': person1.name,
+            'Person2': person2.name,
+            'Relationship': relationship
+        })
+        
+    def get_relationship_changes(self):
+        return self.relationship_changes
