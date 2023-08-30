@@ -400,6 +400,12 @@ class Person:
 ### the campaign will also track the number of people that were eligible for the campaign but were not targeted
 ### and check if they bought insurance or not 
 
+### a dataset with all the campaigns will be created and will be used to train several models
+### customer segmentation clustering
+### likelihood of buying insurance
+### campaign success prediction
+### campaign cost prediction
+
 class City:
     def __init__(self, name):
         self.name = name
