@@ -2,6 +2,14 @@ import numpy as np
 import pandas as pd
 from collections import defaultdict
 import random
+import random
+#%%
+### add list of 100 most common male names
+from 
+
+               
+#%%
+
 years_of_study = {'Base': 2, 'Medium': 3, 'High': 5, 'Very High': 7}
 tuition = {'Base': 1000, 'Medium': 3000, 'High': 6000, 'Very High': 10000}
 spender_profile = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75}
@@ -9,7 +17,8 @@ spender_profile = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75}
 
 
 class Person:
-    def __init__(self, gender, age_range=None):
+    def __init__(self, gender, age_range=None, name=None):
+        """ age_range options: 'Baby', 'Child', 'Teenager', 'Young Adult', 'Adult', 'Elder' """
         self.gender = gender
         self.initial_age(age_range)
         self.spender_prof = np.random.choice(['Average', 'Big Spender', 'Small Spender'], p=[0.5, 0.3, 0.2])
@@ -21,6 +30,26 @@ class Person:
         self.married = False
         self.history = []
         self.children = []
+        if name is None:
+            random_name
+        self.name 
+    def generate_random_name(self,gender):
+        if gender == "Female":
+            name=" ".join(random.choice(first_names)+" "+random.choice(last_names)
+        else:
+            group=" ".join(random.choice(first_names)+" "+random.choice(last_names)    
+        ### is male or female
+        ### generate random name based on gender
+        ### check name already exists, if does generate another name
+        ### generate unique id for each person
+        ### return name and id
+        ### save name and id in city class
+        
+
+
+        pass
+
+
 
     def initial_age(self, age_range=None):
         if age_range == 'Baby':
