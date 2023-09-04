@@ -6,6 +6,8 @@ years_of_study = {'Base': 2, 'Medium': 3, 'High': 5, 'Very High': 7}
 tuition = {'Base': 1000, 'Medium': 3000, 'High': 6000, 'Very High': 10000}
 spender_profile = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75}
 
+
+
 class Person:
     def __init__(self, gender, age_range=None):
         self.gender = gender
@@ -413,6 +415,9 @@ class City:
         self.relationship_changes = []
         
     def add_citizen(self, person):
+        ### check if person is already in the city
+        ### if not, add them to the city
+        citizen_check = [person.name for person in self.citizens]
         self.citizens.append(person)
         
     def form_relationship(self, person1, person2, relationship):
