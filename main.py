@@ -5,7 +5,7 @@ import random
 import random
 #%%
 ### add list of 100 most common male names
-from  gml_constants import 
+from  gml_constants import MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES
 
                
 #%%
@@ -17,7 +17,7 @@ spender_profile = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75}
 
 
 class Person:
-    def __init__(self, gender, age_range=None, name=None):
+    def __init__(self, gender, age_range=None, first_name = None, last_name = None):
         """ age_range options: 'Baby', 'Child', 'Teenager', 'Young Adult', 'Adult', 'Elder' """
         self.gender = gender
         self.initial_age(age_range)
@@ -30,26 +30,29 @@ class Person:
         self.married = False
         self.history = []
         self.children = []
-        if name is None:
-            random_name
-        self.name 
-    def generate_random_name(self,gender):
-        if gender == "Female":
-            name=" ".join(random.choice(first_names)+" "+random.choice(last_names)
-        else:
-            group=" ".join(random.choice(first_names)+" "+random.choice(last_names)    
-        ### is male or female
-        ### generate random name based on gender
-        ### check name already exists, if does generate another name
-        ### generate unique id for each person
-        ### return name and id
-        ### save name and id in city class
+        self.first_name = first_name;  self.last_name = last_name
+        self.full_name = self.generate_full_name()
+        self.unique_name_id = self.generate_unique_name_id()
         
+ 
+    def generate_first_name(self):
+        if self.gender == "Female":
+            name = random.choice(FEMALE_FIRST_NAMES)
+        else:
+            name = random.choice(MALE_FIRST_NAMES)
 
+        return name
 
-        pass
-
-
+    def generate_full_name (self):
+        if self.last_name is None:
+            self.last_name = random.choice(LAST_NAMES)
+        if self.first_name is None:
+            self.first_name = self.generate_first_name()
+        self.full_name = self.first_name + " " + self.last_name
+    
+    def generate_unique_name_id(self):
+        ### contains the first name, last name, and a random number between 0 and 1000 without spaces
+        return self.first_name +"_"+ self.last_name +"_"+ str(random.randint(0, 10000))
 
     def initial_age(self, age_range=None):
         if age_range == 'Baby':
