@@ -18,3 +18,10 @@ young_a = Person(age_range= 'Young Adult',first_name= "Mac", last_name="Donalds"
 
 print(young_a.__dict__)
 # %%
+persons = []
+for i in range(10):
+    a = Person(age_range= 'Young Adult')
+    persons.append(a)
+    print(a.__dict__)
+    print()
+# %%

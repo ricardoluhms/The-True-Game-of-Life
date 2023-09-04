@@ -96,7 +96,7 @@ class Person:
         if mode == 'Could be Student':
             
             self.future_career = np.random.choice(['Base', 'Medium', 'High', 'Very High'], p=[0.4, 0.3, 0.2, 0.1])
-            years_of_grad = self.age - 18 + YEARS_OF_STUDY[self.future_career]
+            years_of_grad = self.age - 18 - YEARS_OF_STUDY[self.future_career]
             print('Could be Student', self.age, years_of_grad)
 
             if years_of_grad >= 0:
@@ -109,7 +109,7 @@ class Person:
                     years_of_grad = 0
 
         else:
-            years_of_grad = self.age - 18 + YEARS_OF_STUDY[self.career]
+            years_of_grad = self.age - 18 - YEARS_OF_STUDY[self.career]
         return years_of_grad
 
     def childhood_savings(self):
