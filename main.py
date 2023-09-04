@@ -1,37 +1,33 @@
 import numpy as np
 import pandas as pd
 from collections import defaultdict
-import random
-import random
-#%%
-### add list of 100 most common male names
-from  gml_constants import MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES
 
+from  gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES, YEARS_OF_STUDY, TUITION, SPENDER_PROFILE)
+import random
                
 #%%
 
-years_of_study = {'Base': 2, 'Medium': 3, 'High': 5, 'Very High': 7}
-tuition = {'Base': 1000, 'Medium': 3000, 'High': 6000, 'Very High': 10000}
-spender_profile = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75}
-
-
-
 class Person:
-    def __init__(self, gender, age_range=None, first_name = None, last_name = None):
-        """ age_range options: 'Baby', 'Child', 'Teenager', 'Young Adult', 'Adult', 'Elder' """
+    def __init__(self, gender:str =None, age_range:str=None, first_name = None, last_name = None):
+        """ age_range options: 'Baby', 'Child', 'Teenager', 'Young Adult', 'Adult', 'Elder' \n
+            gender options: 'Male' or 'Female' """
+        if gender is None:
+            gender = np.random.choice(["Male","Female"],p=[0.5, 0.5])
         self.gender = gender
+        if age_range is None:
+            age_range = np.random.choice(['Baby', 'Child', 'Teenager', 'Young Adult', 'Adult', 'Elder'], p=[0.1, 0.2, 0.2, 0.2, 0.2, 0.1])
         self.initial_age(age_range)
         self.spender_prof = np.random.choice(['Average', 'Big Spender', 'Small Spender'], p=[0.5, 0.3, 0.2])
         self.student_and_career_path_check()
         self.initial_income()
-        self.initial_balance()
         self.loan = 0
         self.loan_term = 0
+        self.initial_balance()
         self.married = False
         self.history = []
         self.children = []
         self.first_name = first_name;  self.last_name = last_name
-        self.full_name = self.generate_full_name()
+        self.generate_full_name()
         self.unique_name_id = self.generate_unique_name_id()
         
  
@@ -49,7 +45,7 @@ class Person:
         if self.first_name is None:
             self.first_name = self.generate_first_name()
         self.full_name = self.first_name + " " + self.last_name
-    
+
     def generate_unique_name_id(self):
         ### contains the first name, last name, and a random number between 0 and 1000 without spaces
         return self.first_name +"_"+ self.last_name +"_"+ str(random.randint(0, 10000))
@@ -98,18 +94,21 @@ class Person:
 
     def initial_student_years_of_grad(self, mode='Could be Student'):
         if mode == 'Could be Student':
+            print('Could be Student')
             self.future_career = np.random.choice(['Base', 'Medium', 'High', 'Very High'], p=[0.4, 0.3, 0.2, 0.1])
-            years_of_grad = self.age - 18 + years_of_study[self.future_career]
+            years_of_grad = self.age - 18 + YEARS_OF_STUDY[self.future_career]
 
             if years_of_grad >= 0:
+                print('Not a Student')
                 self.career = self.future_career
             else:
+                print('Student')
                 self.career = 'Student'
                 if years_of_grad < 0:
                     years_of_grad = 0
 
         else:
-            years_of_grad = self.age - 18 + years_of_study[self.career]
+            years_of_grad = self.age - 18 + YEARS_OF_STUDY[self.career]
         return years_of_grad
 
     def childhood_savings(self):
@@ -123,24 +122,25 @@ class Person:
         elif 18 <= self.age < 25 and self.career == 'Student':
             part_time_years = self.age - 18
         else:
-            part_time_years = years_of_study[self.career] - 1
-        earnings = np.random.normal(10000, 5000, part_time_years).sum() * (1 - spender_profile[self.spender_prof])
-        return earnings
+            part_time_years = YEARS_OF_STUDY[self.career] - 1
+        earnings = np.random.normal(10000, 5000, part_time_years).sum() * (1 - SPENDER_PROFILE[self.spender_prof])
+        return np.round(earnings,2)
 
     def full_time_job_static(self):
         if self.age < 18 or (18 <= self.age < 25 and self.career == 'Student'):
             full_time_years = 0
         else:
-            full_time_years = self.age - years_of_study[self.career] - 18
-        earnings = self.income * (1 - spender_profile[self.spender_prof]) * full_time_years
-        return earnings
+            full_time_years = self.age - YEARS_OF_STUDY[self.career] - 18
+        earnings = self.income * (1 - SPENDER_PROFILE[self.spender_prof]) * full_time_years
+        return np.round(earnings, 2)
 
     def initial_balance(self):
         if self.loan > 0:
             self.balance = self.childhood_savings() + self.part_time_job() + self.full_time_job_static() - self.loan
         else:        
             self.balance = self.childhood_savings() + self.part_time_job() + self.full_time_job_static()
-    
+        self.balance = np.round(self.balance, 2)
+
     def initial_career(self):
         if 25 <= self.age < 35:
             self.career = np.random.choice(['Base', 'Medium', 'High'], p=[0.5, 0.4, 0.1])
@@ -164,10 +164,11 @@ class Person:
         if gender_bias and self.gender == 'Female':
             ### multiply by a random number between 0.8 and 1.0
             self.income *= np.random.uniform(0.8, 1.0)
+        self.income = np.round(self.income, 2)
 
     def student_loan(self):
         if self.career == 'Student':
-            total_tuition = tuition[self.future_career] * years_of_study[self.future_career]
+            total_tuition = TUITION[self.future_career] * YEARS_OF_STUDY[self.future_career]
             # Amount to be paid by loan
             loan_required = total_tuition - self.balance
             
@@ -280,7 +281,7 @@ class Person:
             tax = 0.40  # 30% tax
 
         if self.career != 'Student' and self.career != 'Cannot Work':
-            self.balance += self.income * (1 - spender_profile[self.spender_prof]- tax)
+            self.balance += self.income * (1 - SPENDER_PROFILE[self.spender_prof]- tax)
 
     def marriage_chance(self):
         if self.age >= 18 and self.married == False:

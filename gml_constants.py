@@ -29,3 +29,7 @@ LAST_NAMES = ['Adams', 'Alexander', 'Allen', 'Anderson', 'Bailey', 'Baker', 'Bar
                 'Powell', 'Price', 'Ramirez', 'Reed', 'Richardson', 'Rivera', 'Roberts', 'Robinson', 'Rodriguez', 'Rogers', 'Ross', 'Russell', 'Sanchez',
                 'Sanders', 'Scott', 'Simmons', 'Smith', 'Stewart', 'Taylor', 'Thomas', 'Thompson', 'Torres', 'Turner', 'Walker', 'Ward', 'Washington',
                 'Watson', 'White', 'Williams', 'Wilson', 'Wood', 'Wright', 'Young']
+
+YEARS_OF_STUDY = {'Base': 2, 'Medium': 3, 'High': 5, 'Very High': 7}
+TUITION = {'Base': 1000, 'Medium': 3000, 'High': 6000, 'Very High': 10000}
+SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75}
