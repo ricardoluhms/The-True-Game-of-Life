@@ -94,9 +94,10 @@ class Person:
 
     def initial_student_years_of_grad(self, mode='Could be Student'):
         if mode == 'Could be Student':
-            print('Could be Student')
+            
             self.future_career = np.random.choice(['Base', 'Medium', 'High', 'Very High'], p=[0.4, 0.3, 0.2, 0.1])
             years_of_grad = self.age - 18 + YEARS_OF_STUDY[self.future_career]
+            print('Could be Student', self.age, years_of_grad)
 
             if years_of_grad >= 0:
                 print('Not a Student')
