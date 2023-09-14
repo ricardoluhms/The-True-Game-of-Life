@@ -2,305 +2,159 @@ import numpy as np
 import pandas as pd
 from collections import defaultdict
 
-from  gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES, YEARS_OF_STUDY, TUITION, SPENDER_PROFILE)
+from  gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES, 
+                            GENDER_PROBS,SPENDER_PROFILE_PROBS,
+                            AGE_RANGES,AGE_RANGE_PROB_DICT,
+                            UGRAD_START_AGE, MAX_UGRAD_START_AGE,
+                            PART_TIME_JOB_MIN_AGE,  PART_TIME_JOB_PROB,                           
+                            YEARS_OF_STUDY, TUITION, SPENDER_PROFILE,
+                            INITIAL_CAREER_PROBS_BY_AGE, INITIAL_INCOME_RANGES,
+                            FUTURE_CAREER_PAY_PROBS,STUDENT_LOAN_INTEREST_RATES,
+                            CAREERS_AND_MARRIAGE_PROBS)
 import random
-               
+from datetime import date
+
+
+
+
 #%%
 
-class Person:
-    def __init__(self, gender:str =None, age_range:str=None, first_name = None, last_name = None):
+class Starter_Data_Person():
+
+    def __init__(self, gender:str =None, first_name = None, last_name = None, 
+                      current_year = None, age_range: str = None,
+                      career: str = None, future_career: str = None, income: int = None,
+                      loan: int = None, loan_term: int = None, balance: int = None,
+                      married: bool = False, children: int = 0, spender_prof: str = None,
+                      year_of_study: int = None,
+                      year_to_study: int = None):
         """ age_range options: 'Baby', 'Child', 'Teenager', 'Young Adult', 'Adult', 'Elder' \n
             gender options: 'Male' or 'Female' """
         if gender is None:
-            gender = np.random.choice(["Male","Female"],p=[0.5, 0.5])
+            gender = np.random.choice(GENDER_PROBS.keys(),p=GENDER_PROBS.values())
         self.gender = gender
-        if age_range is None:
-            age_range = np.random.choice(['Baby', 'Child', 'Teenager', 'Young Adult', 'Adult', 'Elder'], p=[0.1, 0.2, 0.2, 0.2, 0.2, 0.1])
-        self.initial_age(age_range)
-        self.spender_prof = np.random.choice(['Average', 'Big Spender', 'Small Spender'], p=[0.5, 0.3, 0.2])
-        self.student_and_career_path_check()
-        self.initial_income()
-        self.loan = 0
-        self.loan_term = 0
-        self.initial_balance()
-        self.married = False
-        self.history = []
-        self.children = []
         self.first_name = first_name;  self.last_name = last_name
         self.generate_full_name()
         self.unique_name_id = self.generate_unique_name_id()
-        
- 
-    def generate_first_name(self):
+        if current_year is None:
+            current_year = date.today().year
+        self.current_year = current_year
+        self.age_range, self.age = self.initial_age(age_range)       
+        self.career = career
+        self.future_career = future_career
+        self.year_of_study = year_of_study
+        self.year_to_study = year_to_study
+        self.income = income
+        self.loan = loan
+        self.loan_term = loan_term
+        self.interest_rate = None
+        self.balance = balance
+        self.married = married
+        self.children = children
+        self.spender_prof = spender_prof
+        self.event = "Created"
+        self.history = []
+        self.update_history(self.event)
+
+
+    def generate_first_name(self):#
         if self.gender == "Female":
             name = random.choice(FEMALE_FIRST_NAMES)
         else:
             name = random.choice(MALE_FIRST_NAMES)
-
         return name
 
-    def generate_full_name (self):
+    def generate_full_name (self):#
         if self.last_name is None:
             self.last_name = random.choice(LAST_NAMES)
         if self.first_name is None:
             self.first_name = self.generate_first_name()
         self.full_name = self.first_name + " " + self.last_name
 
-    def generate_unique_name_id(self):
+    def generate_unique_name_id(self):#
         ### contains the first name, last name, and a random number between 0 and 1000 without spaces
         return self.first_name +"_"+ self.last_name +"_"+ str(random.randint(0, 10000))
-
-    def initial_age(self, age_range=None):
-        if age_range == 'Baby':
-            self.age = np.random.randint(0, 2)
-        elif age_range == 'Child':
-            self.age = np.random.randint(2, 13)
-        elif age_range == 'Teenager':
-            self.age = np.random.randint(13, 18)
-        elif age_range == 'Young Adult':
-            self.age = np.random.randint(18, 25)
-        elif age_range == 'Adult':
-            self.age = np.random.randint(25, 65)
-        elif age_range == 'Elder':
-            self.age = np.random.randint(65, 96)
-        else:
-            ### raise error if age_range is not specified
-            raise ValueError('age_range is not specified')
-        self.age_range = age_range
-
-    def update_age_range(self):
-        if 0 <= self.age <= 1:
-            age_range = 'Baby'
-        elif 2 <= self.age <= 12:
-            age_range = 'Child'
-        elif 13 <= self.age <= 17:
-            age_range = 'Teenager'
-        elif 18 <= self.age <= 24:
-            age_range = 'Young Adult'
-        elif 25 <= self.age <= 64:
-            age_range = 'Adult'
-        else:
-            age_range = 'Elder'
-        self.age_range = age_range
-
-    def student_and_career_path_check(self):
-        if self.age < 18:
-            self.career = 'Cannot Work'
-        elif 18 <= self.age < 25:
-            self.initial_student_years_of_grad(mode='Could be Student')
-        else:
-            self.initial_career()
-            self.initial_student_years_of_grad(mode="Graduated")
-
-    def initial_student_years_of_grad(self, mode='Could be Student'):
-        if mode == 'Could be Student':
-            
-            self.future_career = np.random.choice(['Base', 'Medium', 'High', 'Very High'], p=[0.4, 0.3, 0.2, 0.1])
-            years_of_grad = self.age - 18 - YEARS_OF_STUDY[self.future_career]
-            print('Could be Student', self.age, years_of_grad)
-
-            if years_of_grad >= 0:
-                print('Not a Student')
-                self.career = self.future_career
-            else:
-                print('Student')
-                self.career = 'Student'
-                if years_of_grad < 0:
-                    years_of_grad = 0
-
-        else:
-            years_of_grad = self.age - 18 - YEARS_OF_STUDY[self.career]
-        return years_of_grad
-
-    def childhood_savings(self):
-        childhood_years = min(self.age, 17)
-        savings = np.random.normal(500, 500, childhood_years).sum()
-        return savings
-
-    def part_time_job(self):
-        if self.age < 18:
-            part_time_years = 0
-        elif 18 <= self.age < 25 and self.career == 'Student':
-            part_time_years = self.age - 18
-        else:
-            part_time_years = YEARS_OF_STUDY[self.career] - 1
-        earnings = np.random.normal(10000, 5000, part_time_years).sum() * (1 - SPENDER_PROFILE[self.spender_prof])
-        return np.round(earnings,2)
-
-    def full_time_job_static(self):
-        if self.age < 18 or (18 <= self.age < 25 and self.career == 'Student'):
-            full_time_years = 0
-        else:
-            full_time_years = self.age - YEARS_OF_STUDY[self.career] - 18
-        earnings = self.income * (1 - SPENDER_PROFILE[self.spender_prof]) * full_time_years
-        return np.round(earnings, 2)
-
-    def initial_balance(self):
-        if self.loan > 0:
-            self.balance = self.childhood_savings() + self.part_time_job() + self.full_time_job_static() - self.loan
-        else:        
-            self.balance = self.childhood_savings() + self.part_time_job() + self.full_time_job_static()
-        self.balance = np.round(self.balance, 2)
-
-    def initial_career(self):
-        if 25 <= self.age < 35:
-            self.career = np.random.choice(['Base', 'Medium', 'High'], p=[0.5, 0.4, 0.1])
-        elif 35 <= self.age < 55:
-            self.career = np.random.choice(['Base', 'Medium', 'High', 'Very High'], p=[0.3, 0.4, 0.2, 0.1])
-        else:
-            self.career = np.random.choice(['Base', 'Medium', 'High', 'Very High'], p=[0.4, 0.3, 0.2, 0.1])
-
-    def initial_income(self, gender_bias=None):
-        if self.career == 'Student' or self.career == 'Cannot Work':
-            self.income = 0
-        else:
-            if self.career == 'Base':
-                self.income = np.random.normal(30000, 5000)
-            elif self.career == 'Medium':
-                self.income = np.random.normal(60000, 10000)
-            elif self.career == 'High':
-                self.income = np.random.normal(100000, 20000)
-            else:
-                self.income = np.random.normal(200000, 40000)
-        if gender_bias and self.gender == 'Female':
-            ### multiply by a random number between 0.8 and 1.0
-            self.income *= np.random.uniform(0.8, 1.0)
-        self.income = np.round(self.income, 2)
-
-    def student_loan(self):
-        if self.career == 'Student':
-            total_tuition = TUITION[self.future_career] * YEARS_OF_STUDY[self.future_career]
-            # Amount to be paid by loan
-            loan_required = total_tuition - self.balance
-            
-            if loan_required <= 0:
-                self.balance -= total_tuition
-                self.loan = 0
-                self.loan_term = 0
-            else:
-                self.loan = loan_required
-                self.loan_term = np.random.randint(5, 20)
-                self.balance = 0  # all money used to pay part of the tuition
-        else:
-            self.loan = 0
-            self.loan_term = 0
-
-    def composed_interest(self, principal_loan_amount, interest_rate, loan_term=10):
-        loan_term = 10  # assume a fixed loan term
-        # compound interest formula: A = P (1 + r/n)^(nt)
-        # where: 
-        # A = the money accumulated after n years, including interest.
-        # P = principal amount (the initial money before interest)
-        # r = annual interest rate (in decimal form)
-        # n = number of times that interest is compounded per year
-        # t = the time the money is invested for, in years
-        n = 1  # assume the interest is compounded annually
-        compound_loan_amount = principal_loan_amount * (1 + interest_rate/n)**(n*loan_term)
-        return compound_loan_amount
-
-    def get_loan(self, interest_rate=None, desired_loan_amount=None, loan_term_years=10):
-        # Set Interest Rate
-        if interest_rate is None:
-            interest_rate = random.uniform(0.02, 0.12)
-
-        # Check Income
-        if self.married:
-            total_income = self.income + self.spouse.income
-        else:
-            total_income = self.income
-
-        # Check Current Loan(s)
-        if self.married and self.loan > 0 and self.spouse.loan > 0:
-            current_loan_amount = self.loan + self.spouse.loan + desired_loan_amount
-        elif self.married and self.loan > 0:
-            current_loan_amount = self.loan + desired_loan_amount
-        elif self.married and self.spouse.loan > 0:
-            current_loan_amount = self.spouse.loan + desired_loan_amount
-        elif self.loan > 0:
-            current_loan_amount = self.loan + desired_loan_amount
-        else:
-            current_loan_amount = desired_loan_amount   
-        
-        # Check max loan amount
-        max_loan_amount = total_income * 0.45 if not self.student else total_income * 0.50
-        desired_loan_amount = max_loan_amount - current_loan_amount
-        
-        if current_loan_amount > max_loan_amount:
-            # warning message without raising error
-            print('You cannot get more loans. You have reached the maximum loan amount.')
-            return None
-        else:
-            # calculate the compounded interest
-            future_value = desired_loan_amount * ((1 + interest_rate)**loan_term_years)
-            future_value = self.composed_interest(desired_loan_amount, interest_rate, loan_term_years)
-            yearly_payment = future_value / loan_term_years
-            
-            if self.married:
-                self.loan = future_value / 2
-                self.spouse.loan = future_value / 2
-                self.loan_yearly_payment = yearly_payment / 2
-                self.spouse.loan_yearly_payment = yearly_payment / 2
-                self.loan_term = loan_term_years
-                self.spouse.loan_term = loan_term_years
-            else:
-                self.loan = future_value
-                self.loan_yearly_payment = yearly_payment
-                self.loan_term = loan_term_years
     
-    def pay_loan(self):
-        if self.loan > 0 and self.loan_term > 0:
-            self.balance -= self.yearly_payment
-            self.loan -= self.yearly_payment
-            if self.loan < 0:
-                self.balance += abs(self.loan)
-                self.loan = 0
+    def update_age_range(self):#
+        for age_range, age_range_list in AGE_RANGES.items():
+            if age_range_list[0] <= self.age <= age_range_list[1]:
+                return age_range
+
+    def initial_age(self, age_range=None):#
+        if age_range is None:
+            age = np.random.randint(AGE_RANGES["Baby"][0], AGE_RANGES["Elder"][1])
+            age_range = self.update_age_range()
         else:
-            self.loan_term = 0
+            age = np.random.randint(AGE_RANGES[age_range][0], AGE_RANGES[age_range][1])
+            age_range = age_range
+        return age_range, age
 
-    def promotion(self):
-        if self.career != 'Student' and self.career != 'Cannot Work':
-            if np.random.random() < 0.1:
-                if self.career == 'Base':
-                    self.career = 'Medium'
-                    self.income = np.random.normal(60000, 10000)
-                elif self.career == 'Medium':
-                    self.career = 'High'
-                    self.income = np.random.normal(100000, 20000)
-                elif self.career == 'High':
-                    self.career = 'Very High'
-                    self.income = np.random.normal(200000, 40000)
+    def update_history(self, event:str):
+        self.history.append({"Gender":self.gender,
+                             'First Name': self.first_name,
+                             'Last Name': self.last_name,
+                             'Full Name': self.full_name,
+                             'Unique Name ID': self.unique_name_id,
+                             'Age': self.age,
+                             'Age Range': self.age_range,
+                             'Career': self.career,
+                             'Future Career': self.future_career,
+                             'Income': self.income,
+                             'Spender Profile': self.spender_prof,
+                             'Loan': self.loan,
+                             'Loan Term': self.loan_term,
+                             'Balance': self.balance,
+                             'Married': self.married,
+                             'Children': self.children,
+                             'Year': self.current_year,
+                             "Year of Study":self.year_of_study,
+                             "Year to Study":self.year_to_study,
+                             'db_event': event})
+    
+    def update_history_from_dict(self, history_dict:dict):
+        self.history.append(history_dict)
 
-    def work(self):
-        # Tax Brackets
-        if self.income <= 30000:
-           tax = 0.10  # 10% tax
-        elif 30000 < self.income <= 50000:
-            tax = 0.20  # 20% tax
-        elif 50000 < self.income <= 100000:
-            tax = 0.30  # 30% tax
+    def student_loan(self, future_career, balance, loan, loan_term, interest_rate=None):### review this function
+        
+        ### Tuition due
+        tuition_due = TUITION[future_career]
+        
+        if interest_rate is None:
+            interest_rate = random.uniform(STUDENT_LOAN_INTEREST_RATES[0], 
+                                                STUDENT_LOAN_INTEREST_RATES[1])
+
+        # Subtract tuition from balance
+        balance -= tuition_due
+
+        if balance > 0:
+            ### Student has enough money to pay for the tuition
+            loan = 0
+            loan_term = 0
         else:
-            tax = 0.40  # 30% tax
+            ### Student does not have enough money to pay for the tuition
+            new_loan = abs(balance) * (1 + interest_rate)**(loan_term)
+            if loan != 0:
+                loan += new_loan
+            else:
+                ### Student does not have loan and will need to get a loan on the remaining balance
+                loan = new_loan
+            balance = 0
+            
+        return loan, loan_term, interest_rate, balance
 
-        if self.career != 'Student' and self.career != 'Cannot Work':
-            self.balance += self.income * (1 - SPENDER_PROFILE[self.spender_prof]- tax)
+    def retrieve_last_history(self):
+        return self.history[-1]
+    
+    def retrieve_history(self):
+        return self.history
 
     def marriage_chance(self):
-        if self.age >= 18 and self.married == False:
-            if self.career == 'Student':
-                chance = 0.1
-            elif self.career == 'Cannot Work':
-                chance = 0.15
-            elif self.career == 'Base':
-                chance = 0.3
-            elif self.career == 'Medium':
-                chance = 0.35
-            elif self.career == 'High':
-                chance = 0.5
-            elif self.career == 'Very High':
-                chance = 0.8
-            else:
-                chance = 0.0
-            if np.random.random() < chance:
+
+        career_crit_chance = CAREERS_AND_MARRIAGE_PROBS[self.career][0]
+    
+        if self.age >= 16 and self.married == False:
+        
+            if np.random.random() < career_crit_chance:
                 self.marriage()
                 _, marriage_expense = self.calculate_marriage_cost()
                 total_balance = self.balance + self.spouse.balance
@@ -308,159 +162,244 @@ class Person:
                     get_loan_status = self.get_loan(desired_loan_amount=marriage_expense-total_balance)
                     if  get_loan_status is None:
                         print('You cannot afford the marriage expense. You have reached the maximum loan amount.')
-
-    def calculate_marriage_cost(self):
-        # Average cost per person
-        avg_cost_per_person = 34000 / 100  # assuming average 100 guests
-        
-        # Randomize number of guests, more concentrated on 50 to 100
-        guests = np.random.normal(loc=75, scale=20).astype(int)
-        guests = np.clip(guests, 25, 300)
-        
-        # Calculate cost based on random additional percentage up to 40%
-        additional_percentage = np.random.uniform(0, 0.4)
-        cost_per_person = avg_cost_per_person * (1 + additional_percentage)
-        total_cost = guests * cost_per_person
-        
-        return guests, total_cost
-
+    
     def marriage(self):
-        if self.age >= 18 and self.married == False:
-            if self.gender == "Male":
-                spouse_gender = 'Female' if np.random.random() < 0.75 else 'Male'
+
+        if self.gender == "Male":
+            spouse_gender = 'Female' if np.random.random() < 0.75 else 'Male'
+        else:
+            spouse_gender = 'Male' if np.random.random() < 0.75 else 'Female'
+        spouse = Starter_Data_Person(spouse_gender,age_range=self.age_range)
+        spouse.married = True
+        self.spouse = spouse
+        self.married = True
+        self.update_history()
+
+### Generate a class Person that keeps track of multiple Classes such as Baby, Child, Teenager, Young Adult, Adult, Elder
+### if the baby ages up to a child, then the baby class is deleted and a child class is created using the baby class attributes
+### if the child ages up to a teenager, then the child class is deleted and a teenager class is created using the child class attributes
+### if the teenager ages up to a young adult, then the teenager class is deleted and a young adult class is created using the teenager class attributes
+### if the young adult ages up to an adult, then the young adult class is deleted and an adult class is created using the young adult class attributes
+### if the adult ages up to an elder, then the adult class is deleted and an elder class is created using the adult class attributes
+
+class Person_Life(Starter_Data_Person):
+    def __init__(self, gender:str =None, first_name:str = None, last_name:str = None, current_year:int = None, age_range: str = None):
+        super().__init__(gender, first_name, last_name, current_year, age_range)
+    
+    ### there will be two main scenarios:
+    # - the person is a recent born from a couple and just ages up
+    # - the person was randomly generated and has a random age and we would need to know previous events from the past and then age up
+
+    ### every time a person ages up, we need to update the history and check if the class changes 
+    ### if the class changes, we need to delete the previous class and create a new class inheriting from the previous class last history
+
+    ### if a person is created straight ahead as an elder then we need to create adult, teenager, child, baby classes and update their history
+    ### if a person is created straight ahead as an working adult then we need to create child and teenager,child, baby classes and update their history
+    ### if a person is created straight ahead as an teenager then we need to create child and baby classes and update their history
+    ### if a person is created straight ahead as an child then we need to create baby classes and update their history
+    ### if a person is created straight ahead as an baby then we need to create baby classes and update their history
+
+    def get_created_history(self):
+        return self.history[0]
+
+    def generate_past_history(self):
+        past_year = self.current_year - 1
+        past_age = self.age - 1
+        past_age_range = self.update_age_range()
+        ### check age_range
+
+
+
+    def elder(self):
+
+        ### life events
+
+        ### adult to elder
+
+
+        ### baby to child
+        ### child to teenager
+        ### teenager to young adult
+        ### young adult to adult
+        ### adult to elder
+        pass
+
+    def adult(self):
+        ### life events
+        ### baby to child
+        ### child to teenager
+        ### teenager to young adult
+        ### young adult to adult
+        pass
+
+    def young_adult(self):
+        self.teenager_life()
+        temp_history = self.history[-1]
+        self.temporary_income = None
+        new_income_check = False
+        for age in range(AGE_RANGES['Young Adult'][0],AGE_RANGES['Young Adult'][1]+1):
+            
+            ### First Year of Study 
+            if age == AGE_RANGES['Young Adult'][0]:
+                temp_history['Event'] = "Become Young Adult"
+
+                ### set future career and update current career
+                future_career = np.random.choice( FUTURE_CAREER_PAY_PROBS.keys(), 
+                                                  p=FUTURE_CAREER_PAY_PROBS.values())
+                temp_history['Future Career'] = future_career
+                temp_history['Years of Study'] = 0
+                temp_history['Years to Study'] = YEARS_OF_STUDY[future_career]
+                if temp_history['Career'] == "Part Time Job":
+                    temp_history['Career'] = "Student with Part Time Job"
+                elif temp_history['Career'] == "Pocket Money":
+                    temp_history['Career'] = "Student with Pocket Money"
             else:
-                spouse_gender = 'Male' if np.random.random() < 0.75 else 'Female'
-            spouse = Person(spouse_gender,age_range=self.age_range)
-            spouse.married = True
-            self.spouse = spouse
-            self.married = True
-            self.update_history()
+                temp_history['Event'] = "Aged Up"
+                temp_history['Years of Study'] += 1
+                temp_history['Years to Study'] -= 1
 
-    def age_up(self):
-        self.age += 1
-        self.update_age_range()
-        if self.age >= 18:
-            if self.career == 'Student':
-                years_of_grad = self.initial_student_years_of_grad()
-                if years_of_grad <= 0:
-                    self.career = self.future_career
-                    self.initial_income()
-            self.pay_loan()
-            self.promotion()
-            self.work()
-            self.spend()
-        if self.married and np.random.rand() <= 0.05:
-            self.have_child()
-        elif self.married == False and self.age >= 18 and np.random.rand() <= 0.025:
-            self.have_child()
-        self.marriage_chance()
-        self.update_history()
+            ### Part Time Job - Check if the person will get a part time job
+            if np.random.random() >= PART_TIME_JOB_PROB and temp_history['Career'] == "Student with Pocket Money":
+                temp_history['Career'] = "Student with Part Time Job"
+                temp_history['Income'] = np.random.choice( INITIAL_INCOME_RANGES['Part Time Job'][0],
+                                                             INITIAL_INCOME_RANGES['Part Time Job'][1])
+    
+            ## check if the person has finished studying
+            student_career = ["Student with Part Time Job",  "Student with Pocket Money"]
 
-    def update_history(self):
-        self.history.append({'Age': self.age,
-                             'Age Range': self.age_range,
-                             'Career': self.career,
-                             'Income': self.income,
-                             'Loan': self.loan,
-                             'Loan Term': self.loan_term,
-                             'Balance': self.balance,
-                             'Married': self.married,
-                             'Children': self.children})
+            ### chance of getting a job - initiallly will be 100% rewrite this later
+            if temp_history['Years to Study'] == 0 and temp_history['Career'] in student_career:
 
-    def run_life(self):
-        while self.age < 95:
-            self.age_up()
+                temp_history['Career'] = temp_history['Future Career']
+                temp_history['Future Career'] = None
+                temp_history['Years of Study'] = YEARS_OF_STUDY[future_career]
+                temp_history['Years to Study'] = 0
+
+                new_income = np.random.choice( INITIAL_INCOME_RANGES[temp_history['Career']][0],
+                                                            INITIAL_INCOME_RANGES[temp_history['Career']][1])
+                previous_income = temp_history['Income']
+                ### random month to start working
+                month = 1/np.random.randint(1,13)
+
+                temp_history['Income'] = new_income*month + previous_income*(1-month)
+                new_income_check = True
+            ## updates second year of work
+            elif temp_history['Years to Study'] == 0 and temp_history['Career'] not in student_career:
+                if new_income_check:
+                    temp_history['Income'] = new_income
+                    new_income_check = False
+
+            ### Student - Check if the person will need a loan
+            pack = self.student_loan( future_career, 
+                                      temp_history['Balance'], 
+                                      temp_history['Loan'], 
+                                      temp_history['Loan Term'],
+                                      temp_history['Interest Rate'])
+            
+            ### return reviewed loan, loan term, interest rate, and balance
+            temp_history['Loan'], temp_history['Loan Term'], temp_history['Interest Rate'], temp_history['Balance']  = pack
+            
+            temp_history['Balance'] += temp_history['Income'] -\
+                            temp_history['Income']*SPENDER_PROFILE[temp_history['Spender Profile']]
+
+            temp_history["Year"] += 1
+            temp_history["Age"] = age
+            temp_history["Age Range"] = self.update_age_range()
+
+            ### check if the person will get married
 
 
-        ...
 
-    def age_up(self):
-        self.age += 1
-        self.update_history()
-        if self.age >= 18 and self.married == False:
-            self.marriage()
-        if self.married and np.random.rand() <= 0.05:
-            self.have_child()
-        ...
+            
 
-    def have_child(self):
-        if self.gender == 'Female':
-            mother = self
-        else:
-            mother = self.spouse
+            
 
-        age = mother.age
-        education_level = {'Base': 1.2, 'Medium': 1, 'High': 0.8, 'Very High': 0.5}
-        education_factor = education_level[mother.career]
 
-        if age <= 28:
-            base_prob = 0.5
-        else:
-            base_prob = 0.5 * np.exp(-0.1 * (age - 28))
+        ### life events
+        ### will go to college/university
+        ### will get a loan
+        ### will get a job
+        ### may get married
+        ### may have children
+        ### may get a house
+        ### may get a car
 
-        # Reduce probability with number of children
-        child_factor = np.exp(-0.5 * len(self.children))
+        pass
 
-        # Calculate final probability
-        prob = base_prob * child_factor * education_factor
+    def teenager_life(self):
+        self.child_life()
+        temp_history = self.history[-1]
+    
+        ### life events
+        #### can get a part time job with a probability when 16 years old
+        for age in range(AGE_RANGES["Teenager"][0],AGE_RANGES["Teenager"][1]+1):
+            if age == AGE_RANGES["Teenager"][0]:
+                temp_history['Event'] = "Become Teenager"
+                temp_history['Career'] = "Pocket Money"
+            else:
+                temp_history['Event'] = "Aged Up"
 
-        if np.random.random() < prob:
-            child = Person(np.random.choice(['Male', 'Female']))
-            self.children.append(child)
-### to do
-### add buy insurance
-### check for life events that could lead to insurance
-### add likelihood of getting insurance
-### add buy house or rent
-### add buy car
-### chances of death
-### add current year in history
 
-### in city - generate starting population
-### in city - if there were life events that adds new people to the city, add them to the city
-### check if spouse is randomly generated or not if true then add to city else update relationship
-### check for children events and add them to the city
-### check for death events and change their status to dead and the year they died
-### for kids, add their parents in the relationship list
+            if age >= PART_TIME_JOB_MIN_AGE:
+                if temp_history['Career'] == "Pocket Money" and np.random.random() >= PART_TIME_JOB_PROB:
+                    temp_history['Career'] = "Part Time Job"
+                temp_history['Income'] = np.random.choice( INITIAL_INCOME_RANGES['Part Time Job'][0],
+                                                             INITIAL_INCOME_RANGES['Part Time Job'][1])
+                
+            temp_history['Balance'] += temp_history['Income'] -\
+                            temp_history['Income']*SPENDER_PROFILE[temp_history['Spender Profile']] 
+            temp_history["Year"] += 1
+            temp_history["Age"] = age
+            temp_history["Age Range"] = self.update_age_range()
+            self.update_history_from_dict(temp_history)
+        pass
 
-### create a marketing campaign class
-### this class will generate a random list of a subset of the population and send them insurance offers
-### if the person is not insured, check if they are targets with high likelihood of getting insurance
-### -	Create a unique measure of risk to evaluate if they are going to buy or not insurance.
-### We would assume that a normal campaign would have X% of open ratio, 
-### ... and Y% out of the X that opened would engage with the website
-###	Z% would be the ones that opened, engaged and bought insurance
-### this class will keep record of the campaign and the results
-### this will count the amount of policies sold and the amount of money made from the campaign
-### the campaign will have a cost associated with it based on the number of people targeted
-### the campaign will also track the number of people that were eligible for the campaign but were not targeted
-### and check if they bought insurance or not 
+    def child_life(self):
+        self.baby_life()
+        temp_history = self.history[-1]
 
-### a dataset with all the campaigns will be created and will be used to train several models
-### customer segmentation clustering
-### likelihood of buying insurance
-### campaign success prediction
-### campaign cost prediction
+        ### life events
+        #### gain pocket money
+        for age in range(AGE_RANGES["Child"][0],AGE_RANGES["Child"][1]+1):
+            if age == AGE_RANGES["Child"][0]:
+                temp_history['Event'] = "Become Child"
+            else:
+                temp_history['Event'] = "Aged Up"
 
-class City:
-    def __init__(self, name):
-        self.name = name
-        self.citizens = []
-        self.relationship_changes = []
-        
-    def add_citizen(self, person):
-        ### check if person is already in the city
-        ### if not, add them to the city
-        citizen_check = [person.name for person in self.citizens]
-        self.citizens.append(person)
-        
-    def form_relationship(self, person1, person2, relationship):
-        person1.form_relationship(person2, relationship)
-        self.relationship_changes.append({
-            'Person1': person1.name,
-            'Person2': person2.name,
-            'Relationship': relationship
-        })
-        
-    def get_relationship_changes(self):
-        return self.relationship_changes
+            temp_history["Year"] += 1
+            temp_history["Age"] = age
+            temp_history["Age Range"] = self.update_age_range()
+
+            if age == 5:
+                temp_history['Career'] = "Pocket Money"
+                temp_history['Income'] = np.random.choice( INITIAL_INCOME_RANGES['Pocket Money'][0],
+                                                           INITIAL_INCOME_RANGES['Pocket Money'][1])
+                
+                temp_history['Spender Profile'] = np.random.choice( SPENDER_PROFILE_PROBS.keys(),
+                                                                    p = SPENDER_PROFILE_PROBS.values())
+                
+            if temp_history['Career'] == "Pocket Money":
+                temp_history['Balance'] += temp_history['Income'] -\
+                                           temp_history['Income']*SPENDER_PROFILE[temp_history['Spender Profile']]
+
+            self.update_history_from_dict(temp_history)
+
+    def baby_life(self):### to test
+        temp_history = self.history[0]
+        year_born = temp_history["Year"] - temp_history["Age"]
+        temp_history['Event'] = "Born"
+        for age in range(AGE_RANGES["Baby"][0],AGE_RANGES["Baby"][1]+1):
+            if age == AGE_RANGES["Baby"][0]:
+                temp_history["Year"] = year_born
+            else:
+                temp_history["Year"] += 1
+                temp_history['Event'] = "Aged Up"
+
+
+            temp_history["Age"] = age
+            temp_history["Age Range"] = self.update_age_range()   
+            self.update_history_from_dict(temp_history)
+
+
+
+

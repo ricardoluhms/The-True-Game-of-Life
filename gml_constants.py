@@ -33,3 +33,57 @@ LAST_NAMES = ['Adams', 'Alexander', 'Allen', 'Anderson', 'Bailey', 'Baker', 'Bar
 YEARS_OF_STUDY = {'Base': 2, 'Medium': 3, 'High': 5, 'Very High': 7}
 TUITION = {'Base': 1000, 'Medium': 3000, 'High': 6000, 'Very High': 10000}
 SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75}
+PART_TIME_JOB_MIN_AGE = 16
+PART_TIME_JOB_PROB = 0.5
+UGRAD_START_AGE = 18
+MAX_UGRAD_START_AGE = 18 + max(YEARS_OF_STUDY.values())
+
+AGE_RANGES = {'Baby': [0, 2], 
+              'Child': [3, 12], 
+              'Teenager': [13, 17], 
+              'Young Adult': [18, 25], 
+              'Adult': [26, 65], 
+              'Elder': [66, 96]}
+
+AGE_RANGE_PROB_DICT = {'Baby': 0.1,
+                        'Child': 0.2,
+                        'Teenager': 0.2,
+                        'Young Adult': 0.2,
+                        'Adult': 0.2,
+                        'Elder': 0.1}
+
+GENDER_PROBS = {'Male': 0.5,
+                'Female': 0.5}                   
+
+SPENDER_PROFILE_PROBS = {'Average': 0.5,
+                        'Big Spender': 0.3,
+                        'Small Spender': 0.2}
+
+FUTURE_CAREER_PAY_PROBS = {'Base': 0.4,
+                           'Medium': 0.4,
+                           'High': 0.1,
+                           'Very High': 0.1}
+
+INITIAL_INCOME_RANGES = {'Pocket Money': [500,500],
+                         'Part Time': [10000, 5000],
+                         'Base': [30000, 5000],
+                         'Medium': [60000, 10000],
+                         'High': [100000, 20000],
+                         'Very High': [200000, 40000],
+                         'Retired': [75000, 55000]}
+
+INITIAL_CAREER_PROBS_BY_AGE = { 25: {'Base': 0.5, 'Medium': 0.4, 'High': 0.09, 'Very High': 0.01},
+                                35: {'Base': 0.3, 'Medium': 0.4, 'High': 0.2, 'Very High': 0.1},
+                                55: {'Base': 0.4, 'Medium': 0.3, 'High': 0.2, 'Very High': 0.1},
+                                75: {'Base': 0.5, 'Medium': 0.3, 'High': 0.1, 'Very High': 0.1}}
+
+CAREERS_AND_MARRIAGE_PROBS = {"Student with Part Time Job": 0.02,
+                              "Student with Pocket Money": 0.01,
+                              'Pocket Money': 0.001,
+                              'Part Time': 0.002,
+                              'Base': 0.2,
+                              'Medium': 0.3,
+                              'High': 0.4,
+                              'Very High': 0.3}
+
+STUDENT_LOAN_INTEREST_RATES = [0.02, 0.07]
