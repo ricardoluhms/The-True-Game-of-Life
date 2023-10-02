@@ -204,6 +204,7 @@ class Starter_Data_Person():
             loan_term = YEARS_OF_STUDY[future_career]+8
 
         # Subtract tuition from balance
+        print(tuition_due,balance)
         balance -= tuition_due
 
         if balance > 0:
@@ -213,7 +214,8 @@ class Starter_Data_Person():
         else:
             ### Student does not have enough money to pay for the tuition
             new_loan = abs(balance) * (1 + interest_rate)**(loan_term)
-            if loan != 0:
+            ### check if loan exist and is not None
+            if loan != 0 and loan is not None:
                 loan += new_loan
             else:
                 ### Student does not have loan and will need to get a loan on the remaining balance
@@ -314,7 +316,7 @@ class Person_Life(Starter_Data_Person):
         self.temporary_income = None
         new_income_check = False
         student_career = ["Part Time",  "Pocket Money"]
-
+        print("future career",temp_history['future_career'])
         if temp_history['age'] == AGE_RANGES['Young Adult'][0]:
             event = "Became Young Adult"
 
@@ -335,19 +337,22 @@ class Person_Life(Starter_Data_Person):
 
         if np.random.random() >= PART_TIME_JOB_PROB and temp_history['career'] == "Pocket Money":
             temp_history['career'] = 'Part Time'
-            temp_history['income'] = np.random.choice( INITIAL_INCOME_RANGES['Part Time'][0],
-                                                    INITIAL_INCOME_RANGES['Part Time'][1])
+            temp_history['income'] = abs(np.random.choice( INITIAL_INCOME_RANGES['Part Time'][0],
+                                                    INITIAL_INCOME_RANGES['Part Time'][1]))
             event = "Young Adult - Part Time - Aged Up"
         
         if temp_history['years_to_study'] == 0 and temp_history['career'] in student_career:
+            if temp_history['future_career'] is None:
+                print("Error: future career is None", future_career, temp_history['future_career'])
+                future_career = temp_history['future_career']
             event = "Young Adult - Finished Studies"
             temp_history['career'] = temp_history['future_career']
             temp_history['future_career'] = None
             temp_history['years_of_study'] = YEARS_OF_STUDY[future_career]
             temp_history['years_to_study'] = 0
 
-            new_income = np.random.choice( INITIAL_INCOME_RANGES[temp_history['career']][0],
-                                                        INITIAL_INCOME_RANGES[temp_history['career']][1])
+            new_income = abs(np.random.choice( INITIAL_INCOME_RANGES[temp_history['career']][0],
+                                                        INITIAL_INCOME_RANGES[temp_history['career']][1]))
             previous_income = temp_history['income']
             month = 1/np.random.randint(1,13)
             temp_history['income'] = new_income*month + previous_income*(1-month)
@@ -462,10 +467,10 @@ class Person_Life(Starter_Data_Person):
     def age_up(self):
         ### check current age range and age one year for that age range
         temp_history = self.history_df.iloc[-1].copy()
-        print(temp_history)
+        #print(temp_history)
         age_range = temp_history['age_range']
         
-        print(age_range, temp_history['age'], " age up function start")
+        #print(age_range, temp_history['age'], " age up function start")
         temp_history = self.temp_age_up(temp_history)
         age_range = temp_history['age_range']
 
@@ -484,7 +489,7 @@ class Person_Life(Starter_Data_Person):
         elif age_range == "Elder":
             pass
             #temp_history,event =  self.elder_one_year(temp_history)
-        print(age_range, self.history_df.iloc[-1]['age'], " age up function end", event)
+        #print(age_range, self.history_df.iloc[-1]['age'], " age up function end", event)
         self.update_history(new_history = temp_history, event=event)
 ### if person temp_history['age'] is > baby age range, generate the first event a
 # %%
