@@ -62,8 +62,25 @@ class Starter_Data_Person():
                       married: bool = False, children: int = 0, spender_prof: str = None,
                       years_of_study: int = None,
                       years_to_study: int = None):
-        """ age_range options: 'Baby', 'Child', 'Teenager', 'Young Adult', 'Adult', 'Elder' \n
-            gender options: 'Male' or 'Female' """
+        
+        """
+        Initialize a new person with various attributes.
+        
+        Parameters:
+        - gender: The gender of the person. Can be 'Male' or 'Female'.
+        - first_name, last_name: The name of the person.
+        - current_year: The current year for context.
+        - age_range: The age category the person belongs to. 
+                (age_range options: 'Baby', 'Child', 'Teenager', 'Young Adult', 'Adult', 'Elder' \n)
+        - career, future_career: The current and future careers of the person.
+        - income: The person's income.
+        - loan, loan_term, balance: Financial attributes.
+        - married: Marital status.
+        - children: Number of children.
+        - spender_prof: Spending profile.
+        - years_of_study, years_to_study: Education attributes.
+        """
+
         if gender is None:
             gender = np.random.choice( list(GENDER_PROBS.keys()),
                                        p=np.array(list(GENDER_PROBS.values())))
@@ -410,8 +427,9 @@ class Person_Life(Starter_Data_Person):
         self.update_history(new_history = temp_history, event="Born")
 
     def temp_age_up(self, temp_history = None):
-        if temp_history == None:
+        if temp_history is None:
             temp_history = self.history_df.iloc[-1].copy()
+        
         temp_history['year'] += 1
         temp_history['age'] += 1
         temp_history['age_range'] = self.update_age_range(temp_history['age'])
@@ -420,6 +438,7 @@ class Person_Life(Starter_Data_Person):
     def age_up(self):
         ### check current age range and age one year for that age range
         temp_history = self.history_df.iloc[-1].copy()
+        print(temp_history)
         age_range = temp_history['age_range']
         
         print(age_range, temp_history['age'], " age up function start")
