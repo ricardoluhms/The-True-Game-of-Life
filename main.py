@@ -79,19 +79,31 @@ class Starter_Data_Person():
         - children: Number of children.
         - spender_prof: Spending profile.
         - years_of_study, years_to_study: Education attributes.
-        """
 
+        """
+        # Determine gender if not provided
         if gender is None:
             gender = np.random.choice( list(GENDER_PROBS.keys()),
                                        p=np.array(list(GENDER_PROBS.values())))
         self.gender = gender
-        self.first_name = first_name;  self.last_name = last_name
+        
+        # Set names and generate a full name
+        self.first_name = first_name
+        self.last_name = last_name
         self.generate_full_name()
+
+        # Generate a unique ID for the person
         self.unique_name_id = self.generate_unique_name_id()
+
+        # Set the current year if not provided
         if current_year is None:
             current_year = date.today().year
         self.year = current_year
-        self.age_range, self.age = self.initial_age(age_range)       
+
+        # Determine the age range and specific age if not provided
+        self.age_range, self.age = self.initial_age(age_range)
+
+        # Set career attributes and life events     
         self.career = career
         self.future_career = future_career
         self.years_of_study = years_of_study
@@ -105,13 +117,17 @@ class Starter_Data_Person():
         self.children = children
         self.spender_prof = spender_prof
         self.event = "Created"
+
+        # Initialize the history DataFrame
         self.history_df = pd.DataFrame(self.get_values(), index=[0])
 
     def get_values(self):
+        """Return the current attributes of the person as a dictionary."""
         constants = {name: value for name, value in vars(self).items() if not callable(value)}
         return constants
     
     def generate_first_name(self):#
+        """Generate a first name based on the person's gender."""
         if self.gender == "Female":
             name = random.choice(FEMALE_FIRST_NAMES)
         else:
@@ -119,6 +135,7 @@ class Starter_Data_Person():
         return name
 
     def generate_full_name (self):#
+        """Generate a full name for the person."""
         if self.last_name is None:
             self.last_name = random.choice(LAST_NAMES)
         if self.first_name is None:
@@ -126,16 +143,19 @@ class Starter_Data_Person():
         self.full_name = self.first_name + " " + self.last_name
 
     def generate_unique_name_id(self):#
+        """Generate a unique ID based on the person's name."""
         ### contains the first name, last name, and a random number between 0 and 1000 without spaces
         return self.first_name +"_"+ self.last_name +"_"+ str(random.randint(0, 10000))
     
     @staticmethod
     def update_age_range(age):#
+        """Determine the age range based on a specific age."""
         for age_range, age_range_list in AGE_RANGES.items():
             if age_range_list[0] <= age <= age_range_list[1]:
                 return age_range
 
     def initial_age(self, age_range=None):#
+        """Determine the initial age and age range if not provided."""
         if age_range is None:
             age = np.random.randint(AGE_RANGES["Baby"][0], AGE_RANGES["Elder"][1])
             age_range = self.update_age_range(age)
@@ -145,13 +165,12 @@ class Starter_Data_Person():
         return age_range, age
 
     def max_age_check(self, age_range:str, max_age= None):#
+        """Check and return the maximum age for a given age range."""
         create_max_age = self.history_df['event'] == "Created"
         age_range_check = self.history_df['age_range'] == age_range
         condition = create_max_age & age_range_check
         if condition.sum() >0:
-            max_age_current = max_age
             max_age = self.history_df[create_max_age & age_range_check]['age'].values[0]
-            #print("max age check", age_range, max_age, max_age_current)
         elif max_age is None or max_age > AGE_RANGES[age_range][1]:
             max_age = AGE_RANGES[age_range][1]
         else:
@@ -159,6 +178,7 @@ class Starter_Data_Person():
         return max_age
 
     def update_history(self,  event:str, new_history=None):
+        """Update the person's history with a new event."""
         if event is None:
             event = self.event
 
@@ -173,13 +193,15 @@ class Starter_Data_Person():
         self.history_df = pd.concat([self.history_df, new_history_df], ignore_index=True)
 
     def student_loan(self, future_career, balance, loan, loan_term, interest_rate=None):### review this function
-        
+        """Calculate and update loan details based on tuition fees."""
         ### Tuition due
         tuition_due = TUITION[future_career]
         
         if interest_rate is None:
             interest_rate = random.uniform(STUDENT_LOAN_INTEREST_RATES[0], 
                                                 STUDENT_LOAN_INTEREST_RATES[1])
+        if loan_term is None:
+            loan_term = YEARS_OF_STUDY[future_career]+8
 
         # Subtract tuition from balance
         balance -= tuition_due
@@ -201,7 +223,7 @@ class Starter_Data_Person():
         return loan, loan_term, interest_rate, balance
 
     def marriage_chance(self):
-
+        """Determine the chance of the person getting married based on their career."""
         career_crit_chance = CAREERS_AND_MARRIAGE_PROBS[self.career][0]
     
         if self.age >= 16 and self.married == False:
@@ -216,7 +238,7 @@ class Starter_Data_Person():
                         print('You cannot afford the marriage expense. You have reached the maximum loan amount.')
     
     def marriage(self):
-
+        """Simulate the person getting married."""
         if self.gender == "Male":
             spouse_gender = 'Female' if np.random.random() < 0.75 else 'Male'
         else:
@@ -335,7 +357,7 @@ class Person_Life(Starter_Data_Person):
                 temp_history['income'] = new_income
                 new_income_check = False
 
-        pack = self.student_loan( future_career, 
+        pack = self.student_loan( temp_history['future_career'], 
                                 temp_history['balance'], 
                                 temp_history['loan'], 
                                 temp_history['loan_term'],
@@ -362,6 +384,8 @@ class Person_Life(Starter_Data_Person):
                 base_income = INITIAL_INCOME_RANGES['Part Time'][0]
                 std_deviation = INITIAL_INCOME_RANGES['Part Time'][1]
                 temp_history['income'] = np.round(np.random.normal(base_income, std_deviation),2)
+            else:
+                event = "Teenager - Aged Up"
         elif temp_history['age']>= PART_TIME_JOB_MIN_AGE and temp_history['career'] == "Part Time":
             event = "Teenager - Part Time - Aged Up"
         else:

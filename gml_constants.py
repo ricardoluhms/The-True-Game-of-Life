@@ -31,7 +31,16 @@ LAST_NAMES = ['Adams', 'Alexander', 'Allen', 'Anderson', 'Bailey', 'Baker', 'Bar
                 'Watson', 'White', 'Williams', 'Wilson', 'Wood', 'Wright', 'Young']
 
 YEARS_OF_STUDY = {'Base': 2, 'Medium': 3, 'High': 5, 'Very High': 7}
-TUITION = {'Base': 1000, 'Medium': 3000, 'High': 6000, 'Very High': 10000}
+TUITION = {'Base': 6000, 'Medium': 10000, 'High': 18000, 'Very High': 25000} ### yearly values
+
+# undergraduate programs were approximately CAD 6,500 per year for Canadian students
+# Dentistry: CAD 18,000 - CAD 25,000
+# Medicine: CAD 15,000 - CAD 22,000
+# Pharmacy: CAD 10,000 - CAD 17,000
+# Engineering: CAD 9,000 - CAD 15,000 (depending on the specialization and institution)
+# Business & Commerce: CAD 8,000 - CAD 14,000 (higher for specialized or top-ranked 
+# MBA (Master of Business Administration): CAD 20,000 - CAD 40,000
+
 SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75}
 PART_TIME_JOB_MIN_AGE = 16
 PART_TIME_JOB_PROB = 0.5
