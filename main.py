@@ -153,7 +153,7 @@ class Starter_Data_Person():
         for age_range, age_range_list in AGE_RANGES.items():
             if age_range_list[0] <= age <= age_range_list[1]:
                 return age_range
-
+    
     def initial_age(self, age_range=None):#
         """Determine the initial age and age range if not provided."""
         if age_range is None:
@@ -192,7 +192,8 @@ class Starter_Data_Person():
             new_history_df = pd.DataFrame(constants, index=[0])
         self.history_df = pd.concat([self.history_df, new_history_df], ignore_index=True)
 
-    def student_loan(self, future_career, balance, loan, loan_term, interest_rate=None):### review this function
+    @staticmethod
+    def student_loan(future_career, balance, loan, loan_term, interest_rate=None):### review this function
         """Calculate and update loan details based on tuition fees."""
         ### Tuition due
         tuition_due = TUITION[future_career]
@@ -224,6 +225,50 @@ class Starter_Data_Person():
             
         return loan, loan_term, interest_rate, balance
 
+    def handle_get_student_loan(self, temp_history):
+        pack = self.student_loan( temp_history['future_career'], temp_history['balance'],   
+                                  temp_history['loan'], temp_history['loan_term'], temp_history['interest_rate'])
+                                
+        temp_history['loan'], temp_history['loan_term'], temp_history['interest_rate'], temp_history['balance'] = pack
+
+        return temp_history
+    
+    @staticmethod
+    def update_income_to_balance(temp_history):
+        income = temp_history['income']
+        spender_prof = temp_history['spender_prof']
+        temp_history['balance'] += income - income * SPENDER_PROFILE[spender_prof]
+        return temp_history
+
+    @staticmethod
+    def update_years_of_study(temp_history):
+        temp_history['years_of_study'] += 1
+        temp_history['years_to_study'] -= 1
+        return temp_history
+
+    @staticmethod
+    def handle_part_time_job(temp_history, mode="Teenager"):
+        if temp_history['career'] == "Pocket Money" and np.random.random() >= PART_TIME_JOB_PROB:
+            temp_history['career'] = "Part Time"
+            base_income = INITIAL_INCOME_RANGES['Part Time'][0]
+            std_deviation = INITIAL_INCOME_RANGES['Part Time'][1]
+            temp_history['income'] = np.round(np.random.normal(base_income, std_deviation), 2)
+            return f"{mode} - Part Time Job", temp_history
+        else:
+            return f"{mode} - Aged Up", temp_history
+
+    @staticmethod
+    def handle_finished_studies(temp_history):
+        event = "Young Adult - Finished Studies"
+        temp_history['career'] = temp_history['future_career']
+        temp_history['future_career'] = None
+        temp_history['years_of_study'] = YEARS_OF_STUDY[temp_history['career']]
+        temp_history['years_to_study'] = 0
+        new_income = abs(np.random.choice(INITIAL_INCOME_RANGES[temp_history['career']]))
+        #month = 1/np.random.randint(1, 13)
+        #temp_history['income'] = new_income*month + temp_history['income']*(1-month)
+        return event, temp_history
+
     def marriage_chance(self):
         """Determine the chance of the person getting married based on their career."""
         career_crit_chance = CAREERS_AND_MARRIAGE_PROBS[self.career][0]
@@ -251,6 +296,14 @@ class Starter_Data_Person():
         self.married = True
         self.update_history()
 
+    @staticmethod
+    def handle_pocket_money(temp_history):
+        if temp_history['career'] == "Pocket Money":
+            base_income = INITIAL_INCOME_RANGES['Pocket Money'][0]
+            std_deviation = INITIAL_INCOME_RANGES['Pocket Money'][1]
+            temp_history['income'] = np.round(np.random.normal(base_income, std_deviation), 2)
+        return temp_history
+    
 ### Generate a class Person that keeps track of multiple Classes such as Baby, Child, Teenager, Young Adult, Adult, Elder
 ### if the baby ages up to a child, then the baby class is deleted and a child class is created using the baby class attributes
 ### if the child ages up to a teenager, then the child class is deleted and a teenager class is created using the child class attributes
@@ -373,6 +426,40 @@ class Person_Life(Starter_Data_Person):
 
         return temp_history, event
 
+    def young_adult_one_year_v2(self, temp_history = None):
+
+        #### First year Check
+        if temp_history['age'] == AGE_RANGES['Young Adult'][0]:
+            ### First year as a young adult
+            temp_history = self.define_study_and_fut_career(temp_history)
+            event, temp_history = self.handle_part_time_job(temp_history, mode = event)
+            temp_history = self.handle_get_student_loan(temp_history)
+            event = event.replace("Young Adult", "Become Young Adult")
+            
+        ### Not first year as a young adult
+        else:
+           ### Check if Completed Studies
+           if temp_history['years_to_study'] == 0:
+               #### set future career to career and get first income from non part time job
+               temp_history = self.handle_finished_studies(temp_history)
+               ### pay student loan
+               temp_history = self.handle_pay_student_loan(temp_history) ### to be developed
+
+           ### did not complete studies yet
+           else:
+                temp_history = self.update_years_of_study(temp_history)
+                event, temp_history = self.handle_part_time_job(temp_history, mode = event)
+                temp_history = self.handle_get_student_loan(temp_history)
+
+        temp_history = self.update_income_to_balance(temp_history)
+        ### Check if Married
+        if temp_history['age'] >= 16 and temp_history['married'] == False:
+            if np.random.random() < CAREERS_AND_MARRIAGE_PROBS[temp_history['career']][1]:
+                temp_history = self.marriage(temp_history)
+                event = event.replace("Young Adult", "Married")
+
+        return temp_history, event
+
     def teenager_life(self, max_age=None):
         self.child_life(max_age= AGE_RANGES["Child"][1])
         self.one_age_range_life("Teenager", max_age)
@@ -381,23 +468,10 @@ class Person_Life(Starter_Data_Person):
         if temp_history['age'] == AGE_RANGES["Teenager"][0]:
             event = "Become Teenager"
 
-        # Check if it's the start of the teenager age range or "Aged Up"
-        elif temp_history['age'] >= PART_TIME_JOB_MIN_AGE:
-            if temp_history['career'] == "Pocket Money" and np.random.random() >= PART_TIME_JOB_PROB:
-                event = "Teenager - Part Time Job"
-                temp_history['career'] = "Part Time"
-                base_income = INITIAL_INCOME_RANGES['Part Time'][0]
-                std_deviation = INITIAL_INCOME_RANGES['Part Time'][1]
-                temp_history['income'] = np.round(np.random.normal(base_income, std_deviation),2)
-            else:
-                event = "Teenager - Aged Up"
-        elif temp_history['age']>= PART_TIME_JOB_MIN_AGE and temp_history['career'] == "Part Time":
-            event = "Teenager - Part Time - Aged Up"
         else:
-            event = "Teenager - Aged Up"
+            temp_history, event = self.handle_part_time_job(temp_history, mode="Teenager")
 
-        temp_history['balance'] += temp_history['income'] -\
-                        temp_history['income'] * SPENDER_PROFILE[temp_history['spender_prof']]
+        temp_history = self.update_income_to_balance(temp_history)
 
         return temp_history, event
 
@@ -409,31 +483,18 @@ class Person_Life(Starter_Data_Person):
 
         if temp_history['age'] == AGE_RANGES["Child"][0]:
             event = "Become Child"
+
+        elif temp_history['age'] == 5:
+            event = "Children - First Pocket Money"
+            temp_history = self.handle_pocket_money(temp_history)
         else:
             event = "Children - Aged Up"
 
-        if temp_history['age'] == 5:
-            event = "Children - First Pocket Money"
-            temp_history['career'] = "Pocket Money"
-            ### random income is a distribuition based 
-            # on INITIAL_INCOME_RANGES['Pocket Money'][0] -+ 
-            # a distribution of INITIAL_INCOME_RANGES['Pocket Money'][0]
-            base_income = INITIAL_INCOME_RANGES['Pocket Money'][0]
-            std_deviation = INITIAL_INCOME_RANGES['Pocket Money'][1]
-
-            temp_history['income'] = np.abs(np.round(np.random.normal(base_income, 
-                                                                      std_deviation),2))
-   
-            temp_history['spender_prof'] = np.random.choice(list(SPENDER_PROFILE_PROBS.keys()),
-                                                            p=np.array(list(SPENDER_PROFILE_PROBS.values())))
-
         if temp_history['career'] == "Pocket Money":
-            #print(temp_history)
             if temp_history['balance'] is None:
                 temp_history['balance'] = 0
-            temp_history['balance'] += temp_history['income'] -\
-                                        np.round( temp_history['income'] *\
-                                                  SPENDER_PROFILE[temp_history['spender_prof']],2)
+            else:
+                temp_history = self.update_income_to_balance(temp_history)
         return temp_history, event
     
     def baby_life(self,max_age = None):### to test
@@ -491,5 +552,15 @@ class Person_Life(Starter_Data_Person):
             #temp_history,event =  self.elder_one_year(temp_history)
         #print(age_range, self.history_df.iloc[-1]['age'], " age up function end", event)
         self.update_history(new_history = temp_history, event=event)
+    
+    @staticmethod
+    def define_study_and_fut_career(temp_history):
+        future_career = np.random.choice( list(FUTURE_CAREER_PAY_PROBS.keys()), 
+                                         p=np.array(list(FUTURE_CAREER_PAY_PROBS.values())))
+        temp_history['future_career'] = future_career
+        temp_history['years_of_study'] = 0
+        temp_history['years_to_study'] = YEARS_OF_STUDY[future_career]
+        return temp_history
+
+
 ### if person temp_history['age'] is > baby age range, generate the first event a
-# %%
