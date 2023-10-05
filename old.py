@@ -6,7 +6,7 @@ class Baby(Person):
 
 
 class Adult:
-    def __init__(self, gender:str =None, age_range:str=None, first_name = None, last_name = None):
+    def __init__(self, c, age_range:str=None, first_name = None, last_name = None):
         """ age_range options: 'Baby', 'Child', 'Teenager', 'Young Adult', 'Adult', 'Elder' \n
             gender options: 'Male' or 'Female' """
         if gender is None:

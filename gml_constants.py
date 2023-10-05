@@ -86,8 +86,8 @@ INITIAL_CAREER_PROBS_BY_AGE = { 25: {'Base': 0.5, 'Medium': 0.4, 'High': 0.09, '
                                 55: {'Base': 0.4, 'Medium': 0.3, 'High': 0.2, 'Very High': 0.1},
                                 75: {'Base': 0.5, 'Medium': 0.3, 'High': 0.1, 'Very High': 0.1}}
 
-CAREERS_AND_MARRIAGE_PROBS = {"Student with Part Time Job": 0.02,
-                              "Student with Pocket Money": 0.01,
+CAREERS_AND_MARRIAGE_PROBS = {"Student with Part Time Job": 0.08,
+                              "Student with Pocket Money": 0.005,
                               'Pocket Money': 0.001,
                               'Part Time': 0.002,
                               'Base': 0.2,

@@ -12,6 +12,8 @@ from  gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES,
                             INITIAL_CAREER_PROBS_BY_AGE, INITIAL_INCOME_RANGES,
                             FUTURE_CAREER_PAY_PROBS,STUDENT_LOAN_INTEREST_RATES,
                             CAREERS_AND_MARRIAGE_PROBS)
+
+#from  gml_constants import *
 import random
 from datetime import date
 
@@ -278,11 +280,11 @@ class Person_Functions():
         temp_history['balance'] += income - income * SPENDER_PROFILE[spender_prof]
         return temp_history
 
-    def marriage_chance(self):
+    def marriage_chance(self, temp_history):
         """Determine the chance of the person getting married based on their career."""
-        career_crit_chance = CAREERS_AND_MARRIAGE_PROBS[self.career][0]
-    
-        if self.age >= 16 and self.married == False:
+        career_crit_chance = CAREERS_AND_MARRIAGE_PROBS[temp_history['career']][0]
+
+        if temp_history["age"] >= 16 and temp_history["married"] == False:
         
             if np.random.random() < career_crit_chance:
                 self.marriage()
@@ -304,6 +306,11 @@ class Person_Functions():
         self.spouse = spouse
         self.married = True
         self.update_history()
+    
+    @staticmethod
+    def calculate_marriage_cost():
+        """Calculate the cost of the marriage."""
+        return 0, 0
 
     @staticmethod
     def handle_pocket_money(temp_history):
@@ -499,8 +506,12 @@ class Person_Life(Person_Functions):
             #temp_history,event =  self.elder_one_year(temp_history)
         #print(age_range, self.history_df.iloc[-1]['age'], " age up function end", event)
         self.update_history(new_history = temp_history, event=event)
-    
 
 
+def test_function(df:int):
+    """ Blah blah.""" 
+    df = df.copy()
+    df['age'] += 1
+    return df
 
 ### if person temp_history['age'] is > baby age range, generate the first event a

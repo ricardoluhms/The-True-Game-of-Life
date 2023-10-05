@@ -3,6 +3,7 @@
 from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
 from main import Person_Life, City# , Starter_Data_Person
+
 import pandas as pd
 # Create a city
 #%%
