@@ -19,8 +19,17 @@ from datetime import date
 
 #%%
 class City():
+  
     ### create a city with a name and a population of young adults 
     def __init__(self, name:str, population:int, current_year:int = 1950):
+        """ City class is used to create a city with a name and a population of young adults.
+            inputs:
+            - name: the name of the city (as a string)
+            - population: the population of the city (as an integer)
+            - current_year: the current year of the city (as an integer)
+            outputs:
+            - None
+        """
         self.event = "Created"
         self.city_name = name
         self.population = population
@@ -28,6 +37,7 @@ class City():
         self.young_adults = []
         self.history = []
         self.people = self.generate_young_adults(population)
+        ### explain what City class does and the inputs, outputs and attributes
 
     def age_up(self):
         self.current_year += 1
@@ -275,6 +285,11 @@ class Person_Functions():
 
     @staticmethod
     def update_income_to_balance(temp_history):
+        print(type(temp_history['balance']), temp_history['age_range'], temp_history['age'])
+        if type(temp_history['balance']) is str:
+            print(temp_history['balance'])
+        if temp_history['balance'] is None:
+            temp_history['balance'] = 0
         income = temp_history['income']
         spender_prof = temp_history['spender_prof']
         temp_history['balance'] += income - income * SPENDER_PROFILE[spender_prof]
@@ -314,12 +329,23 @@ class Person_Functions():
 
     @staticmethod
     def handle_pocket_money(temp_history):
-        if temp_history['career'] == "Pocket Money":
-            base_income = INITIAL_INCOME_RANGES['Pocket Money'][0]
-            std_deviation = INITIAL_INCOME_RANGES['Pocket Money'][1]
-            temp_history['income'] = np.round(np.random.normal(base_income, std_deviation), 2)
+        print("Testing Pocket Money")
+        print("Current Career", temp_history['career'])
+        temp_history['career'] = "Pocket Money"
+        print("Current Career After", temp_history['career'])
+        base_income = INITIAL_INCOME_RANGES['Pocket Money'][0]
+        std_deviation = INITIAL_INCOME_RANGES['Pocket Money'][1]
+        temp_history['income'] = np.round(np.random.normal(base_income, std_deviation), 2)
+        print( INITIAL_INCOME_RANGES['Pocket Money'][0],
+                INITIAL_INCOME_RANGES['Pocket Money'][1],
+                np.round(np.random.normal(base_income, std_deviation), 2))
         return temp_history
-
+    
+    @staticmethod
+    def set_spender_profile():
+        spender_profile = np.random.choice( list(SPENDER_PROFILE_PROBS.keys()), 
+                                         p=np.array(list(SPENDER_PROFILE_PROBS.values())))
+        return spender_profile
 ### Generate a class Person that keeps track of multiple Classes such as Baby, Child, Teenager, Young Adult, Adult, Elder
 ### if the baby ages up to a child, then the baby class is deleted and a child class is created using the baby class attributes
 ### if the child ages up to a teenager, then the child class is deleted and a teenager class is created using the child class attributes
@@ -445,12 +471,13 @@ class Person_Life(Person_Functions):
 
         elif temp_history['age'] == 5:
             event = "Children - First Pocket Money"
+            temp_history['spender_prof'] = self.set_spender_profile()
             temp_history = self.handle_pocket_money(temp_history)
         else:
             event = "Children - Aged Up"
 
         if temp_history['career'] == "Pocket Money":
-            if temp_history['balance'] is None:
+            if temp_history['balance'] is None and temp_history['income'] is None:
                 temp_history['balance'] = 0
             else:
                 temp_history = self.update_income_to_balance(temp_history)
