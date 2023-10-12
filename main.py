@@ -342,6 +342,11 @@ class Person_Life(Person_Functions):
     ### if a person is created straight ahead as an teenager then we need to create child and baby classes and update their history
     ### if a person is created straight ahead as an child then we need to create baby classes and update their history
     ### if a person is created straight ahead as an baby then we need to create baby classes and update their history
+    def death(self):
+        ### add cause of death
+        ### add probability of death based on age
+        ### ????
+        pass
 
     def elder(self):
 
@@ -370,9 +375,9 @@ class Person_Life(Person_Functions):
         self.one_age_range_life("Young Adult")
 
         ### life events
-        ### will go to college/university
-        ### will get a loan
-        ### will get a job
+        ### will go to college/university (OK)
+        ### will get a loan (OK)
+        ### will get a job (OK)
         ### may get married
         ### may have children
         ### may get a house
