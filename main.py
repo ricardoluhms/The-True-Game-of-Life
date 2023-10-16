@@ -70,7 +70,7 @@ class Person_Functions():
     def __init__(self, gender:str =None, first_name = None, last_name = None, 
                       current_year = None, age_range: str = None,
                       career: str = None, future_career: str = None, income: int = None,
-                      loan: int = None, loan_term: int = None, balance: int = None,
+                      loan: int = None, loan_term: int = None, balance: int = 0,
                       married: bool = False, children: int = 0, spender_prof: str = None,
                       years_of_study: int = None,
                       years_to_study: int = None):
@@ -285,11 +285,6 @@ class Person_Functions():
 
     @staticmethod
     def update_income_to_balance(temp_history):
-        print(type(temp_history['balance']), temp_history['age_range'], temp_history['age'])
-        if type(temp_history['balance']) is str:
-            print(temp_history['balance'])
-        if temp_history['balance'] is None:
-            temp_history['balance'] = 0
         income = temp_history['income']
         spender_prof = temp_history['spender_prof']
         temp_history['balance'] += income - income * SPENDER_PROFILE[spender_prof]
@@ -454,8 +449,7 @@ class Person_Life(Person_Functions):
             event = "Become Teenager"
 
         else:
-            temp_history, event = self.handle_part_time_job(temp_history, mode="Teenager")
-
+            event, temp_history = self.handle_part_time_job(temp_history, mode="Teenager")
         temp_history = self.update_income_to_balance(temp_history)
 
         return temp_history, event
