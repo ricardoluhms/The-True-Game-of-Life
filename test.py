@@ -9,6 +9,7 @@ import pandas as pd
 #%%
 city = City("Boludos City",population=2, current_year=1950)
 
+
 city.age_up()
 city.age_up()
 
