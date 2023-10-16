@@ -285,7 +285,6 @@ class Person_Functions():
 
     @staticmethod
     def update_income_to_balance(temp_history):
-        print(type(temp_history))
         income = temp_history['income']
         spender_prof = temp_history['spender_prof']
         temp_history['balance'] += income - income * SPENDER_PROFILE[spender_prof]
@@ -451,7 +450,6 @@ class Person_Life(Person_Functions):
 
         else:
             event, temp_history = self.handle_part_time_job(temp_history, mode="Teenager")
-            print(type(temp_history),type(event))
         temp_history = self.update_income_to_balance(temp_history)
 
         return temp_history, event
