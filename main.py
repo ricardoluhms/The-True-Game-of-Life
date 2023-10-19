@@ -439,7 +439,7 @@ class Person_Life(Person_Functions):
         temp_history = self.update_income_to_balance(temp_history)
         ### Check if Married
         if temp_history['age'] >= 16 and temp_history['married'] == False:
-            if np.random.random() < CAREERS_AND_MARRIAGE_PROBS[temp_history['career']][1]:
+            if np.random.random() < CAREERS_AND_MARRIAGE_PROBS[temp_history['career']]:
                 temp_history = self.marriage(temp_history)
                 event = event.replace("Young Adult", "Married")
 
@@ -454,7 +454,7 @@ class Person_Life(Person_Functions):
             event = "Become Teenager"
 
         else:
-            temp_history, event = self.handle_part_time_job(temp_history, mode="Teenager")
+            event, temp_history = self.handle_part_time_job(temp_history, mode="Teenager")
 
         temp_history = self.update_income_to_balance(temp_history)
 
