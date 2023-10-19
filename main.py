@@ -454,7 +454,7 @@ class Person_Life(Person_Functions):
             event = "Become Teenager"
 
         else:
-            temp_history, event = self.handle_part_time_job(temp_history, mode="Teenager")
+            event, temp_history = self.handle_part_time_job(temp_history, mode="Teenager")
 
         temp_history = self.update_income_to_balance(temp_history)
 
