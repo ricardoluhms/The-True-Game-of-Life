@@ -433,7 +433,7 @@ class Person_Life(Person_Functions):
            ### did not complete studies yet
            else:
                 temp_history = self.update_years_of_study(temp_history)
-                event, temp_history = self.handle_part_time_job(temp_history, mode = event)
+                event, temp_history = self.handle_part_time_job(temp_history, mode = "Teenager")
                 temp_history = self.handle_get_student_loan(temp_history)
 
         temp_history = self.update_income_to_balance(temp_history)
