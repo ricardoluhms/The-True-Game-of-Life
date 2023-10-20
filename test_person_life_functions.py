@@ -8,7 +8,7 @@ person = Person_Life("Male",None,None,current_year=2023, age_range="Baby")
 
 #%%
 ### Create a code generates one person and ages up one by one year and check if all the values are correct and life events are correct
-for _ in range(13):
+for _ in range(20):
     person.age_up()
 
 #%%
