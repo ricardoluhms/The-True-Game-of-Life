@@ -44,7 +44,18 @@ class City():
         ### 
         for i in range(len(self.people)):
             self.people[i].age_up()
+            ### get people recent history and check if that history is in the city history
+            ### if not, add it to the city history
+            ### if yes, do nothin
+            #current_history = self.people[i].history_df
+            
+            #self.history
 
+
+
+
+            ### check people history, if there is a marriage, check person id is in the city history
+        
     def generate_young_adults(self, population:int = None):
         # make a even distribution of gender
         people_list = [] 
@@ -202,6 +213,8 @@ class Person_Functions():
             constants.pop('history_df', 'Key not found')
             constants['event'] = event
             new_history_df = pd.DataFrame(constants, index=[0])
+        ###    
+        new_history_df["event_year_id"] = new_history_df["unique_name_id"] + "_" + new_history_df["year"].astype(str)  
         self.history_df = pd.concat([self.history_df, new_history_df], ignore_index=True)
 
     @staticmethod
@@ -318,9 +331,10 @@ class Person_Functions():
             spouse_gender = 'Male' if np.random.random() < 0.75 else 'Female'
         spouse = Person_Functions(spouse_gender,age_range=self.age_range)
         spouse.married = True
+        spouse.spouse = self
         self.spouse = spouse
         self.married = True
-        self.update_history()
+        #self.update_history()
     
     @staticmethod
     def calculate_marriage_cost():
@@ -346,12 +360,16 @@ class Person_Functions():
         spender_profile = np.random.choice( list(SPENDER_PROFILE_PROBS.keys()), 
                                          p=np.array(list(SPENDER_PROFILE_PROBS.values())))
         return spender_profile
-### Generate a class Person that keeps track of multiple Classes such as Baby, Child, Teenager, Young Adult, Adult, Elder
-### if the baby ages up to a child, then the baby class is deleted and a child class is created using the baby class attributes
-### if the child ages up to a teenager, then the child class is deleted and a teenager class is created using the child class attributes
-### if the teenager ages up to a young adult, then the teenager class is deleted and a young adult class is created using the teenager class attributes
-### if the young adult ages up to an adult, then the young adult class is deleted and an adult class is created using the young adult class attributes
-### if the adult ages up to an elder, then the adult class is deleted and an elder class is created using the adult class attributes
+
+notes =  True 
+if notes:
+    ### Generate a class Person that keeps track of multiple Classes such as Baby, Child, Teenager, Young Adult, Adult, Elder
+    ### if the baby ages up to a child, then the baby class is deleted and a child class is created using the baby class attributes
+    ### if the child ages up to a teenager, then the child class is deleted and a teenager class is created using the child class attributes
+    ### if the teenager ages up to a young adult, then the teenager class is deleted and a young adult class is created using the teenager class attributes
+    ### if the young adult ages up to an adult, then the young adult class is deleted and an adult class is created using the young adult class attributes
+    ### if the adult ages up to an elder, then the adult class is deleted and an elder class is created using the adult class attributes
+    pass
 
 class Person_Life(Person_Functions):
     def __init__(self, gender:str =None, first_name:str = None, last_name:str = None, current_year:int = None, age_range: str = None):
@@ -547,3 +565,8 @@ def test_function(df:int):
     return df
 
 ### if person temp_history['age'] is > baby age range, generate the first event a
+
+
+
+
+### City History should be append in each age up person history
