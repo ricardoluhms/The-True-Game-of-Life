@@ -11,7 +11,7 @@ from  gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES,
                             YEARS_OF_STUDY, TUITION, SPENDER_PROFILE,
                             INITIAL_CAREER_PROBS_BY_AGE, INITIAL_INCOME_RANGES,
                             FUTURE_CAREER_PAY_PROBS,STUDENT_LOAN_INTEREST_RATES,
-                            CAREERS_AND_MARRIAGE_PROBS,MIN_MARRIAGE_ALLOWED_AGE, SAME_GENDER_RATIO)
+                            CAREERS_AND_MARRIAGE_PROBS,MIN_MARRIAGE_ALLOWED_AGE, SAME_GENDER_MARRIAGE_RATIO)
 
 #from  gml_constants import *
 import random
@@ -38,6 +38,7 @@ class City():
         self.history = pd.DataFrame()
         self.people_obj_dict = self.generate_young_adults(population)
         ### explain what City class does and the inputs, outputs and attributes
+
 
     def age_up(self):
         self.current_year += 1
@@ -76,12 +77,13 @@ class City():
         
         return people_list
 
+
     def retrieve_history_from_people(self): ### will be deprecated in the future
         for person in self.people:
             self.history.extend(person.retrieve_history())
 
-    ### 
-    def calculate_marriage_cost(self, fixed_guests: int = None):
+
+    def calculate_marriage_cost(self, fixed_guests: int = None): ### being developed
         # Average cost per person - Move value to constants in the future - to be developed
         avg_cost_per_person = 34000 / 100  # assuming average 100 guests
         
@@ -117,9 +119,9 @@ class City():
             # 1st - get the gender of the person to be married & check what will be gender of the spouse
             person_gender =  person_last_history['gender']
             if person_gender == "Male":
-                spouse_gender = 'Female' if np.random.random() < (1-SAME_GENDER_RATIO) else 'Male'
+                spouse_gender = 'Female' if np.random.random() < (1 - SAME_GENDER_MARRIAGE_RATIO) else 'Male'
             else:
-                spouse_gender = 'Male' if np.random.random() < (1-SAME_GENDER_RATIO) else 'Female'
+                spouse_gender = 'Male' if np.random.random() < (1 - SAME_GENDER_MARRIAGE_RATIO) else 'Female'
             # 2nd - check if exist spouse candidate in the city:`
             person_age = person_last_history['age']
             person_most_recent_year = person_last_history['year']
@@ -162,23 +164,45 @@ class City():
                 #### FUTURE ISSUES TO SOLVE:
                 # - IF THE PERSON CURRENT YEAR WAS NOT UPDATED YET SO THE PERSON WILL NOT BE A CANIDATE FOR MARRIAGE
                 # - UPDATE HISTORY ISSUE - A SPOUSE CANDIDATE HAS THE CURRENT HISTORY APPENDED TO THE PERSON HISTORY AND CITY HISTORY BUT THEY SHOULD BE UPDATED IN BOTH
+
             else:
                 # if there is no spouse candidate, then create a new person and get married
                 # get a random age between the minimum age to get married and the maximum age to get married 
                 # get the age range based on the age
                 # create a new person with the age range and the current year
-                pass
+                
+                if person_age - 5 < MIN_MARRIAGE_ALLOWED_AGE:
+                    spouse_min_age = MIN_MARRIAGE_ALLOWED_AGE
+                else:
+                    spouse_min_age = person_age - 5
+                
+                spouse_age = np.random.randint(spouse_min_age, person_age + 5)
+                ### get the age range based on the age
+                spouse_age_range = Person_Life.update_age_range(spouse_age) ### TO BE DEVELOPED - SKIP AGE RANGE TO REPLACE WITH THE AGE WHEN CREATING A NEW PERSON
+                spouse = Person_Life(gender= spouse_gender, age_range= spouse_age_range, current_year= person_most_recent_year, married = True)
+                spouse.age_group_up(age_range=spouse_age_range, max_age=spouse_age) ### TO BE DEVELOPED - when creating a new person and age up for marriage set married to True
+                ### married to true will be applied to all the history of the person so it need to be removed from the history later
+                spouse_all_history = spouse.history_df.copy()
+                criteria_arange = spouse_all_history["age_range"] == spouse_age_range
+                criteria_age = spouse_all_history["age"] == spouse_age
+                criteria_year = spouse_all_history["year"] == person_most_recent_year
+                spouse_all_history[~(criteria_arange & criteria_age & criteria_year),"married"] = False
+                spouse_all_history[(criteria_arange & criteria_age & criteria_year),"just_married"] = True
+                spouse_all_history[(criteria_arange & criteria_age & criteria_year),"spouse_name_id"] = person_last_history['unique_name_id']
+                spouse.history_df = spouse_all_history
 
-            # check if the person has enough money to get married    
-            _, marriage_expense = self.calculate_marriage_cost() ### to be developed
-            total_balance = person_last_history['balance'] + spouse_last_history['balance']
-            ### if the person does not have enough money, then check both person and spouse candidate can get a loan
-            if total_balance < marriage_expense:
-                get_loan_status = self.get_loan(desired_loan_amount=marriage_expense-total_balance)
-                if  get_loan_status is None:
-                    print('You cannot afford the marriage expense. You have reached the maximum loan amount.')
+                self.people_obj_dict[spouse.unique_name_id] = spouse
 
-
+            ### TO BE DEVELOPED ###
+            # # check if the person has enough money to get married    
+            # _, marriage_expense = self.calculate_marriage_cost() ### to be developed
+            # total_balance = person_last_history['balance'] + spouse_last_history['balance']
+            # ### if the person does not have enough money, then check both person and spouse candidate can get a loan
+            # if total_balance < marriage_expense:
+            #     get_loan_status = self.get_loan(desired_loan_amount=marriage_expense-total_balance)
+            #     if  get_loan_status is None:
+            #         print('You cannot afford the marriage expense. You have reached the maximum loan amount.')
+            pass
 
 
 class Person_Functions():
@@ -420,40 +444,6 @@ class Person_Functions():
         temp_history['balance'] += income - income * SPENDER_PROFILE[spender_prof]
         return temp_history
 
-    def marriage_chance(self, temp_history):
-        """Determine the chance of the person getting married based on their career."""
-        career_crit_chance = CAREERS_AND_MARRIAGE_PROBS[temp_history['career']][0]
-
-        if temp_history["age"] >= 16 and temp_history["married"] == False:
-        
-            if np.random.random() < career_crit_chance:
-                self.marriage()
-                _, marriage_expense = self.calculate_marriage_cost()
-                total_balance = self.balance + self.spouse.balance
-                if total_balance < marriage_expense:
-                    get_loan_status = self.get_loan(desired_loan_amount=marriage_expense-total_balance)
-                    if  get_loan_status is None:
-                        print('You cannot afford the marriage expense. You have reached the maximum loan amount.')
-    
-    @staticmethod
-    def marriage(temp_history):
-        """Simulate the person getting married."""
-        if self.gender == "Male":
-            spouse_gender = 'Female' if np.random.random() < 0.75 else 'Male'
-        else:
-            spouse_gender = 'Male' if np.random.random() < 0.75 else 'Female'
-        spouse = Person_Functions(spouse_gender,age_range=self.age_range)
-        spouse.married = True
-        spouse.spouse = self
-        self.spouse = spouse
-        self.married = True
-        #self.update_history()
-    
-    @staticmethod
-    def calculate_marriage_cost():
-        """Calculate the cost of the marriage."""
-        return 0, 0
-
     @staticmethod
     def handle_pocket_money(temp_history):
         print("Testing Pocket Money")
@@ -664,6 +654,25 @@ class Person_Life(Person_Functions):
             #temp_history,event =  self.elder_one_year(temp_history)
         #print(age_range, self.history_df.iloc[-1]['age'], " age up function end", event)
         self.update_history(new_history = temp_history, event=event)
+
+    def age_group_up(self, age_range, max_age = None):
+        max_age = self.max_age_check(age_range, max_age)
+        if age_range == "Baby":
+            self.baby_life(max_age = max_age)
+        elif age_range == "Child":
+            self.child_life(max_age = max_age)
+        elif age_range == "Teenager":
+            self.teenager_life(max_age = max_age)
+        elif age_range == "Young Adult":
+            self.young_adult(max_age = max_age)
+        elif age_range == "Adult":
+            pass
+            #self.adult(max_age = max_age)
+        elif age_range == "Elder":
+            pass
+            #self.elder(max_age = max_age)
+
+
 
 
 def test_function(df:int):
