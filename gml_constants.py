@@ -96,3 +96,8 @@ CAREERS_AND_MARRIAGE_PROBS = {"Student with Part Time Job": 0.08,
                               'Very High': 0.3}
 
 STUDENT_LOAN_INTEREST_RATES = [0.02, 0.07]
+
+MIN_MARRIAGE_ALLOWED_AGE = 16 ### Canada
+
+SAME_GENDER_MARRIAGE_RATIO = 0.25
+AVG_MARRIAGE_COST_PER_GUEST = 34000 / 100
