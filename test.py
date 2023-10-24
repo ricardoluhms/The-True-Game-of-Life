@@ -16,6 +16,27 @@ city.age_up()
 #%%
 city.age_up()
 
+#%%
+### Mariage Tests
+
+### Test someone not of age
+
+### Test someone who is already married
+
+### Test Same Sex Marriage
+
+
+
+
+### Maybe make people that suit the above needs and add them to the city and test with them
+
+
+
+
+
+
+
+
 # %%
 temp_list = []
 for pep in city.people:
@@ -26,4 +47,5 @@ a = city.history_df
 ### check negative values in income - working on it
 ### check for loan term 0 even if a loan is taken - working on it
 ### check future career issues - working it
+
 #%%
