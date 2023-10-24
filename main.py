@@ -115,6 +115,9 @@ class City():
         married_cri = person_last_history["married"] == False
         prob_cri = np.random.random() < career_crit_chance
 
+        ### FOR TESTING MARRIAGE
+        prob_cri = True
+
         ### Based on the career of the person, check if the person will get married
         if age_cri and married_cri and prob_cri:
             # 1st - get the gender of the person to be married & check what will be gender of the spouse
@@ -126,7 +129,7 @@ class City():
             # 2nd - check if exist spouse candidate in the city:`
             person_age = person_last_history['age']
             person_most_recent_year = person_last_history['year']
-            all_population = self.history_df.copy()
+            all_population = self.history.copy()
             # - is not married and; 
             # - is not the person itself in the city and;
             # - is within +- 5 years of the person age and;
@@ -476,8 +479,8 @@ if notes:
     pass
 
 class Person_Life(Person_Functions):
-    def __init__(self, gender:str =None, first_name:str = None, last_name:str = None, current_year:int = None, age_range: str = None):
-        super().__init__(gender, first_name, last_name, current_year, age_range)
+    def __init__(self, gender:str =None, first_name:str = None, last_name:str = None, current_year:int = None, age_range: str = None, married=False):
+        super().__init__(gender, first_name, last_name, current_year, age_range, married)
     ### there will be two main scenarios:
     # - the person is a recent born from a couple and just ages up
     # - the person was randomly generated and has a random age and we would need to know previous events from the past and then age up
@@ -518,8 +521,8 @@ class Person_Life(Person_Functions):
         ### young adult to adult
         pass
 
-    def young_adult(self):
-        self.teenager_life()
+    def young_adult(self, max_age):
+        self.teenager_life(max_age)
         self.one_age_range_life("Young Adult")
 
         ### life events
