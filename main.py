@@ -43,7 +43,8 @@ class City():
     def age_up(self):
         self.current_year += 1
         ### 
-        for person_id, person_obj in self.people_obj_dict.keys():
+        for person_id in self.people_obj_dict.keys():
+            person_obj = self.people_obj_dict[person_id]
             person_obj.age_up()
             
             ### updating city history with each person history avoiding duplicates
@@ -107,7 +108,7 @@ class City():
         person_last_history = person.history_df.iloc[-1].copy()
 
         ### check current employment status to retrieve the marriage probability
-        career_crit_chance = CAREERS_AND_MARRIAGE_PROBS[person_last_history['career']][0] ### test for all careers later - to be developed
+        career_crit_chance = CAREERS_AND_MARRIAGE_PROBS[person_last_history['career']] ### test for all careers later - to be developed
         
         ### check if the person is old enough to get married and is not married
         age_cri = person_last_history["age"] >= MIN_MARRIAGE_ALLOWED_AGE
