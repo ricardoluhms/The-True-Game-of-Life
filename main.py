@@ -190,9 +190,9 @@ class City():
                 criteria_arange = spouse_all_history["age_range"] == spouse_age_range
                 criteria_age = spouse_all_history["age"] == spouse_age
                 criteria_year = spouse_all_history["year"] == person_most_recent_year
-                spouse_all_history[~(criteria_arange & criteria_age & criteria_year),"married"] = False
-                spouse_all_history[(criteria_arange & criteria_age & criteria_year),"just_married"] = True
-                spouse_all_history[(criteria_arange & criteria_age & criteria_year),"spouse_name_id"] = person_last_history['unique_name_id']
+                spouse_all_history.iloc[~(criteria_arange & criteria_age & criteria_year),"married"] = False
+                spouse_all_history.iloc[(criteria_arange & criteria_age & criteria_year),"just_married"] = True
+                spouse_all_history.iloc[(criteria_arange & criteria_age & criteria_year),"spouse_name_id"] = person_last_history['unique_name_id']
                 spouse.history_df = spouse_all_history
 
                 self.people_obj_dict[spouse.unique_name_id] = spouse
@@ -553,7 +553,7 @@ class Person_Life(Person_Functions):
                #### set future career to career and get first income from non part time job
                temp_history = self.handle_finished_studies(temp_history)
                ### pay student loan
-               temp_history = self.handle_pay_student_loan(temp_history) ### to be developed
+               #temp_history = self.handle_pay_student_loan(temp_history) ### to be developed
 
            ### did not complete studies yet
            else:
