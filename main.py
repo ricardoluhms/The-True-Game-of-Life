@@ -218,7 +218,8 @@ class Person_Functions():
                       married: bool = False, just_married = False, children: int = 0, spender_prof: str = None,
                       spouse_name_id: str = None,
                       years_of_study: int = None,
-                      years_to_study: int = None):
+                      years_to_study: int = None,
+                      Car: bool = False):
         
         """
         Initialize a new person with various attributes.
@@ -277,6 +278,7 @@ class Person_Functions():
         self.spender_prof = spender_prof
         self.event = "Created"
         self.spouse_name_id = spouse_name_id
+        self.Car = Car
 
         # Initialize the history DataFrame
         self.history_df = pd.DataFrame(self.get_values(), index=[0])
@@ -469,27 +471,31 @@ class Person_Functions():
         return spender_profile
     
     @staticmethod    
-    def get_a_car(self):
-        if self.age >= 18:
+    def get_a_car(temp_history):
+
+        if temp_history['age'] >= 18:
+
             finance_option = np.random.choice(list(CAR_FINANCING_OPTION_PROBS.keys()), 
                                          p=np.array(list(CAR_FINANCING_OPTION_PROBS.values())))
             
             if finance_option == "Self-Financing":
-                if self.balance >= 2000 and self.income >= 70000:  
-                    self.update_history("Bought a Car (Self-Financed)")
+                if temp_history['balance'] >= 2000 and temp_history['income'] >= 70000:  
+                    temp_history['event']="Bought a Car (Self-Financed)"
                 else:
-                    self.update_history("Cannot Buy a Car (Insufficient Balance)")
-    
+                    temp_history['event']="Cannot Buy a Car (Insufficient Balance)"
+            
             elif finance_option == "Car Loan":
-                # Calculate the debt-to-income ratio
-                debt_to_income_ratio = self.loan / (self.income * 12)  # Assuming monthly income
-                # Check if the car loan application is accepted or rejected based on debt-to-income ratio
+
+                debt_to_income_ratio = temp_history['loan'] / (temp_history['income'] * 12)  # Assuming monthly income
+
                 if debt_to_income_ratio <= 0.5:  # Adjust the threshold as needed
-                    self.update_history("Bought a Car (Car Loan)")
+                    temp_history['event']="Bought a Car (Car Loan)"
                 else:
-                    self.update_history("Car Loan Application Rejected")
+                    temp_history['event']="Car Loan Application Rejected"
         else:
-            self.update_history("Not Eligible to Buy a Car (Age Restriction)")
+            temp_history['event']="Not Eligible to Buy a Car (Age Restriction)"
+        
+        return temp_history
 
 notes =  True 
 if notes:
@@ -567,6 +573,7 @@ class Person_Life(Person_Functions):
             temp_history = self.define_study_and_fut_career(temp_history)
             event, temp_history = self.handle_part_time_job(temp_history, mode = "Young Adult")
             temp_history = self.handle_get_student_loan(temp_history)
+            temp_history  =self.get_a_car(temp_history)
             event = event.replace("Young Adult", "Become Young Adult")
             
         ### Not first year as a young adult
