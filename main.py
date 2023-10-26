@@ -11,7 +11,7 @@ from  gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES,
                             YEARS_OF_STUDY, TUITION, SPENDER_PROFILE,
                             INITIAL_CAREER_PROBS_BY_AGE, INITIAL_INCOME_RANGES,
                             FUTURE_CAREER_PAY_PROBS,STUDENT_LOAN_INTEREST_RATES,
-                            CAREERS_AND_MARRIAGE_PROBS,MIN_MARRIAGE_ALLOWED_AGE, SAME_GENDER_MARRIAGE_RATIO)
+                            CAREERS_AND_MARRIAGE_PROBS,MIN_MARRIAGE_ALLOWED_AGE, SAME_GENDER_MARRIAGE_RATIO,CAR_FINANCING_OPTION_PROBS)
 
 #from  gml_constants import *
 import random
@@ -467,6 +467,29 @@ class Person_Functions():
         spender_profile = np.random.choice( list(SPENDER_PROFILE_PROBS.keys()), 
                                          p=np.array(list(SPENDER_PROFILE_PROBS.values())))
         return spender_profile
+    
+    @staticmethod    
+    def get_a_car(self):
+        if self.age >= 18:
+            finance_option = np.random.choice(list(CAR_FINANCING_OPTION_PROBS.keys()), 
+                                         p=np.array(list(CAR_FINANCING_OPTION_PROBS.values())))
+            
+            if finance_option == "Self-Financing":
+                if self.balance >= 2000 and self.income >= 70000:  
+                    self.update_history("Bought a Car (Self-Financed)")
+                else:
+                    self.update_history("Cannot Buy a Car (Insufficient Balance)")
+    
+            elif finance_option == "Car Loan":
+                # Calculate the debt-to-income ratio
+                debt_to_income_ratio = self.loan / (self.income * 12)  # Assuming monthly income
+                # Check if the car loan application is accepted or rejected based on debt-to-income ratio
+                if debt_to_income_ratio <= 0.5:  # Adjust the threshold as needed
+                    self.update_history("Bought a Car (Car Loan)")
+                else:
+                    self.update_history("Car Loan Application Rejected")
+        else:
+            self.update_history("Not Eligible to Buy a Car (Age Restriction)")
 
 notes =  True 
 if notes:
