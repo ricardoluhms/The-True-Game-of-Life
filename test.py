@@ -2,13 +2,14 @@
 ### remove Future Warning from pandas
 from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
-from main import Person_Life, City# , Starter_Data_Person
+from main import Person_Life, City,Person_Functions# , Starter_Data_Person
 
 import pandas as pd
 # Create a city
 #%%
 city = City("Boludos City",population=2, current_year=1950)
 
+person = 
 ### Creates a Marriage Candidate
 
 
