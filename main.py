@@ -11,7 +11,7 @@ from  gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES,
                             YEARS_OF_STUDY, TUITION, SPENDER_PROFILE,
                             INITIAL_CAREER_PROBS_BY_AGE, INITIAL_INCOME_RANGES,
                             FUTURE_CAREER_PAY_PROBS,STUDENT_LOAN_INTEREST_RATES,
-                            CAREERS_AND_MARRIAGE_PROBS,MIN_MARRIAGE_ALLOWED_AGE, SAME_GENDER_MARRIAGE_RATIO)
+                            CAREERS_AND_MARRIAGE_PROBS,MIN_MARRIAGE_ALLOWED_AGE, SAME_GENDER_MARRIAGE_RATIO,CAR_FINANCING_OPTION_PROBS)
 
 #from  gml_constants import *
 import random
@@ -218,7 +218,8 @@ class Person_Functions():
                       married: bool = False, just_married = False, children: int = 0, spender_prof: str = None,
                       spouse_name_id: str = None,
                       years_of_study: int = None,
-                      years_to_study: int = None):
+                      years_to_study: int = None,
+                      has_a_car: bool = False):
         
         """
         Initialize a new person with various attributes.
@@ -277,6 +278,7 @@ class Person_Functions():
         self.spender_prof = spender_prof
         self.event = "Created"
         self.spouse_name_id = spouse_name_id
+        self.has_a_car = has_a_car
 
         # Initialize the history DataFrame
         self.history_df = pd.DataFrame(self.get_values(), index=[0])
@@ -467,6 +469,34 @@ class Person_Functions():
         spender_profile = np.random.choice( list(SPENDER_PROFILE_PROBS.keys()), 
                                          p=np.array(list(SPENDER_PROFILE_PROBS.values())))
         return spender_profile
+    
+    @staticmethod    
+    def get_a_car(temp_history,finance_option):
+        # replace the constants with a variable coming from gml_constants
+        if temp_history['age'] >= 18:
+            
+            if finance_option is None:
+                finance_option = np.random.choice(list(CAR_FINANCING_OPTION_PROBS.keys()), 
+                                         p=np.array(list(CAR_FINANCING_OPTION_PROBS.values())))
+            
+            if finance_option == "Self-Financing":
+                if temp_history['balance'] >= 2000 and temp_history['income'] >= 70000:  
+                    event="Bought a Car (Self-Financed)"
+                else:
+                    event="Cannot Buy a Car (Insufficient Balance)"
+            
+            elif finance_option == "Car Loan":
+
+                debt_to_income_ratio = temp_history['loan'] / (temp_history['income'])  # Assuming monthly income
+
+                if debt_to_income_ratio <= 0.5:  # Adjust the threshold as needed
+                    event="Bought a Car (Car Loan)"
+                else:
+                    event="Car Loan Application Rejected"
+        else:
+            event="Not Eligible to Buy a Car (Age Restriction)"
+        
+        return event
 
 notes =  True 
 if notes:
@@ -536,7 +566,8 @@ class Person_Life(Person_Functions):
 
         pass
 
-    def young_adult_one_year(self, temp_history = None):
+
+    def young_adult_one_year(self, temp_history = None,car_prob = None):
 
         #### First year Check
         if temp_history['age'] == AGE_RANGES['Young Adult'][0]:
@@ -560,7 +591,7 @@ class Person_Life(Person_Functions):
                 temp_history = self.update_years_of_study(temp_history)
                 event, temp_history = self.handle_part_time_job(temp_history, mode = "Teenager")
                 temp_history = self.handle_get_student_loan(temp_history)
-
+        event  =self.get_a_car(temp_history,car_prob)
         temp_history = self.update_income_to_balance(temp_history)
 
         return temp_history, event
