@@ -2,7 +2,7 @@
 import pandas as pd
 from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
-from main import Person_Life, Person_Functions
+from person import Person_Life, Person_Functions
 
 df = pd.read_csv("single_person_history_copy.csv")
 
