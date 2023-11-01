@@ -89,4 +89,70 @@ The True Game of Life aims to simulate the life of individuals in a city, captur
 Mortgage yearly value cannot exceed 20% of their income.
 
 
----
+# Future Features on existing modules - TO DO LIST
+# 1. Person_Life
+## 1.1 Get a Car
+ - Include get a car function and check which car they will get and if they can afford using personal balance or loan
+ - check if is a single person or a couple
+ - check if both their loan status (how many they have, to refinance them or append a new one without the sum of all active loans surpass both their incomes)
+## 1.2 Get a House
+ - Include get a house function and check which house they will get and if they can afford using personal balance or loan
+ - check if is a single person or a couple
+ - check how many kids they have (house size and price)
+ - check how much from their income was being used for rent (if they were renting) (set all the new people as renter for start)
+## 1.3 Get a Raise or Promotion
+ - Include get a raise or promotion function and check if they will get a raise or promotion and how much
+## 1.4 Change Spending Habits
+ - Include change spending habits function and check if they will change their spending habits and how much
+## 1.5 Add a new kid
+ - Include add a new kid function and check if they will have a new kid and how much it will cost
+## 1.6 Critical Illness or Disability event
+ - Include critical illness or disability event and check if they will have a critical illness or disability event and how much it will cost
+## 1.7. Add Marriage Costs
+ - Include add marriage costs function and check if they will get married and how much it will cost
+## 1.8. Create the Adult Life functions
+ - Create one function that will simulate one year of adult life
+ - Create one function that will simulate the adult life until the age of X
+## 1.9 Create the Elder Life functions
+ - Create one function that will simulate one year of elder life
+ - Create one function that will simulate the elder life until the age of X
+## 1.10 Create the Dead function
+ - Create one function that will simulate the probability of death
+## 1.11 Review the Spender Profile to check main expenses such as housing, loan, kids, ...
+## 1.12 Check how money will be transferred to kids/ next generation in life and death events (from pocket money to house and car inheritance)
+## 1.13 Defien when and how a Children or Young Adult will not be dependent anymore and their finances will be separated from their parents
+
+# 2. Financial Institution
+## 2.1. Test get loan functions
+## 2.2. Create the refinance loan function
+## 2.3. Create the function to combine existing loans
+## 2.4. Create the function to check loans from couples and opportunities to combine them
+## 2.4. Create the function to pay loan
+## 2.5. Create the function to handle when a loan is not paid
+## 2.6. Create the function to handle when a loan is paid
+## 2.7. Create the get insurance function
+## 2.8. Create the function to handle when a insurance is not paid
+## 2.9. Create the function to handle when a insurance is paid
+## 2.10. Create the function to handle death befenit from insurance
+## 2.11. Create Default scenarios for loans and insurance - How and when we will default a loan or insurance
+## 2.12. Create the function to measure sales and profit from loans and insurance
+
+# 3. City
+# 4. Marketing
+## 4.1. Create the function to handle when a campaign is sent
+## 4.2. Create the function to handle when a campaign is opened
+## 4.3. Create the function to handle when a campaign is engaged
+## 4.4. Create the function to handle when a campaign is converted
+## 4.5. Create the function to handle when a campaign is not converted
+## 4.6. Create the function to measure sales and profit from campaigns
+
+# 5. Data Science
+## 5.1. Evaluate marketing campaigns and their effectiveness
+## 5.2. Evaluate marketing campaigns and their effectiveness by customer segment
+## 5.3. Evaluate marketing campaigns and their effectiveness by customer segment and the respective lift
+
+## create a new folder for the project to split life classes from city, financial institution and marketing
+## create a new folder for test related files
+## create csv files with test data for the tests
+
+
