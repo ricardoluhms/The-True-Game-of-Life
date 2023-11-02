@@ -68,8 +68,9 @@ SPENDER_PROFILE_PROBS = {'Average': 0.5,
                         'Big Spender': 0.3,
                         'Small Spender': 0.2}
 
-CAR_FINANCING_OPTION_PROBS = {'Self-Financing': 0.3,
-                            'Car Loan': 0.7}
+CAR_FINANCING_OPTION_PROBS = {'Self-Financing': 0.1,
+                            'Car Loan': 0.9}
+
 
 FUTURE_CAREER_PAY_PROBS = {'Base': 0.4,
                            'Medium': 0.4,

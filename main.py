@@ -470,30 +470,94 @@ class Person_Functions():
         spender_profile = np.random.choice( list(SPENDER_PROFILE_PROBS.keys()), 
                                          p=np.array(list(SPENDER_PROFILE_PROBS.values())))
         return spender_profile
+
+    # This function is just calculating the likelyhood of a person getting a car loan or not
+    #  We still need to modify it to update the current loan term and interest rate
+    
+    def car_loan(spender_prof , balance, loan, income, age):
+
+        '''since we do not have information on credit score we can use Spender profile as a parameter a big 
+              spender will have less likelyhood to get a car loan.
+           # We can use income and balance here also to determine the chances of getting a car
+           # the lower the age the lesser are the chances of a person to get a car loan 
+           # we need to check the downpayment made by the user, for instance for a car worth 30K
+                we need atleast 10 - 20 percent downpayment.'''
+
+        credit_profile  = spender_prof
+        downpayment_capability = balance * 0.10
+        debt_to_income_ratio = loan / income
+        person_age = age
+
+        if person_age >= 18 and person_age <= 22:
+
+            if credit_profile == "Big Spender":
+                if debt_to_income_ratio <= 0.8:
+                    if downpayment_capability >= 3000:
+                        event="Bought a Car (Car Loan)"
+                    else:
+                        event="Car Loan Application Rejected"
+
+            if credit_profile == "Average":
+                if debt_to_income_ratio <= 0.5:
+                    if downpayment_capability >= 3000:
+                        event="Bought a Car (Car Loan)"
+                    else:
+                        event="Car Loan Application Rejected"
+            else:
+                if debt_to_income_ratio <= 0.4:
+                    if downpayment_capability >= 3000:
+                        event="Bought a Car (Car Loan)"
+                    else:
+                        event="Car Loan Application Rejected"
+
+        if person_age >= 23 and person_age <= 30:
+
+            if credit_profile == "Big Spender":
+                if debt_to_income_ratio <= 0.6:
+                    if downpayment_capability >= 3000:
+                        event="Bought a Car (Car Loan)"
+                    else:
+                        event="Car Loan Application Rejected"
+
+            if credit_profile == "Average":
+                if debt_to_income_ratio <= 0.4:
+                    if downpayment_capability >= 3000:
+                        event="Bought a Car (Car Loan)"
+                    else:
+                        event="Car Loan Application Rejected"
+            else:
+                if debt_to_income_ratio <= 0.3:
+                    if downpayment_capability >= 3000:
+                        event="Bought a Car (Car Loan)"
+                    else:
+                        event="Car Loan Application Rejected"
+
+        return event
     
     @staticmethod    
-    def get_a_car(temp_history,finance_option):
+    def get_a_car(temp_history,finance_option): # currently this function is working for a brand new car, whereas in most of the cases a Young adult will go for a second hand car.
         # replace the constants with a variable coming from gml_constants
         if temp_history['age'] >= 18:
             
             if finance_option is None:
                 finance_option = np.random.choice(list(CAR_FINANCING_OPTION_PROBS.keys()), 
                                          p=np.array(list(CAR_FINANCING_OPTION_PROBS.values())))
-            
+
+            # If a person is self-financing, we will check if he/she has sufficient balance and income. 
+            # If either of these things is missing,we will explain why they are unable to buy the car at this moment.
+
             if finance_option == "Self-Financing":
-                if temp_history['balance'] >= 2000 and temp_history['income'] >= 70000:  
+                if temp_history['balance'] >= 20000.000 and temp_history['income'] >= 70000.000:  
                     event="Bought a Car (Self-Financed)"
                 else:
-                    event="Cannot Buy a Car (Insufficient Balance)"
-            
+                    if temp_history['balance'] <= 2000.000:
+                        event="Cannot Buy a Car (Insufficient Balance)"
+                    else:
+                        event="Cannot Buy a Car (Insufficient Income)"
+
             elif finance_option == "Car Loan":
-
-                debt_to_income_ratio = temp_history['loan'] / (temp_history['income'])  # Assuming monthly income
-
-                if debt_to_income_ratio <= 0.5:  # Adjust the threshold as needed
-                    event="Bought a Car (Car Loan)"
-                else:
-                    event="Car Loan Application Rejected"
+                  event = car_loan(temp_history['spender_prof'],temp_history['balance'],
+                                        temp_history['income'],temp_history['age'])
         else:
             event="Not Eligible to Buy a Car (Age Restriction)"
         
@@ -792,19 +856,19 @@ class Financial_Institution():
 
     
     
-    def get_loan(self, person_id, person_income, loan_amount, loan_term, interest_rate,
-                       loan_type, loan_reason, loan_refinanced, person_balance, year):
-    
-        ### check if the person is eligible for the loan
-        ### check if the person has a loan already
-        ### check if the person has a loan and is refinancing
-        ### check if the person has a loan and is refinancing and the loan is the same type as the previous loan
-        ### check if the person has a loan and is refinancing and the loan is a different type as the previous loan
-        ### check if the person has a loan and is not refinancing
-        ### check if the person has a loan and is not refinancing and the loan is the same type as the previous loan
-        ### check if the person has a loan and is not refinancing and the loan is a different type as the previous loan
-        ### check if the person does not have a loan
-        pass
+        def get_loan(self, person_id, person_income, loan_amount, loan_term, interest_rate,
+                        loan_type, loan_reason, loan_refinanced, person_balance, year):
+        
+            ### check if the person is eligible for the loan
+            ### check if the person has a loan already
+            ### check if the person has a loan and is refinancing
+            ### check if the person has a loan and is refinancing and the loan is the same type as the previous loan
+            ### check if the person has a loan and is refinancing and the loan is a different type as the previous loan
+            ### check if the person has a loan and is not refinancing
+            ### check if the person has a loan and is not refinancing and the loan is the same type as the previous loan
+            ### check if the person has a loan and is not refinancing and the loan is a different type as the previous loan
+            ### check if the person does not have a loan
+            pass
 
 class Financial_Institution:
     def __init__(self, bank_name=None):
@@ -897,4 +961,4 @@ class Financial_Institution:
     #     return insurance_df.append(insurance_data, ignore_index=True)
 # Usage example:
 fi = Financial_Institution()
-fi.loan_df = Financial_Institution2.add_loan(fi.loan_df, 'loan_001', 'person_001', 50000, 20000, 5, 3.5, 'personal', 'buy a car')
+#fi.loan_df = Financial_Institution2.add_loan(fi.loan_df, 'loan_001', 'person_001', 50000, 20000, 5, 3.5, 'personal', 'buy a car')
