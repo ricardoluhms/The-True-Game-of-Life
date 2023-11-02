@@ -473,68 +473,40 @@ class Person_Functions():
 
     # This function is just calculating the likelyhood of a person getting a car loan or not
     #  We still need to modify it to update the current loan term and interest rate
-    
-    def car_loan(spender_prof , balance, loan, income, age):
-
-        '''since we do not have information on credit score we can use Spender profile as a parameter a big 
-              spender will have less likelyhood to get a car loan.
-           # We can use income and balance here also to determine the chances of getting a car
-           # the lower the age the lesser are the chances of a person to get a car loan 
-           # we need to check the downpayment made by the user, for instance for a car worth 30K
-                we need atleast 10 - 20 percent downpayment.'''
-
-        credit_profile  = spender_prof
+    '''
+    @staticmethod
+    def car_loan(spender_prof, balance, loan, income, age):
+            
+        credit_profile = spender_prof
         downpayment_capability = balance * 0.10
         debt_to_income_ratio = loan / income
         person_age = age
 
         if person_age >= 18 and person_age <= 22:
+        
+            if credit_profile == "Big Spender":
+                max_debt_ratio = 0.8
+            elif credit_profile == "Average":
+                max_debt_ratio = 0.5
+            else:
+                max_debt_ratio = 0.4
+        elif person_age >= 23 and person_age <= 30:
 
             if credit_profile == "Big Spender":
-                if debt_to_income_ratio <= 0.8:
-                    if downpayment_capability >= 3000:
-                        event="Bought a Car (Car Loan)"
-                    else:
-                        event="Car Loan Application Rejected"
-
-            if credit_profile == "Average":
-                if debt_to_income_ratio <= 0.5:
-                    if downpayment_capability >= 3000:
-                        event="Bought a Car (Car Loan)"
-                    else:
-                        event="Car Loan Application Rejected"
+                max_debt_ratio = 0.6
+            elif credit_profile == "Average":
+                max_debt_ratio = 0.4
             else:
-                if debt_to_income_ratio <= 0.4:
-                    if downpayment_capability >= 3000:
-                        event="Bought a Car (Car Loan)"
-                    else:
-                        event="Car Loan Application Rejected"
+                max_debt_ratio = 0.3
+        else:
+            return "Car Loan Application Rejected (Age out of range)"
 
-        if person_age >= 23 and person_age <= 30:
+        if debt_to_income_ratio <= max_debt_ratio and downpayment_capability >= 3000:
+            return "Bought a Car (Car Loan)"
+        else:
+            return "Car Loan Application Rejected"
 
-            if credit_profile == "Big Spender":
-                if debt_to_income_ratio <= 0.6:
-                    if downpayment_capability >= 3000:
-                        event="Bought a Car (Car Loan)"
-                    else:
-                        event="Car Loan Application Rejected"
 
-            if credit_profile == "Average":
-                if debt_to_income_ratio <= 0.4:
-                    if downpayment_capability >= 3000:
-                        event="Bought a Car (Car Loan)"
-                    else:
-                        event="Car Loan Application Rejected"
-            else:
-                if debt_to_income_ratio <= 0.3:
-                    if downpayment_capability >= 3000:
-                        event="Bought a Car (Car Loan)"
-                    else:
-                        event="Car Loan Application Rejected"
-
-        return event
-    
-    @staticmethod    
     def get_a_car(temp_history,finance_option): # currently this function is working for a brand new car, whereas in most of the cases a Young adult will go for a second hand car.
         # replace the constants with a variable coming from gml_constants
         if temp_history['age'] >= 18:
@@ -556,13 +528,83 @@ class Person_Functions():
                         event="Cannot Buy a Car (Insufficient Income)"
 
             elif finance_option == "Car Loan":
-                  event = car_loan(temp_history['spender_prof'],temp_history['balance'],
-                                        temp_history['income'],temp_history['age'])
+                 event = car_loan(temp_history['spender_prof'],temp_history['balance'],
+                                       temp_history['income'],temp_history['age'])
+
         else:
             event="Not Eligible to Buy a Car (Age Restriction)"
         
         return event
+    '''
+    @staticmethod
+    def get_a_car(temp_history, finance_option):
 
+        age = temp_history['age']
+        balance = temp_history['balance']
+        income = temp_history['income']
+        credit_profile = temp_history['spender_prof']
+        loan = temp_history['loan']
+        downpayment_capability = balance * 0.10
+
+        def choose_finance_option():
+            if finance_option is None:
+                return np.random.choice(
+                    list(CAR_FINANCING_OPTION_PROBS.keys()),
+                    p=np.array(list(CAR_FINANCING_OPTION_PROBS.values()))
+                )
+            return finance_option
+
+        def self_financing_eligibility():
+            if balance >= 20000 and income >= 70000:
+                return "Bought a Car (Self-Financed)"
+            if balance <= 2000:
+                return "Cannot Buy a Car (Insufficient Balance)"
+            return "Cannot Buy a Car (Insufficient Income)"
+
+        def car_loan_eligibility():
+            if income == 0:
+                debt_to_income_ratio = float('inf')
+            else:
+                debt_to_income_ratio = loan / income
+
+            person_age = age
+            max_debt_ratio = 0
+
+            if 18 <= person_age <= 22:
+                if credit_profile == "Big Spender":
+                    max_debt_ratio = 0.8
+                elif credit_profile == "Average":
+                    max_debt_ratio = 0.5
+                else:
+                    max_debt_ratio = 0.4
+                    
+            elif 23 <= person_age <= 30:
+                if credit_profile == "Big Spender":
+                    max_debt_ratio = 0.6
+                elif credit_profile == "Average":
+                    max_debt_ratio = 0.4
+                else:
+                    max_debt_ratio = 0.3
+            else:
+                return "Car Loan Application Rejected (Age out of range, more than 30)"
+
+            if debt_to_income_ratio <= max_debt_ratio and downpayment_capability >= 3000:
+                return "Bought a Car (Car Loan)"
+            return "Car Loan Application Rejected"
+
+        if age >= 18:
+            finance_option = choose_finance_option()
+
+            if finance_option == "Self-Financing":
+                event = self_financing_eligibility()
+            elif finance_option == "Car Loan":
+                event = car_loan_eligibility()
+        else:
+            event = "Not Eligible to Buy a Car (Age Restriction)"
+
+        return event
+
+#
 notes =  True 
 if notes:
     ### Generate a class Person that keeps track of multiple Classes such as Baby, Child, Teenager, Young Adult, Adult, Elder

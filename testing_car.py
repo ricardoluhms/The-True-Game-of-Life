@@ -21,7 +21,8 @@ print("This persons age:",df.iloc[i,7])
 print("This persons income:",df.iloc[i,12])
 print("This persons balance:",df.iloc[i,16])
 
-print(p.get_a_car(finance_option=None,temp_history=temp_history_18))
+print(p.get_a_car(temp_history=temp_history_18, finance_option="Car Loan"))
+
 # %%
 assert p.get_a_car(finance_option=None,temp_history=temp_history_18)=="Not Eligible to Buy a Car (Age Restriction)"
 print("This is a Test")

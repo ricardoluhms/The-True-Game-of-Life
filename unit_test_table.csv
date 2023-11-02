@@ -1,6 +1,3 @@
-gender,first_name,last_name,full_name,unique_name_id,year,age_range,age,career,future_career,years_of_study,years_to_study,income,loan,loan_term,interest_rate,balance,married,children,spender_prof,event,Testing Purpose
-Male,Christian,Bennett,Christian Bennett,Christian_Bennett_3895,2039,Teenager,17,Part Time,,,,9195.1,,,,-1960.043,FALSE,0,Big Spender,Teenager - Aged Up,
-Male,Christian,Bennett,Christian Bennett,Christian_Bennett_3895,2040,Young Adult,18,Part Time,Medium,0,3,9195.1,18375.75542,11,0.039814043,-459.755,FALSE,0,Big Spender,Become Young Adult - Aged Up,
-Male,Christian,Bennett,Christian Bennett,Christian_Bennett_3895,2039,Teenager,18,Part Time,,,,9195.1,,,,3960.043,FALSE,0,Big Spender,Teenager - Aged Up,
-Male,Christian,Bennett,Christian Bennett,Christian_Bennett_3895,2040,Young Adult,18,Part Time,Medium,0,3,6195.1,18375.75542,11,0.039814043,2459.755,FALSE,0,Big Spender,Become Young Adult - Aged Up,
-Male,Christian,Bennett,Christian Bennett,Christian_Bennett_3895,2040,Young Adult,18,Part Time,Medium,0,3,6195.1,18375.75542,11,0.039814043,1459.755,FALSE,0,Big Spender,Become Young Adult - Aged Up,
+gender,first_name,last_name,full_name,unique_name_id,year,age_range,age,career,future_career,years_of_study,years_to_study,income,loan,loan_term,interest_rate,balance,married,children,spender_prof,event
+Male,Christian,Bennett,Christian Bennett,Christian_Bennett_3895,2039,Teenager,17,Part Time,,,,9195.1,,,,-1960.043,FALSE,0,Big Spender,Teenager - Aged Up
+Male,Christian,Bennett,Christian Bennett,Christian_Bennett_3895,2039,Teenager,18,Part Time,,,,9195.1,"7,356.08",,,3960.043,FALSE,0,Big Spender,Teenager - Aged Up
