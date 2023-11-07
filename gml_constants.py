@@ -68,6 +68,9 @@ SPENDER_PROFILE_PROBS = {'Average': 0.5,
                         'Big Spender': 0.3,
                         'Small Spender': 0.2}
 
+CAR_FINANCING_OPTION_PROBS = {'Self-Financing': 0.3,
+                            'Car Loan': 0.7}
+
 FUTURE_CAREER_PAY_PROBS = {'Base': 0.4,
                            'Medium': 0.4,
                            'High': 0.1,
@@ -96,6 +99,8 @@ CAREERS_AND_MARRIAGE_PROBS = {"Student with Part Time Job": 0.08,
                               'Very High': 0.3}
 
 STUDENT_LOAN_INTEREST_RATES = [0.02, 0.07]
+
+
 
 MIN_MARRIAGE_ALLOWED_AGE = 16 ### Canada
 
