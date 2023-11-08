@@ -90,6 +90,15 @@ INITIAL_CAREER_PROBS_BY_AGE = { 25: {'Base': 0.5, 'Medium': 0.4, 'High': 0.09, '
                                 55: {'Base': 0.4, 'Medium': 0.3, 'High': 0.2, 'Very High': 0.1},
                                 75: {'Base': 0.5, 'Medium': 0.3, 'High': 0.1, 'Very High': 0.1}}
 
+# Something like the above dict, can be created to handel diffrent ages 
+# if age is 18 - 22 
+CAR_MAX_DEBT_RATIO = {"Bucket 1": {"Age Range": [18, 25], "Max Debt Ratio": {"Big Spender": 0.8, "Average": 0.6, "Small Spender": 0.4}},
+                      "Bucket 2": {"Age Range": [26, 35], "Max Debt Ratio": {"Big Spender": 0.7, "Average": 0.5, "Small Spender": 0.3}},
+                      "Bucket 3": {"Age Range": [36, 45], "Max Debt Ratio": {"Big Spender": 0.6, "Average": 0.5, "Small Spender": 0.5}},
+                      "Bucket 4": {"Age Range": [46, 55], "Max Debt Ratio": {"Big Spender": 0.5, "Average": 0.5, "Small Spender": 0.5}},
+                      "Bucket 5": {"Age Range": [56, 65], "Max Debt Ratio": {"Big Spender": 0.5, "Average": 0.5, "Small Spender": 0.5}},
+                      "Bucket 6": {"Age Range": [66, 75], "Max Debt Ratio": {"Big Spender": 0.5, "Average": 0.5, "Small Spender": 0.5}}}
+
 CAREERS_AND_MARRIAGE_PROBS = {"Student with Part Time Job": 0.08,
                               "Student with Pocket Money": 0.005,
                               'Pocket Money': 0.001,
@@ -100,6 +109,11 @@ CAREERS_AND_MARRIAGE_PROBS = {"Student with Part Time Job": 0.08,
                               'Very High': 0.3}
 
 STUDENT_LOAN_INTEREST_RATES = [0.02, 0.07]
+
+CAR_DOWNPAYMENT_CONSTANT = 3000
+
+CAR_SELF_FINANCING_CONSTANT= [10000,20000,70000]
+
 
 
 

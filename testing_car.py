@@ -2,7 +2,7 @@
 import pandas as pd
 from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
-from main import Person_Life, Person_Functions
+from main import Person_Functions
 
 df = pd.read_csv("unit_test_table.csv")
 
