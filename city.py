@@ -1,9 +1,13 @@
-#%%
+
 import numpy as np
 import pandas as pd
-from  gml_constants import (AGE_RANGES, CAREERS_AND_MARRIAGE_PROBS,MIN_MARRIAGE_ALLOWED_AGE, SAME_GENDER_MARRIAGE_RATIO)
+
+from  gml_constants import ( AGE_RANGES,
+                            CAREERS_AND_MARRIAGE_PROBS,
+                            MIN_MARRIAGE_ALLOWED_AGE, 
+                            SAME_GENDER_MARRIAGE_RATIO)
 from person import Person_Life
-#%%
+
 class City():
   
     ### create a city with a name and a population of young adults 
@@ -25,6 +29,14 @@ class City():
         self.current_year = current_year
         self.young_adults = []
         self.history = pd.DataFrame()
+        self.financial_institution = finance_institution
+        self.people_obj_dict = self.generate_young_adults(population)
+        ### explain what City class does and the inputs, outputs and attributes
+
+    def age_up(self):
+        self.current_year += 1
+        ### 
+        for person_id in self.people_obj_dict.keys():
 
         if mode == 'default':
             ###For generating random young adults
@@ -40,6 +52,7 @@ class City():
 
         ### Had to be changed to .copy() since we can't change the size of the acutal dictionary while its looping (when adding spouse)
         for person_id in self.people_obj_dict.copy():
+
             person_obj = self.people_obj_dict[person_id]
             person_obj.age_up()
             
@@ -53,7 +66,6 @@ class City():
             ### Placeholder for marriage function
             self.handle_marriage(person_obj)
             ### Placeholder for child born function
-
 
     def generate_young_adults(self, population:int = None):
         # make a even distribution of gender
@@ -148,7 +160,6 @@ class City():
 
                 #Retrieve the person history
                 person_last_history = person.history_df.iloc[-1].copy()
-                
 
                 ### quick error check to see if the last history is the same year as the person - else solve the issue
                 if spouse_last_history['year'] != person_last_history['year']:
@@ -157,6 +168,7 @@ class City():
                     pass
 
                 ###Update the spouse and person values so they are married
+
                 # - change the married status to True
                 spouse_last_history['married'] = True
                 # - change the just_married status to True
@@ -164,6 +176,10 @@ class City():
                 # - change the spouse_name_id to the person unique_name_id
                 spouse_last_history['spouse_name_id'] = person_last_history['unique_name_id']
                 # the person last history:
+
+                # - change the spouse_name_id to the spouse unique_name_id
+                person.history_df.iloc[-1, 'spouse_name_id'] = spouse_last_history['unique_name_id']
+                # update the history of the person and the spouse candidate
                 
                 person_last_history['married'] = True
                 person_last_history['just_married'] = True
@@ -205,6 +221,12 @@ class City():
                 criteria_arange = spouse_all_history["age_range"] == spouse_age_range
                 criteria_age = spouse_all_history["age"] == spouse_age
                 criteria_year = spouse_all_history["year"] == person_most_recent_year
+
+                spouse_all_history.iloc[~(criteria_arange & criteria_age & criteria_year),"married"] = False
+                spouse_all_history.iloc[(criteria_arange & criteria_age & criteria_year),"just_married"] = True
+                spouse_all_history.iloc[(criteria_arange & criteria_age & criteria_year),"spouse_name_id"] = person_last_history['unique_name_id']
+                spouse.history_df = spouse_all_history
+
                 spouse_all_history.loc[~(criteria_arange & criteria_age & criteria_year),"married"] = False
                 spouse_all_history.loc[(criteria_arange & criteria_age & criteria_year),"just_married"] = True
                 spouse_all_history.loc[(criteria_arange & criteria_age & criteria_year),"spouse_name_id"] = person_last_history['unique_name_id']
@@ -215,9 +237,7 @@ class City():
                 ###Grabs the histories we need
                 spouse_last_history = spouse.history_df.iloc[-1].copy()
                 person_last_history = person.history_df.iloc[-1].copy()
-                
 
-                
                 ###Updates everything for the person getting married to the spouse
                 person_last_history['married'] = True
                 person_last_history["just_married"] = True

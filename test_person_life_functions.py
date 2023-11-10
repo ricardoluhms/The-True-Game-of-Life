@@ -2,7 +2,7 @@
 import pandas as pd
 from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
-from main import Person_Life, Person_Functions
+from person import Person_Life, Person_Functions
 
 
 person = Person_Life("Male",None,None,current_year=2023, age_range="Baby")

@@ -2,7 +2,8 @@
 ### remove Future Warning from pandas
 from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
-from main import Person_Life, City,Person_Functions# , Starter_Data_Person
+#from person import Person_Life, Person_Functions
+from city import City # , Starter_Data_Person
 
 import pandas as pd
 # Create a city
