@@ -2,7 +2,8 @@
 import pandas as pd
 from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
-from person import Person_Functions
+
+from person import Person_Life, Person_Functions
 
 df = pd.read_csv("unit_test_table.csv")
 
