@@ -18,10 +18,11 @@ from datetime import date
 class Person_Functions():
 
     def __init__(self, gender:str =None, first_name = None, last_name = None, 
-                      current_year = None, age_range: str = None,
+                      current_year = None, age_range: str = None, age: int = None,
                       career: str = None, future_career: str = None, income: int = None,
                       loan: int = None, loan_term: int = None, balance: int = None,
                       married: bool = False, just_married = False, children: int = 0, spender_prof: str = None,
+                      parent_name_id_A: str = None, parent_name_id_B: str = None, children_name_id:list = [],
                       spouse_name_id: str = None,
                       years_of_study: int = None,
                       years_to_study: int = None,
@@ -66,7 +67,7 @@ class Person_Functions():
         self.year = current_year
 
         # Determine the age range and specific age if not provided
-        self.age_range, self.age = self.initial_age(age_range)
+        self.age_range, self.age = self.initial_age(age_range, age)
 
         # Set career attributes and life events     
         self.career = career
@@ -85,6 +86,9 @@ class Person_Functions():
         self.event = "Created"
         self.spouse_name_id = spouse_name_id
         self.has_a_car = has_a_car
+        self.parent_name_id_A = parent_name_id_A
+        self.parent_name_id_B = parent_name_id_B
+        self.children_name_id = children_name_id
 
         # Initialize the history DataFrame
         self.history_df = pd.DataFrame(self.get_values(), index=[0])
@@ -122,14 +126,17 @@ class Person_Functions():
             if age_range_list[0] <= age <= age_range_list[1]:
                 return age_range
     
-    def initial_age(self, age_range=None):#
+    def initial_age(self, age_range=None, age = None):#
         """Determine the initial age and age range if not provided."""
-        if age_range is None:
-            age = np.random.randint(AGE_RANGES["Baby"][0], AGE_RANGES["Elder"][1])
+        if age is not None:
             age_range = self.update_age_range(age)
         else:
-            age = np.random.randint(AGE_RANGES[age_range][0], AGE_RANGES[age_range][1])
-            age_range = age_range
+            if age_range is None:
+                age = np.random.randint(AGE_RANGES["Baby"][0], AGE_RANGES["Elder"][1])
+                age_range = self.update_age_range(age)
+            else:
+                age = np.random.randint(AGE_RANGES[age_range][0], AGE_RANGES[age_range][1])
+                age_range = age_range
         return age_range, age
 
     def max_age_check(self, age_range:str, max_age= None):#
@@ -355,7 +362,7 @@ class Person_Life(Person_Functions):
         ### will go to college/university (OK)
         ### will get a loan (OK)
         ### will get a job (OK)
-        ### may get married
+        ### may get married (OK)
         ### may have children
         ### may get a house
         ### may get a car
@@ -502,4 +509,3 @@ class Person_Life(Person_Functions):
         elif age_range == "Elder":
             pass
             #self.elder(max_age = max_age)
-
