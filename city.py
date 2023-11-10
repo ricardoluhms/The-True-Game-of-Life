@@ -1,16 +1,21 @@
-#%%
 import numpy as np
 import pandas as pd
+from  gml_constants import ( AGE_RANGES, 
+                            CAREERS_AND_MARRIAGE_PROBS,
+                            MIN_MARRIAGE_ALLOWED_AGE, 
+                            SAME_GENDER_MARRIAGE_RATIO,
+                            BABY_TWINS_MODE, 
+                            EXISTING_CHILDREN_PROB_DICT)
+
 from person import Person_Life
-from  gml_constants import ( AGE_RANGES, CAREERS_AND_MARRIAGE_PROBS,MIN_MARRIAGE_ALLOWED_AGE, 
-                            SAME_GENDER_MARRIAGE_RATIO,BABY_TWINS_MODE, EXISTING_CHILDREN_PROB_DICT)
 
-
-#%%
 class City():
   
     ### create a city with a name and a population of young adults 
-    def __init__(self, name:str, population:int, current_year:int = 1950, finance_institution = None):
+
+    def __init__(self, name:str, population:int, current_year:int = 1950, mode:str = 'default', finance_institution = None):
+
+        ### explain what City class does and the inputs, outputs and attributes
         """ City class is used to create a city with a name and a population of young adults.
             inputs:
             - name: the name of the city (as a string)
@@ -26,13 +31,23 @@ class City():
         self.young_adults = []
         self.history = pd.DataFrame()
         self.financial_institution = finance_institution
-        self.people_obj_dict = self.generate_young_adults(population)
+        if mode == 'default':
+            ###For generating random young adults
+            self.people_obj_dict = self.generate_young_adults(population)
+        
+        elif mode == 'testing':
+            ###For generating specific people
+            self.people_obj_dict = {}
         ### explain what City class does and the inputs, outputs and attributes
-
+       
     def age_up(self):
         self.current_year += 1
         ### 
-        for person_id in self.people_obj_dict.keys():
+
+        ### Had to be changed to .copy() since we can't change the size of the acutal dictionary while its looping (when adding spouse)
+        for person_id in self.people_obj_dict.copy():
+
+
             person_obj = self.people_obj_dict[person_id]
             person_obj.age_up()
             
@@ -46,7 +61,6 @@ class City():
             ### Placeholder for marriage function
             self.handle_marriage(person_obj)
             self.handle_child_born(person_obj)
-            ### Placeholder for child born function
 
     def generate_young_adults(self, population:int = None):
         # make a even distribution of gender
@@ -66,6 +80,7 @@ class City():
             people_list[unique_name_id] = current_person
         
         return people_list
+
 
     def retrieve_history_from_people(self): ### will be deprecated in the future
         for person in self.people:
@@ -135,11 +150,17 @@ class City():
                 spouse_id = all_population[marriage_criteria].sample(1).iloc[0].copy()['unique_name_id'] ### select on from the list
                 spouse = self.people_obj_dict[spouse_id]
                 spouse_last_history = spouse.history_df.iloc[-1].copy()
+                #Retrieve the person history
+                person_last_history = person.history_df.iloc[-1].copy()
+
                 ### quick error check to see if the last history is the same year as the person - else solve the issue
                 if spouse_last_history['year'] != person_last_history['year']:
                     ### solve the issue
                     print('Solve the issue - Last history of the spouse candidate is not the same year as the person which means there is a problem with the current logic')
                     pass
+
+                ###Update the spouse and person values so they are married
+
                 # - change the married status to True
                 spouse_last_history['married'] = True
                 # - change the just_married status to True
@@ -147,9 +168,24 @@ class City():
                 # - change the spouse_name_id to the person unique_name_id
                 spouse_last_history['spouse_name_id'] = person_last_history['unique_name_id']
                 # the person last history:
+
                 # - change the spouse_name_id to the spouse unique_name_id
                 person.history_df.iloc[-1, 'spouse_name_id'] = spouse_last_history['unique_name_id']
                 # update the history of the person and the spouse candidate
+                
+                person_last_history['married'] = True
+                person_last_history['just_married'] = True
+                person_last_history['spouse_name_id'] = spouse_last_history['unique_name_id']
+
+                ###Update the actual dataframes
+                person.history_df.iloc[-1] = person_last_history
+                spouse.history_df.iloc[-1] = spouse_last_history
+
+                # update the object status
+                person.married = True
+                person.just_married = True
+                self.people_obj_dict[spouse.unique_name_id] = spouse
+                
                 #person.update_history(new_history=person_last_history) 
                 #### FUTURE ISSUES TO SOLVE:
                 # - IF THE PERSON CURRENT YEAR WAS NOT UPDATED YET SO THE PERSON WILL NOT BE A CANIDATE FOR MARRIAGE
@@ -171,16 +207,36 @@ class City():
                 spouse_age_range = Person_Life.update_age_range(spouse_age) ### TO BE DEVELOPED - SKIP AGE RANGE TO REPLACE WITH THE AGE WHEN CREATING A NEW PERSON
                 spouse = Person_Life(gender= spouse_gender, age_range= spouse_age_range, current_year= person_most_recent_year, married = True)
                 spouse.age_group_up(age_range=spouse_age_range, max_age=spouse_age) ### TO BE DEVELOPED - when creating a new person and age up for marriage set married to True
+
                 ### married to true will be applied to all the history of the person so it need to be removed from the history later
                 spouse_all_history = spouse.history_df.copy()
                 criteria_arange = spouse_all_history["age_range"] == spouse_age_range
                 criteria_age = spouse_all_history["age"] == spouse_age
                 criteria_year = spouse_all_history["year"] == person_most_recent_year
+
                 spouse_all_history.iloc[~(criteria_arange & criteria_age & criteria_year),"married"] = False
                 spouse_all_history.iloc[(criteria_arange & criteria_age & criteria_year),"just_married"] = True
                 spouse_all_history.iloc[(criteria_arange & criteria_age & criteria_year),"spouse_name_id"] = person_last_history['unique_name_id']
                 spouse.history_df = spouse_all_history
 
+
+
+                ### Change values so that the person being married is actually married
+
+                ###Grabs the histories we need
+                spouse_last_history = spouse.history_df.iloc[-1].copy()
+                person_last_history = person.history_df.iloc[-1].copy()
+
+                ###Updates everything for the person getting married to the spouse
+                person_last_history['married'] = True
+                person_last_history["just_married"] = True
+                person_last_history["spouse_name_id"] = spouse_last_history['unique_name_id']
+
+                person.history_df.iloc[-1] = person_last_history
+
+                ###Updates the values of the acutal object
+                person.married = True
+                person.just_married = True
                 self.people_obj_dict[spouse.unique_name_id] = spouse
 
             ### TO BE DEVELOPED ###
@@ -193,7 +249,7 @@ class City():
             #     if  get_loan_status is None:
             #         print('You cannot afford the marriage expense. You have reached the maximum loan amount.')
             pass
-    
+
     def handle_child_born(self, person):
         babies = []
         # retrieve the last history of the person and:
@@ -253,18 +309,7 @@ class City():
                                       parent_name_id_A = person_last_history["unique_name_id"], 
                                       parent_name_id_B= person_last_history["unique_name_id"]))
 
-        
-
-
-
         return "Child(s) Born", babies
-
-        
-
-
-
-
-
 
 #### Lets create a class to handle financial products such as loans and insurance
 #### the class will later register things as tables in a database
@@ -456,8 +501,3 @@ class Financial_Institution:
 # Usage example:
 fi = Financial_Institution()
 fi.loan_df = Financial_Institution.add_loan(fi.loan_df, 'loan_001', 'person_001', 50000, 20000, 5, 3.5, 'personal', 'buy a car')
-
-
-
-
-# %%

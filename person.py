@@ -1,4 +1,3 @@
-#%%
 import numpy as np
 import pandas as pd
 
@@ -8,12 +7,11 @@ from  gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES,
                             YEARS_OF_STUDY, TUITION, SPENDER_PROFILE,
                             INITIAL_INCOME_RANGES,
                             FUTURE_CAREER_PAY_PROBS,STUDENT_LOAN_INTEREST_RATES,
-                            CAR_FINANCING_OPTION_PROBS)
+                            CAR_FINANCING_OPTION_PROBS,CAR_MAX_DEBT_RATIO,
+                            CAR_DOWNPAYMENT_CONSTANT,CAR_SELF_FINANCING_CONSTANT)
 
 import random
 from datetime import date
-
-#%%
 
 class Person_Functions():
 
@@ -23,6 +21,7 @@ class Person_Functions():
                       loan: int = None, loan_term: int = None, balance: int = None,
                       married: bool = False, just_married = False, children: int = 0, spender_prof: str = None,
                       parent_name_id_A: str = None, parent_name_id_B: str = None, children_name_id:list = [],
+
                       spouse_name_id: str = None,
                       years_of_study: int = None,
                       years_to_study: int = None,
@@ -68,7 +67,6 @@ class Person_Functions():
 
         # Determine the age range and specific age if not provided
         self.age_range, self.age = self.initial_age(age_range, age)
-
         # Set career attributes and life events     
         self.career = career
         self.future_career = future_career
@@ -89,6 +87,7 @@ class Person_Functions():
         self.parent_name_id_A = parent_name_id_A
         self.parent_name_id_B = parent_name_id_B
         self.children_name_id = children_name_id
+
 
         # Initialize the history DataFrame
         self.history_df = pd.DataFrame(self.get_values(), index=[0])
@@ -137,6 +136,7 @@ class Person_Functions():
             else:
                 age = np.random.randint(AGE_RANGES[age_range][0], AGE_RANGES[age_range][1])
                 age_range = age_range
+
         return age_range, age
 
     def max_age_check(self, age_range:str, max_age= None):#
@@ -241,6 +241,12 @@ class Person_Functions():
 
     @staticmethod
     def handle_finished_studies(temp_history):
+      
+        ###TEMP SOLUTION, IF TEMP_HISOTRY HAS NO FUTURE CAREER DEFINE ONE OTHERWISE WE GET AN ERROR###
+        if temp_history['future_career'] == None:
+            temp_history['future_career'] = np.random.choice( list(FUTURE_CAREER_PAY_PROBS.keys()), 
+                                         p=np.array(list(FUTURE_CAREER_PAY_PROBS.values())))
+
         event = "Young Adult - Finished Studies"
         temp_history['career'] = temp_history['future_career']
         temp_history['future_career'] = None
@@ -282,7 +288,74 @@ class Person_Functions():
         spender_profile = np.random.choice( list(SPENDER_PROFILE_PROBS.keys()), 
                                          p=np.array(list(SPENDER_PROFILE_PROBS.values())))
         return spender_profile
-    
+
+
+    @staticmethod
+    def get_a_car(temp_history, finance_option):
+        age = temp_history['age']
+        balance = temp_history['balance']
+        income = temp_history['income']
+        credit_profile = temp_history['spender_prof']
+        loan = int(temp_history['loan'])
+        downpayment_capability = balance - CAR_DOWNPAYMENT_CONSTANT 
+
+    # This function is just calculating the likelyhood of a person getting a car loan or not
+    #  We still need to modify it to update the current loan term and interest rate
+    # if we can get credit score, we can calculate it in financial institution. 
+    # once the person is married and has children,especilally if they are in the age range of 30 - 45 the logic needs to be modified
+
+        def choose_finance_option():
+            if finance_option is None:
+                return np.random.choice(
+                    list(CAR_FINANCING_OPTION_PROBS.keys()),
+                    p=np.array(list(CAR_FINANCING_OPTION_PROBS.values()))
+                )
+            return finance_option
+
+        def self_financing_eligibility():
+            if balance >= CAR_SELF_FINANCING_CONSTANT[1] and income >= CAR_SELF_FINANCING_CONSTANT[2]:
+                return "Bought a Car (Self-Financed)"
+            if balance <= CAR_SELF_FINANCING_CONSTANT[0]:  # Modified balance condition
+                return "Cannot Buy a Car (Insufficient Balance)"
+            return "Cannot Buy a Car (Insufficient Income)"
+
+        def car_loan_eligibility():
+            if income == 0:
+                debt_to_income_ratio = float('inf')
+            else:
+                debt_to_income_ratio = loan / income
+ 
+            for _, bucket_dict in CAR_MAX_DEBT_RATIO.items():
+                age_range = bucket_dict['Age Range']
+                if age_range[0] <= age <= age_range[1]:
+                    max_debt_ratio = bucket_dict['Max Debt Ratio'][credit_profile]
+                    break
+            else:
+                return "Car Loan Application Rejected (Age out of range, more than 75)"
+
+            if debt_to_income_ratio <= max_debt_ratio and downpayment_capability >= 1000:   
+                return "Bought a Car (Car Loan)"
+            return "Car Loan Application Rejected"
+
+        if age >= 18:
+            finance_option = choose_finance_option()
+
+            if finance_option == "Self-Financing":
+                event = self_financing_eligibility()
+            elif finance_option == "Car Loan":
+                event = car_loan_eligibility()
+        else:
+            event = "Not Eligible to Buy a Car (Age Restriction)"
+
+        return event
+      
+
+class Person_Life(Person_Functions):
+    def __init__(self, gender:str =None, first_name:str = None, last_name:str = None, 
+                 current_year:int = None, age_range: str = None, married: bool = False, ):
+
+        super().__init__(gender, first_name, last_name, current_year, age_range, career=None, income=None, 
+                         loan=None, loan_term=None, balance=None, married=married)
     @staticmethod    
     def get_a_car(temp_history,finance_option):
         # replace the constants with a variable coming from gml_constants
@@ -311,9 +384,6 @@ class Person_Functions():
         
         return event
 
-class Person_Life(Person_Functions):
-    def __init__(self, gender:str =None, first_name:str = None, last_name:str = None, current_year:int = None, age_range: str = None, married=False):
-        super().__init__(gender, first_name, last_name, current_year, age_range, married)
     ### there will be two main scenarios:
     # - the person is a recent born from a couple and just ages up
     # - the person was randomly generated and has a random age and we would need to know previous events from the past and then age up
@@ -363,10 +433,9 @@ class Person_Life(Person_Functions):
         ### will get a loan (OK)
         ### will get a job (OK)
         ### may get married (OK)
-        ### may have children
+        ### may have children (In progress)
         ### may get a house
         ### may get a car
-
         pass
 
 
@@ -385,7 +454,9 @@ class Person_Life(Person_Functions):
            ### Check if Completed Studies
            if temp_history['years_to_study'] == 0:
                #### set future career to career and get first income from non part time job
-               temp_history = self.handle_finished_studies(temp_history)
+
+               event, temp_history = self.handle_finished_studies(temp_history)
+
                ### pay student loan
                #temp_history = self.handle_pay_student_loan(temp_history) ### to be developed
 
@@ -463,19 +534,18 @@ class Person_Life(Person_Functions):
         temp_history['year'] += 1
         temp_history['age'] += 1
         temp_history['age_range'] = self.update_age_range(temp_history['age'])
+        ### Also update the objects values not just their history
+        self.age += 1
+        self.age_range = self.update_age_range(temp_history['age'])
+
         return temp_history
 
     def age_up(self):
         ### check current age range and age one year for that age range
         temp_history = self.history_df.iloc[-1].copy()
-        #print(temp_history)
         age_range = temp_history['age_range']
-        
-        #print(age_range, temp_history['age'], " age up function start")
         temp_history = self.temp_age_up(temp_history)
         age_range = temp_history['age_range']
-
-        
         if age_range == "Baby":
             temp_history,event = self.baby_life_one_year(temp_history)
         elif age_range == "Child":
