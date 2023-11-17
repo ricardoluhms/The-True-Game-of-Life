@@ -328,7 +328,7 @@ class Person_Functions():
             for _, bucket_dict in CAR_MAX_DEBT_RATIO.items():
                 age_range = bucket_dict['Age Range']
                 if age_range[0] <= age <= age_range[1]:
-                    max_debt_ratio = bucket_dict['Max Debt Ratio'][credit_profile]
+                    max_debt_ratio = bucket_dict['Max Debt to Income Ratio'][credit_profile]
                     break
             else:
                 return "Car Loan Application Rejected (Age out of range, more than 75)"

@@ -493,7 +493,8 @@ class Financial_Institution:
         existing_loan_yearly_payment = f_loans_df['existing_yearly_payment'].sum()
         return existing_loan_yearly_payment
 
-    def check_eligibility(self, city, person_id, new_loan_amount, loan_term, loan_type, interest_rate, use_balance_downp_ratio = 0.2):
+    def check_eligibility(self, city, person_id, new_loan_amount, loan_term, 
+                          loan_type, interest_rate, use_balance_downp_ratio = 0.2):
 
         if loan_type == 'Student':
             # Initially all students are eligible for student loans
@@ -551,7 +552,8 @@ class Financial_Institution:
             specific_family_depth_2_income_status_with_balance = debt_to_income_ratio_with_fam_balance < specific_debt_to_income_ratio_threshold
 
             if person_balance_status and specific_personal_depth_2_income_status_with_balance:
-                return True
+                return True, "
+            
             elif family_balance_status and specific_family_depth_2_income_status_with_balance:
                 return True
             else:
@@ -575,7 +577,6 @@ class Financial_Institution:
         }
         return loan_df.append(loan_data, ignore_index=True)
         
-
     @staticmethod
     def request_loan(loan_type):
         # Example loan request: mortgage loan
@@ -591,8 +592,6 @@ class Financial_Institution:
             return 10000
         else:
             return 0
-
-
 
     @staticmethod
     def add_payment(loan_df, loan_day_to_day_df, loan_id, payment_amount):
@@ -639,9 +638,6 @@ class Financial_Institution:
 
 
         return loan_balance, interest_paid_yearly, principal_paid_yearly
-
-
-
 
     @staticmethod
     def refinance_loan(loan_df, loan_id, new_loan_id, new_loan_term, new_loan_payment):
