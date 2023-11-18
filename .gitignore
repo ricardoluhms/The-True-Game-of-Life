@@ -5,3 +5,6 @@ test_person.py
 *.xlsx
 test_person_life_functions.py
 autogen_config.py
+*.db
+*.db-shm
+*.db-wal
