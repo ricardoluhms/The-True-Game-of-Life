@@ -92,13 +92,44 @@ INITIAL_CAREER_PROBS_BY_AGE = { 25: {'Base': 0.5, 'Medium': 0.4, 'High': 0.09, '
 
 # Something like the above dict, can be created to handel diffrent ages 
 # if age is 18 - 22 
-CAR_MAX_DEBT_RATIO = {"Bucket 1": {"Age Range": [18, 25], "Max Debt to Income Ratio": {"Big Spender": 0.8, "Average": 0.6, "Small Spender": 0.4}},
-                      "Bucket 2": {"Age Range": [26, 35], "Max Debt to Income Ratio": {"Big Spender": 0.7, "Average": 0.5, "Small Spender": 0.3}},
-                      "Bucket 3": {"Age Range": [36, 45], "Max Debt to Income Ratio": {"Big Spender": 0.6, "Average": 0.5, "Small Spender": 0.5}},
-                      "Bucket 4": {"Age Range": [46, 55], "Max Debt to Income Ratio": {"Big Spender": 0.5, "Average": 0.5, "Small Spender": 0.5}},
-                      "Bucket 5": {"Age Range": [56, 65], "Max Debt to Income Ratio": {"Big Spender": 0.5, "Average": 0.5, "Small Spender": 0.5}},
-                      "Bucket 6": {"Age Range": [66, 75], "Max Debt to Income Ratio": {"Big Spender": 0.5, "Average": 0.5, "Small Spender": 0.5}},
-                      "Bucket 7": {"Age Range": [76, 100], "Max Debt to Income Ratio": {"Big Spender": 0.3, "Average": 0.3, "Small Spender": 0.3}}}
+BASE_DEBT_RATIO = 0.45
+
+### REWRITE CAR_MAX_DEBT_RATIO TO USE CAR_BASE_DEBT_VALUE and to be a function of Age and Spender Profile
+
+MAX_DEBT_RATIO = {"Bucket 1": {"Age Range": [18, 25], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO, 
+                                                                                       "Average": BASE_DEBT_RATIO*0.85, 
+                                                                                       "Small Spender": BASE_DEBT_RATIO*0.7}},
+                        "Bucket 2": {"Age Range": [26, 35], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO*0.9,
+                                                                                        "Average": BASE_DEBT_RATIO*0.75,
+                                                                                        "Small Spender": BASE_DEBT_RATIO*0.6}},
+                        "Bucket 3": {"Age Range": [36, 45], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO*0.8,
+                                                                                        "Average": BASE_DEBT_RATIO*0.65,
+                                                                                        "Small Spender": BASE_DEBT_RATIO*0.5}},
+                        "Bucket 4": {"Age Range": [46, 55], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO*0.7,
+                                                                                        "Average": BASE_DEBT_RATIO*0.55,
+                                                                                        "Small Spender": BASE_DEBT_RATIO*0.4}},
+                        "Bucket 5": {"Age Range": [56, 65], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO*0.6,
+                                                                                        "Average": BASE_DEBT_RATIO*0.45,
+                                                                                        "Small Spender": BASE_DEBT_RATIO*0.3}},
+                        "Bucket 6": {"Age Range": [66, 75], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO*0.5,
+                                                                                        "Average": BASE_DEBT_RATIO*0.35,
+                                                                                        "Small Spender": BASE_DEBT_RATIO*0.2}},
+                        "Bucket 7": {"Age Range": [76, 100], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO*0.4,
+                                                                                        "Average": BASE_DEBT_RATIO*0.25,
+                                                                                        "Small Spender": BASE_DEBT_RATIO*0.1}}}
+
+PRIME_RATE = 4 # 4% prime rate
+
+INTEREST_RATE_PER_TYPE = {"Student Loan": 2 + PRIME_RATE,
+                            "Car Loan": 3.21 + PRIME_RATE,
+                            "Mortgage": 3 + PRIME_RATE,
+                            "Personal Loan": 5 + PRIME_RATE}
+
+LOAN_TERM_PER_TYPE = {"Student Loan": [10, 15],
+                        "Car Loan": [2,5],
+                        "Mortgage": [15, 30],
+                        "Personal Loan": [1, 5]}
+
 
 CAREERS_AND_MARRIAGE_PROBS = {"Student with Part Time Job": 0.08,
                               "Student with Pocket Money": 0.005,

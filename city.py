@@ -5,7 +5,8 @@ from  gml_constants import ( AGE_RANGES,
                             MIN_MARRIAGE_ALLOWED_AGE, 
                             SAME_GENDER_MARRIAGE_RATIO,
                             BABY_TWINS_MODE, 
-                            EXISTING_CHILDREN_PROB_DICT)
+                            EXISTING_CHILDREN_PROB_DICT,
+                            MAX_DEBT_RATIO)
 
 from person import Person_Life
 
@@ -493,21 +494,196 @@ class Financial_Institution:
         existing_loan_yearly_payment = f_loans_df['existing_yearly_payment'].sum()
         return existing_loan_yearly_payment
 
+    @staticmethod
+    def retrieve_finanacial_background(city,person_id):
+        
+        income_and_bal_df, family_loans = city.retrieve_loan_customer_data(person_id)
+        person_income = income_and_bal_df[income_and_bal_df['unique_name_id'] == person_id]["income"].values[0]
+        family_income = income_and_bal_df["income"].sum()
+        person_balance = income_and_bal_df[income_and_bal_df['unique_name_id'] == person_id]["balance"].values[0]
+        family_balance = income_and_bal_df["balance"].sum()
+        personal_loan = family_loans[family_loans['person_id'] == person_id]
+
+        return person_income, family_income, person_balance, family_balance, personal_loan, family_loans
+
+    @staticmethod
+    def retrieve_max_debt_to_income_ratio(city, person_id):
+        person_age = city.people_obj_dict[person_id].age
+        person_spender_profile = city.people_obj_dict[person_id].spender_profile
+        for _, bucket_details in MAX_DEBT_RATIO.items():
+            if person_age >= bucket_details["Age Range"][0] and person_age <= bucket_details["Age Range"][1]:
+                return bucket_details["Max Debt Ratio"][person_spender_profile]
+
+    @staticmethod
+    def debt_to_income_ratio(person_income, person_balance, yearly_loan_payment, use_balance_downp_ratio = 0.2):
+        ### calculate the debt to income ratio
+        debt_to_income_ratio_with_balance = (yearly_loan_payment - person_balance * use_balance_downp_ratio) / (person_income )
+
+        return debt_to_income_ratio_with_balance
+    
+    @staticmethod
+    def debt_to_income_ratio_family(family_income, family_balance, yearly_loan_payment, use_balance_downp_ratio = 0.2):
+        ### calculate the debt to income ratio
+        debt_to_income_ratio_with_fam_balance = (yearly_loan_payment - family_balance * use_balance_downp_ratio) / (family_income )
+
+        return debt_to_income_ratio_with_fam_balance
+    
+    @staticmethod
+    def balance_status(balance):
+        if balance < 0:
+            balance = 0
+            balance_status = False
+        else:
+            balance_status = True
+        return balance, balance_status
+
+    @staticmethod
+    def debt_to_income_ratio_check(debt_to_income_ratio, debt_to_income_ratio_threshold):
+        ### calculate the specific debt to income ratio for the family
+        sdepth_2_income_status = debt_to_income_ratio < debt_to_income_ratio_threshold
+
+        return sdepth_2_income_status
+
+    def loan_request(self, city, person_id, loan_type, new_loan_amount, loan_term, interest_rate):
+
+        _, interest_paid_yearly, principal_paid_yearly = self.yearly_loan_amount_paid(principal=new_loan_amount,
+                                                                                                            annual_interest_rate=interest_rate,
+                                                                                                            loan_term_years=loan_term)
+        new_loan_yearly_payment = interest_paid_yearly + principal_paid_yearly
+
+
+        person_income, family_income, person_balance, family_balance, personal_loan, family_loans = self.retrieve_finanacial_background(city,person_id)
+        yearly_loan_payment = self.retrieve_existing_loan_data(personal_loan, person_id)
+
+        yearly_family_loan_payment = self.retrieve_existing_loan_data(family_loans, family_loans['person_id'].unique())
+        max_debt_to_income_ratio = self.retrieve_max_debt_to_income_ratio(city, person_id)
+        if loan_type == 'Personal':
+            max_debt_to_income_ratio -= 0.1
+            if max_debt_to_income_ratio < 0:
+                max_debt_to_income_ratio = 0.1
+
+        person_balance, person_balance_status = self.balance_status(person_balance)
+        family_balance, family_balance_status = self.balance_status(family_balance)
+
+        debt_to_income_ratio= self.debt_to_income_ratio(person_income, person_balance, yearly_loan_payment+new_loan_yearly_payment)
+        depth_2_income_status = self.debt_to_income_ratio_check(debt_to_income_ratio, max_debt_to_income_ratio)
+
+        debt_to_income_ratio_family = self.debt_to_income_ratio_family(family_income, family_balance, yearly_family_loan_payment+new_loan_yearly_payment)
+        depth_2_income_status_family = self.debt_to_income_ratio_check(debt_to_income_ratio_family, max_debt_to_income_ratio)
+
+
+        ### create list of lists that will consider person_balance_status, family_balance_status, depth_2_income_status, depth_2_income_status_family, loan_type, loan_approved, personal_criteria, family_criteria, loan_decision_description
+        ### Personal loan will not consider family_balance_status and depth_2_income_status_family
+        ### Student loan will not consider person_balance_status, family_balance_status, depth_2_income_status, depth_2_income_status_family because it does not require income or balance so it not required in the criteria list
+        ### Mortgage loan will consider all the criteria
+        ### Car loan will consider all the criteria
+        # person_balance_status, family_balance_status, depth_2_income_status, depth_2_income_status_family, loan_type, loan_approved, personal_criteria, family_criteria, loan_decision_description
+        LOAN_CRITERIA = [[True, True, True, True, 'Mortgage', True, True, True, "Loan approved - Person & Family Criteria met"],
+                         [True, True, False, False, 'Mortgage', True, True, True, "Loan approved - Person Criteria met"],
+                         [True, True, False, False, 'Mortgage', True, False, True, "Loan approved - Family Criteria met"],
+                         [False, False, True, False, 'Mortgage', True, True, False, "Loan approved - Person Debt to Income Ratio met"],
+                         [False, False, False, True, 'Mortgage', True, False, False, "Loan approved - Family Debt to Income Ratio met"],
+                         [True, True, False, False, 'Car', True, True, True, "Loan approved - Person Criteria met"],
+                         [True, True, False, False, 'Car', True, False, True, "Loan approved - Family Criteria met"],
+                         [False, False, True, False, 'Car', True, True, False, "Loan approved - Person Debt to Income Ratio met"],
+                         [False, False, False, True, 'Car', True, False, False, "Loan approved - Family Debt to Income Ratio met"],
+                         [True, True, False, False, 'Personal', True, True, True, "Loan approved - Person Criteria met"],
+                         [False, False, True, False, 'Personal', True, True, False, "Loan approved - Person Debt to Income Ratio met"]]
+
+        load_criteria_df = pd.DataFrame(LOAN_CRITERIA, columns=['person_balance_status', 'family_balance_status', 'depth_2_income_status', 'depth_2_income_status_family', 
+                                                                'loan_type', 'loan_approved', 'personal_criteria', 'family_criteria', 'loan_decision_description'])
+        
+        ### check if criteria is in loan criteria dataframe
+        criteria_b_person = load_criteria_df["person_balance_status"] == person_balance_status
+        criteria_b_family = load_criteria_df["family_balance_status"] == family_balance_status
+        criteria_d2i_person = load_criteria_df["depth_2_income_status"] == depth_2_income_status
+        criteria_d2i_family = load_criteria_df["depth_2_income_status_family"] == depth_2_income_status_family
+        all_criteria = criteria_b_person & criteria_b_family & criteria_d2i_person & criteria_d2i_family
+
+
+        if load_criteria_df[all_criteria].sum()== 0 and loan_type != 'Student':
+            loan_approved = False
+            personal_criteria = False
+            family_criteria = False
+            loan_description = f"{loan_type} Loan not approved - No criteria met"
+
+        elif loan_type == 'Student':
+            ### special case for student loan - check if the person has an active student loan , if so the loan will not be refinanced but will have the same terms
+            is_student_loan = family_loans['loan_type'] == 'Student'
+            is_student_loan_active = family_loans['loan_status'] == 'active'
+            is_person_student_loan = family_loans['person_id'] == person_id
+            student_loan_criteria = is_student_loan & is_student_loan_active & is_person_student_loan
+            student_loan_df = family_loans[student_loan_criteria]
+            if len(student_loan_df) > 0:
+                interest_rate = student_loan_df['interest_rate'].values[0]
+                loan_term = student_loan_df['loan_term'].values[0]
+                _, interest_paid_yearly, principal_paid_yearly = self.yearly_loan_amount_paid(principal=new_loan_amount,
+                                                                                                    annual_interest_rate=interest_rate,
+                                                                                                    loan_term_years=loan_term)
+                new_loan_yearly_payment = interest_paid_yearly + principal_paid_yearly
+
+            loan_approved = True
+            personal_criteria = None
+            family_criteria = None
+            loan_description = "Loan approved - Student loan does not require income or balance"
+        
+        else:
+            loan_approved = load_criteria_df[all_criteria]['loan_approved'].values[0]
+            personal_criteria = load_criteria_df[all_criteria]['personal_criteria'].values[0]
+            family_criteria = load_criteria_df[all_criteria]['family_criteria'].values[0]
+            loan_description = loan_type +" "+ load_criteria_df[all_criteria]['loan_decision_description'].values[0]
+
+        loan_status_pack = [loan_approved, personal_criteria, family_criteria, loan_description]
+        loan_details_pack = [new_loan_yearly_payment, interest_rate, loan_term]
+
+        return loan_approved, personal_criteria, family_criteria, loan_description, new_loan_yearly_payment
+
+
+
+
+
+            
+
+        
+
+
+
     def check_eligibility(self, city, person_id, new_loan_amount, loan_term, 
                           loan_type, interest_rate, use_balance_downp_ratio = 0.2):
 
+        income_and_bal_df, family_loans_df = city.retrieve_loan_customer_data(person_id)
+        person_income = income_and_bal_df[income_and_bal_df['unique_name_id'] == person_id]["income"].values[0]
+        family_income = income_and_bal_df["income"].sum()
+        person_balance = income_and_bal_df[income_and_bal_df['unique_name_id'] == person_id]["balance"].values[0]
+
         if loan_type == 'Student':
-            # Initially all students are eligible for student loans
-            return True
-        elif loan_type == 'Mortgage' or loan_type == 'Car':
+                loan_approved = True
+                personal_criteria = False ### review this later
+                family_criteria = False ### review this later
+                loan_description = "Loan approved - Student loan does not require income or balance"
+
+                
+
+                ### check existing Student loan
+                is_student_loan = family_loans_df['loan_type'] == 'Student'
+                is_student_loan_active = family_loans_df['loan_status'] == 'active'
+                is_person_student_loan = family_loans_df['person_id'] == person_id
+                student_loan_criteria = is_student_loan & is_student_loan_active & is_person_student_loan
+                student_loan_df = family_loans_df[student_loan_criteria]
+                if len(student_loan_df) > 0:
+                    existing_loan_yearly_payment = self.retrieve_existing_loan_data(family_loans_df, person_id)
+                    ### retrieve the loan_balance, interest_rate, loan_term
+
+
+                _, interest_paid_yearly, principal_paid_yearly = self.yearly_loan_amount_paid(principal=new_loan_amount,
+                                                                                annual_interest_rate=interest_rate,
+                                                                                loan_term_years=loan_term)
+
+
+        elif loan_type == 'Mortgage' or loan_type == 'Car' or loan_type == 'Personal':
             # Mortgage eligibility is based on income and existing loans
             # Calculate yearly income loan amount type
-
-            income_and_bal_df, family_loans_df = city.retrieve_loan_customer_data(person_id)
-            person_income = income_and_bal_df[income_and_bal_df['unique_name_id'] == person_id]["income"].values[0]
-            family_income = income_and_bal_df["income"].sum()
-
-            person_balance = income_and_bal_df[income_and_bal_df['unique_name_id'] == person_id]["balance"].values[0]
+           
             if person_balance < 0:
                 person_balance = 0
                 person_balance_status = False
@@ -531,11 +707,11 @@ class Financial_Institution:
             
             new_loan_yearly_payment = interest_paid_yearly + principal_paid_yearly
 
-            ### check specific debt to income ratio for mortgage 28% for mortgage
-
-            ### check specific debt to income ratio for mortgage 36% for total debt
-
-            specific_debt_to_income_ratio_threshold = 0.28
+            specific_debt_to_income_ratio_threshold = self.retrieve_max_debt_to_income_ratio(city, person_id)
+            if loan_type == 'Personal':
+                specific_debt_to_income_ratio_threshold -= 0.1
+                if specific_debt_to_income_ratio_threshold < 0:
+                    specific_debt_to_income_ratio_threshold = 0.1
 
             ### calculate the debt to income ratio
             debt_to_income_ratio_with_balance = (existing_loan_yearly_payment + new_loan_yearly_payment - person_balance * use_balance_downp_ratio) / (person_income )
@@ -552,12 +728,25 @@ class Financial_Institution:
             specific_family_depth_2_income_status_with_balance = debt_to_income_ratio_with_fam_balance < specific_debt_to_income_ratio_threshold
 
             if person_balance_status and specific_personal_depth_2_income_status_with_balance:
-                return True, "
+                loan_approved = True
+                personal_criteria = True
+                family_criteria = None
+                loan_description = f"{loan_type} Loan approved - Personal criteria met"
+                
             
             elif family_balance_status and specific_family_depth_2_income_status_with_balance:
-                return True
+                loan_approved = True
+                personal_criteria = None
+                family_criteria = True
+                loan_description = f"{loan_type} Loan approved - Family criteria met"
+                return 
             else:
-                return False
+                loan_approved = False
+                personal_criteria = False
+                family_criteria = False
+                loan_description = f"{loan_type} Loan not approved - Personal or Family criteria not met"
+            
+        return loan_approved, personal_criteria, family_criteria, loan_description
 
     @staticmethod
     def add_loan_record(loan_df, loan_id, person_id, person_income, loan_amount, loan_term, interest_rate, loan_type, loan_reason):
@@ -579,19 +768,6 @@ class Financial_Institution:
         
     @staticmethod
     def request_loan(loan_type):
-        # Example loan request: mortgage loan
-        # simple loan request that will be replaced by a more complex one
-        if loan_type == 'mortgage':
-            
-            return 100000
-        elif loan_type == 'student':
-            return 50000
-        elif loan_type == 'car':
-            return 20000
-        elif loan_type == 'personal':
-            return 10000
-        else:
-            return 0
 
     @staticmethod
     def add_payment(loan_df, loan_day_to_day_df, loan_id, payment_amount):
