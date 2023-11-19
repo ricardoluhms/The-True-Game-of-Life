@@ -119,7 +119,6 @@ class Financial_Institution:
         debt_to_income_ratio_family = self.debt_to_income_ratio_family(family_income, family_balance, yearly_family_loan_payment+new_loan_yearly_payment)
         depth_2_income_status_family = self.debt_to_income_ratio_check(debt_to_income_ratio_family, max_debt_to_income_ratio)
 
-
         ### create list of lists that will consider person_balance_status, family_balance_status, depth_2_income_status, depth_2_income_status_family, loan_type, loan_approved, personal_criteria, family_criteria, loan_decision_description
         ### Personal loan will not consider family_balance_status and depth_2_income_status_family
         ### Student loan will not consider person_balance_status, family_balance_status, depth_2_income_status, depth_2_income_status_family because it does not require income or balance so it not required in the criteria list
@@ -183,8 +182,9 @@ class Financial_Institution:
 
         loan_status_pack = [loan_approved, personal_criteria, family_criteria, loan_description]
         loan_details_pack = [new_loan_yearly_payment, interest_rate, loan_term]
+        loan_balance = [person_balance, family_balance]
 
-        return loan_status_pack, loan_details_pack
+        return loan_status_pack, loan_details_pack, loan_balance
 
     def quick_eligibility(self, city, person_id, new_loan_amount, loan_term, interest_rate,financial_background):
         ### check if the person is eligible for the loan
@@ -277,6 +277,18 @@ class Financial_Institution:
         new_loan_data['loan_term_payment'] = new_loan_payment
         return loan_df.append(new_loan_data, ignore_index=True)
     
+    @staticmethod
+    def approval_pipeline():
+        pass
+
+    @staticmethod
+    def downpayment_pipeline():
+        pass
+
+    @staticmethod
+    def decline_pipeline():
+        pass 
+
     def loan_pipeline(self, city, person_id, loan_type, new_loan_amount):
         ### get rates
         interest_rate = INTEREST_RATE_PER_TYPE[loan_type]
@@ -285,18 +297,25 @@ class Financial_Institution:
         person_income, family_income, person_balance, family_balance, personal_loan, family_loans = self.retrieve_finanacial_background(city,person_id)
         financial_background = [person_income, family_income, person_balance, family_balance, personal_loan, family_loans]
         
-        for loan_term_v in range(loan_term_ranges[0], loan_term_ranges[1]+1):
-            loan_term = loan_term_v
-            new_loan_yearly_payment, debt_to_income_ratio, debt_to_income_ratio_threshold = self.quick_eligibility(city, person_id, new_loan_amount, loan_term, interest_rate,financial_background)
-            ### check if the person is eligible for the loan
-
+        ### use the highest loan term for the loan type to check if the person is eligible for the loan if debt to income is met keep that value
+        new_loan_yearly_payment, debt_to_income_ratio, debt_to_income_ratio_threshold = self.quick_eligibility(city, person_id, new_loan_amount, loan_term_ranges[1], 
+                                                                                                                   interest_rate,financial_background)
+        if debt_to_income_ratio< debt_to_income_ratio_threshold:
+            loan_term = loan_term_ranges[1]
+        
 
         ### check personal loan debt to income ratio
-        loan_status_pack, loan_details_pack = self.loan_request(city, person_id, loan_type, new_loan_amount, loan_term, interest_rate, financial_background)
+        loan_status_pack, loan_details_pack, loan_balance = self.loan_request(city, person_id, loan_type, new_loan_amount, loan_term, interest_rate, financial_background)
+        loan_approved, personal_criteria, family_criteria, loan_description = loan_status_pack
+        new_loan_yearly_payment, interest_rate, loan_term = loan_details_pack
+        person_balance_status, family_balance_status = loan_balance
 
 
-
-
+        ### if loan approved check if the personal criteria and loan person balance is met
+        ### if true deduct the 0.2 downpayment from the person balance
+        ### if loan approved check and if the family criteria and loan family balance is met
+        ### if true deduct the 0.2 downpayment from the family balance
+  
 
     def print_load_df(self):
         return self.loan_df
