@@ -93,15 +93,14 @@ class Financial_Institution:
 
         return sdepth_2_income_status
 
-    def loan_request(self, city, person_id, loan_type, new_loan_amount, loan_term, interest_rate):
+    def loan_request(self, city, person_id, loan_type, new_loan_amount, loan_term, interest_rate, financial_background):
 
         _, interest_paid_yearly, principal_paid_yearly = self.yearly_loan_amount_paid(principal=new_loan_amount,
                                                                                                             annual_interest_rate=interest_rate,
                                                                                                             loan_term_years=loan_term)
         new_loan_yearly_payment = interest_paid_yearly + principal_paid_yearly
 
-
-        person_income, family_income, person_balance, family_balance, personal_loan, family_loans = self.retrieve_finanacial_background(city,person_id)
+        person_income, family_income, person_balance, family_balance, personal_loan, family_loans = financial_background
         yearly_loan_payment = self.retrieve_existing_loan_data(personal_loan, person_id)
 
         yearly_family_loan_payment = self.retrieve_existing_loan_data(family_loans, family_loans['person_id'].unique())
@@ -187,6 +186,19 @@ class Financial_Institution:
 
         return loan_status_pack, loan_details_pack
 
+    def quick_eligibility(self, city, person_id, new_loan_amount, loan_term, interest_rate,financial_background):
+        ### check if the person is eligible for the loan
+        person_income, _, person_balance, _, _, _= financial_background
+        _, interest_paid_yearly, principal_paid_yearly = self.yearly_loan_amount_paid(principal=new_loan_amount,
+                                                                                                    annual_interest_rate=interest_rate,
+                                                                                                    loan_term_years=loan_term)
+        new_loan_yearly_payment = interest_paid_yearly + principal_paid_yearly
+        
+        debt_to_income_ratio = self.debt_to_income_ratio(person_income, person_balance, new_loan_yearly_payment)
+        debt_to_income_ratio_threshold = self.retrieve_max_debt_to_income_ratio(city, person_id)
+
+        return new_loan_yearly_payment, debt_to_income_ratio, debt_to_income_ratio_threshold
+    
     @staticmethod
     def add_loan_record(loan_df, loan_id, person_id, person_income, loan_amount, loan_term, interest_rate, loan_type, loan_reason):
         loan_data = {
@@ -265,10 +277,23 @@ class Financial_Institution:
         new_loan_data['loan_term_payment'] = new_loan_payment
         return loan_df.append(new_loan_data, ignore_index=True)
     
-    @staticmethod
-    def loan_pipeline(city, person_id, loan_type, new_loan_amount):
+    def loan_pipeline(self, city, person_id, loan_type, new_loan_amount):
         ### get rates
         interest_rate = INTEREST_RATE_PER_TYPE[loan_type]
+        loan_term_ranges = LOAN_TERM_PER_TYPE[loan_type]
+
+        person_income, family_income, person_balance, family_balance, personal_loan, family_loans = self.retrieve_finanacial_background(city,person_id)
+        financial_background = [person_income, family_income, person_balance, family_balance, personal_loan, family_loans]
+        
+        for loan_term_v in range(loan_term_ranges[0], loan_term_ranges[1]+1):
+            loan_term = loan_term_v
+            new_loan_yearly_payment, debt_to_income_ratio, debt_to_income_ratio_threshold = self.quick_eligibility(city, person_id, new_loan_amount, loan_term, interest_rate,financial_background)
+            ### check if the person is eligible for the loan
+
+
+        ### check personal loan debt to income ratio
+        loan_status_pack, loan_details_pack = self.loan_request(city, person_id, loan_type, new_loan_amount, loan_term, interest_rate, financial_background)
+
 
 
 
