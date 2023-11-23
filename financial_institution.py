@@ -200,7 +200,7 @@ class Financial_Institution:
         return new_loan_yearly_payment, debt_to_income_ratio, debt_to_income_ratio_threshold
     
     @staticmethod
-    def add_loan_record(loan_df, loan_id, person_id, person_income, loan_amount, loan_term, interest_rate, loan_type, loan_reason, loan_yearly_payment):
+    def add_loan_record(loan_df, loan_id, person_id, person_income, loan_amount, loan_term, interest_rate, loan_type, loan_reason, loan_yearly_payment, loan_term_payment = 0):
         loan_data = {
             'loan_id': loan_id,
             'person_id': person_id,
@@ -213,8 +213,8 @@ class Financial_Institution:
             'loan_refinanced': 'no',
             'loan_balance': loan_amount,
             'loan_status': 'active',
-            'loan_term_payment': 0, # Initial payment is 0
-            'loan_yearly_payment': loan_yearly_payment, # Initial payment is 0
+            'loan_term_payment': loan_term_payment, # Initial payment is 0
+            'loan_yearly_payment': loan_yearly_payment
         }
         return loan_df.append(loan_data, ignore_index=True)
         
@@ -337,6 +337,7 @@ class Financial_Institution:
         ### check personal loan debt to income ratio
         loan_status_pack, loan_details_pack, loan_balance = self.loan_request(city, person_id, loan_type, new_loan_amount, 
                                                                               loan_term, interest_rate, financial_background)
+        
         loan_approved, personal_criteria, family_criteria, loan_description = loan_status_pack
         new_loan_yearly_payment, interest_rate, loan_term = loan_details_pack
         person_balance_status, family_balance_status = loan_balance
@@ -345,7 +346,8 @@ class Financial_Institution:
             city = self.approval_pipeline(person_id, city, financial_background, loan_status_pack, loan_balance)
             self.loan_df = self.add_loan_record(self.loan_df, loan_id = f'loan_{len(self.loan_df)}', person_id = person_id, 
                                                 person_income = financial_background[0], loan_amount = new_loan_amount, loan_term = loan_term, 
-                                                interest_rate = interest_rate, loan_type = loan_type, loan_reason = f'{loan_type} loan')
+                                                interest_rate = interest_rate, loan_type = loan_type, loan_reason = f'{loan_type} loan',
+                                                loan_yearly_payment = new_loan_yearly_payment)
 
 
 
