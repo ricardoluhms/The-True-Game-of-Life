@@ -52,9 +52,9 @@ class Financial_Institution:
         person_balance = income_and_bal_df[income_and_bal_df['unique_name_id'] == person_id]["balance"].values[0]
         family_balance = income_and_bal_df["balance"].sum()
         personal_loan = family_loans[family_loans['person_id'] == person_id]
-
-        return person_income, family_income, person_balance, family_balance, personal_loan, family_loans
-
+        financial_background = [person_income, family_income, person_balance, family_balance, personal_loan, family_loans, income_and_bal_df]
+        return financial_background
+    
     @staticmethod
     def retrieve_max_debt_to_income_ratio(city, person_id):
         person_age = city.people_obj_dict[person_id].age
@@ -100,7 +100,7 @@ class Financial_Institution:
                                                                                                             loan_term_years=loan_term)
         new_loan_yearly_payment = interest_paid_yearly + principal_paid_yearly
 
-        person_income, family_income, person_balance, family_balance, personal_loan, family_loans = financial_background
+        person_income, family_income, person_balance, family_balance, personal_loan, family_loans, _ = financial_background
         yearly_loan_payment = self.retrieve_existing_loan_data(personal_loan, person_id)
 
         yearly_family_loan_payment = self.retrieve_existing_loan_data(family_loans, family_loans['person_id'].unique())
@@ -200,7 +200,7 @@ class Financial_Institution:
         return new_loan_yearly_payment, debt_to_income_ratio, debt_to_income_ratio_threshold
     
     @staticmethod
-    def add_loan_record(loan_df, loan_id, person_id, person_income, loan_amount, loan_term, interest_rate, loan_type, loan_reason):
+    def add_loan_record(loan_df, loan_id, person_id, person_income, loan_amount, loan_term, interest_rate, loan_type, loan_reason, loan_yearly_payment):
         loan_data = {
             'loan_id': loan_id,
             'person_id': person_id,
@@ -213,7 +213,8 @@ class Financial_Institution:
             'loan_refinanced': 'no',
             'loan_balance': loan_amount,
             'loan_status': 'active',
-            'loan_term_payment': 0  # Initial payment is 0
+            'loan_term_payment': 0, # Initial payment is 0
+            'loan_yearly_payment': loan_yearly_payment, # Initial payment is 0
         }
         return loan_df.append(loan_data, ignore_index=True)
         
@@ -278,44 +279,75 @@ class Financial_Institution:
         return loan_df.append(new_loan_data, ignore_index=True)
     
     @staticmethod
-    def approval_pipeline():
-        pass
+    def approval_pipeline(person_id, city, financial_background, loan_status_pack, loan_balance):
+        _, _, person_balance, family_balance, _, _, income_and_bal_df = financial_background
+        loan_approved, personal_criteria, family_criteria, _ = loan_status_pack
+        person_balance_status, family_balance_status = loan_balance
+        ### if loan approved, check if the personal criteria and loan person balance is met
 
-    @staticmethod
-    def downpayment_pipeline():
-        pass
+        ### if both are true deduct the 0.2 downpayment from the person balance
+        if loan_approved and personal_criteria and person_balance_status:
+            downpayment = person_balance * 0.2
+            ### check person object in the city and update the person balance
+            city.people_obj_dict[person_id].balance = person_balance - downpayment
+            ### check the last person history in the city and update the person loan balance
+            is_person_filter = city.history_df['unique_name_id'] == person_id
+            current_year = city.history_df[is_person_filter]['current_year'].max()
+            is_year_filter = city.history_df['current_year'] == current_year
+
+            ### create a filter to retrieve the last loan for that person
+            city.history_df.loc[is_person_filter & is_year_filter, 'balance'] = person_balance - downpayment
+
+        ### if loan approved check and if the family criteria and loan family balance is met
+        if loan_approved and family_criteria and family_balance_status:
+            ### check family members that have positive balance
+            ### calculate the downpayment for each family member
+            ### stage one, check total amount to be deducted
+            ### sum the positive balance of the family members
+            ### calculate the proportion of the loan amount to be deducted from each family member
+            ### deduct the proportion of the loan amount from each family member
+        
+            family_balance = income_and_bal_df[['unique_name_id', 'balance']]
+            positive_balance = family_balance[family_balance['balance'] > 0]
+            positive_balance_sum = positive_balance['balance'].sum()
+            positive_balance['proportion'] = positive_balance['balance'] / positive_balance_sum
+            positive_balance['downpayment'] = positive_balance['proportion'] * downpayment
+
+            for _, row in positive_balance.iterrows():
+                city.people_obj_dict[row['unique_name_id']].balance -= row['downpayment']
+                is_person_filter = city.history_df['unique_name_id'] == row['unique_name_id']
+                current_year = city.history_df[is_person_filter]['current_year'].max()
+                is_year_filter = city.history_df['current_year'] == current_year
+                city.history_df.loc[is_person_filter & is_year_filter, 'balance'] -= row['downpayment']
+        
+        return city
 
     @staticmethod
     def decline_pipeline():
+        ### wont do anything for now
         pass 
 
     def loan_pipeline(self, city, person_id, loan_type, new_loan_amount):
         ### get rates
         interest_rate = INTEREST_RATE_PER_TYPE[loan_type]
-        loan_term_ranges = LOAN_TERM_PER_TYPE[loan_type]
+        loan_term = LOAN_TERM_PER_TYPE[loan_type][1]
 
-        person_income, family_income, person_balance, family_balance, personal_loan, family_loans = self.retrieve_finanacial_background(city,person_id)
-        financial_background = [person_income, family_income, person_balance, family_balance, personal_loan, family_loans]
-        
-        ### use the highest loan term for the loan type to check if the person is eligible for the loan if debt to income is met keep that value
-        new_loan_yearly_payment, debt_to_income_ratio, debt_to_income_ratio_threshold = self.quick_eligibility(city, person_id, new_loan_amount, loan_term_ranges[1], 
-                                                                                                                   interest_rate,financial_background)
-        if debt_to_income_ratio< debt_to_income_ratio_threshold:
-            loan_term = loan_term_ranges[1]
-        
-
+        financial_background = self.retrieve_finanacial_background(city,person_id)
+      
         ### check personal loan debt to income ratio
-        loan_status_pack, loan_details_pack, loan_balance = self.loan_request(city, person_id, loan_type, new_loan_amount, loan_term, interest_rate, financial_background)
+        loan_status_pack, loan_details_pack, loan_balance = self.loan_request(city, person_id, loan_type, new_loan_amount, 
+                                                                              loan_term, interest_rate, financial_background)
         loan_approved, personal_criteria, family_criteria, loan_description = loan_status_pack
         new_loan_yearly_payment, interest_rate, loan_term = loan_details_pack
         person_balance_status, family_balance_status = loan_balance
 
+        if loan_approved:
+            city = self.approval_pipeline(person_id, city, financial_background, loan_status_pack, loan_balance)
+            self.loan_df = self.add_loan_record(self.loan_df, loan_id = f'loan_{len(self.loan_df)}', person_id = person_id, 
+                                                person_income = financial_background[0], loan_amount = new_loan_amount, loan_term = loan_term, 
+                                                interest_rate = interest_rate, loan_type = loan_type, loan_reason = f'{loan_type} loan')
 
-        ### if loan approved check if the personal criteria and loan person balance is met
-        ### if true deduct the 0.2 downpayment from the person balance
-        ### if loan approved check and if the family criteria and loan family balance is met
-        ### if true deduct the 0.2 downpayment from the family balance
-  
+
 
     def print_load_df(self):
         return self.loan_df
@@ -386,3 +418,4 @@ fi.loan_df = Financial_Institution.add_loan(fi.loan_df, 'loan_001', 'person_001'
 #### Financial Institution will also provide the yearly payment
 #### Financial Institution will provide a new Insurance table with 
 # ... the insurance type, insurance amount also know as face amount, insurance term if applicable, insurance status, insurance balance, insurance term, insurance payment
+# %%
