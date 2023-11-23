@@ -3,9 +3,11 @@ import pandas as pd
 from  gml_constants import ( AGE_RANGES, 
                             CAREERS_AND_MARRIAGE_PROBS,
                             MIN_MARRIAGE_ALLOWED_AGE, 
-                            SAME_GENDER_MARRIAGE_RATIO,
-                            BABY_TWINS_MODE, 
-                            EXISTING_CHILDREN_PROB_DICT)
+                            SAME_GENDER_MARRIAGE_RATIO,)
+
+                            ### These are not defined yet?
+                            #BABY_TWINS_MODE, 
+                            #EXISTING_CHILDREN_PROB_DICT)
 
 from person import Person_Life
 
@@ -170,7 +172,7 @@ class City():
                 # the person last history:
 
                 # - change the spouse_name_id to the spouse unique_name_id
-                person.history_df.iloc[-1, 'spouse_name_id'] = spouse_last_history['unique_name_id']
+                person.history_df.loc[-1, 'spouse_name_id'] = spouse_last_history['unique_name_id']
                 # update the history of the person and the spouse candidate
                 
                 person_last_history['married'] = True
@@ -214,9 +216,9 @@ class City():
                 criteria_age = spouse_all_history["age"] == spouse_age
                 criteria_year = spouse_all_history["year"] == person_most_recent_year
 
-                spouse_all_history.iloc[~(criteria_arange & criteria_age & criteria_year),"married"] = False
-                spouse_all_history.iloc[(criteria_arange & criteria_age & criteria_year),"just_married"] = True
-                spouse_all_history.iloc[(criteria_arange & criteria_age & criteria_year),"spouse_name_id"] = person_last_history['unique_name_id']
+                spouse_all_history.loc[~(criteria_arange & criteria_age & criteria_year),"married"] = False
+                spouse_all_history.loc[(criteria_arange & criteria_age & criteria_year),"just_married"] = True
+                spouse_all_history.loc[(criteria_arange & criteria_age & criteria_year),"spouse_name_id"] = person_last_history['unique_name_id']
                 spouse.history_df = spouse_all_history
 
 
@@ -449,7 +451,7 @@ class Financial_Institution:
             'loan_status': 'active',
             'loan_payment': 0  # Initial payment is 0
         }
-        return loan_df.append(loan_data, ignore_index=True)
+        return pd.concat([loan_df, pd.DataFrame([loan_data])], ignore_index=True)
 
     @staticmethod
     def add_payment(loan_df, loan_day_to_day_df, loan_id, payment_amount):
@@ -462,7 +464,7 @@ class Financial_Institution:
             'loan_balance': loan_df.at[loan_idx, 'loan_balance'],
             # ... (other necessary fields)
         }
-        return loan_df, loan_day_to_day_df.append(day_to_day_data, ignore_index=True)
+        return loan_df, pd.concat([loan_day_to_day_df, pd.DataFrame([day_to_day_data])],ignore_index=True)
     
     @staticmethod
     def refinance_loan(loan_df, loan_id, new_loan_id, new_loan_term, new_loan_payment):

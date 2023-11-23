@@ -89,8 +89,10 @@ class Person_Functions():
         self.children_name_id = children_name_id
 
 
+       
+
         # Initialize the history DataFrame
-        self.history_df = pd.DataFrame(self.get_values(), index=[0])
+        self.history_df = pd.DataFrame([self.get_values()], index = [0])
 
     def get_values(self):
         """Return the current attributes of the person as a dictionary."""
