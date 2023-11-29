@@ -2,7 +2,8 @@
 
 #%%
 import pandas as pd
-from gml_constants import MAX_DEBT_RATIO, INTEREST_RATE_PER_TYPE,LOAN_TERM_PER_TYPE
+from gml_constants import MAX_DEBT_RATIO, INTEREST_RATE_PER_TYPE,LOAN_TERM_PER_TYPE, SPENDER_PROFILE_SWITCH_PROB
+import numpy as np
 
 class Financial_Institution:
     def __init__(self, bank_name=None):
@@ -10,12 +11,8 @@ class Financial_Institution:
         self.loan_df = pd.DataFrame(columns=[
             'loan_id', 'person_id', 'person_income', 'loan_amount', 'loan_term',
             'interest_rate', 'loan_type', 'loan_reason', 'loan_refinanced',
-            'loan_balance', 'loan_status', 'loan_term_payment',
-            'interest_paid_yearly',
-        ])
-        self.loan_day_to_day_df = pd.DataFrame(columns=[
-            'loan_id', 'loan_balance', 'loan_total_term', 'loan_current_term',
-            'loan_term_payment', 'loan_status'
+            'loan_balance', 'loan_status', 'loan_term_payment', 
+            'interest_paid_yearly', 'loan_default_counter', 'current_year'
         ])
         self.insurance_df = pd.DataFrame(columns=[
             'insurance_type', 'insurance_amount', 'insurance_term',
@@ -200,7 +197,10 @@ class Financial_Institution:
         return new_loan_yearly_payment, debt_to_income_ratio, debt_to_income_ratio_threshold
     
     @staticmethod
-    def add_loan_record(loan_df, loan_id, person_id, person_income, loan_amount, loan_term, interest_rate, loan_type, loan_reason, loan_yearly_payment, loan_term_payment = 0):
+    def add_loan_record(loan_df, loan_id, person_id, current_year, person_income, loan_amount, loan_term, interest_rate, loan_type, 
+                        loan_reason, loan_yearly_payment, loan_term_payment = 0,
+                        loan_balance = None, loan_default_counter = 0,
+                        loan_status = 'active'):
         loan_data = {
             'loan_id': loan_id,
             'person_id': person_id,
@@ -210,27 +210,129 @@ class Financial_Institution:
             'interest_rate': interest_rate,
             'loan_type': loan_type,
             'loan_reason': loan_reason,
-            'loan_refinanced': 'no',
-            'loan_balance': loan_amount,
-            'loan_status': 'active',
+            'loan_balance': loan_balance,
+            'loan_status': loan_status,
             'loan_term_payment': loan_term_payment, # Initial payment is 0
-            'loan_yearly_payment': loan_yearly_payment
+            'loan_yearly_payment': loan_yearly_payment,
+            'loan_default_counter': loan_default_counter,
+            'current_year': current_year
         }
         return loan_df.append(loan_data, ignore_index=True)
         
-    @staticmethod
-    def add_payment(loan_df, loan_day_to_day_df, loan_id, payment_amount):
-        loan_idx = loan_df[loan_df['loan_id'] == loan_id].index[0]
-        loan_df.at[loan_idx, 'loan_balance'] -= payment_amount
-        loan_df.at[loan_idx, 'loan_term_payment'] += payment_amount
+    def add_loan_payments(self, city, person_id):
+        ### get person balance
+        income_and_bal_df, family_loans = city.retrieve_loan_customer_data(person_id)
+        person_balance = income_and_bal_df[income_and_bal_df['unique_name_id'] == person_id]["balance"].values[0]
+        ### get person loans that are active
+        person_loans = family_loans[family_loans['person_id'] == person_id]
+        person_loans = person_loans[person_loans['loan_status'] == 'active']
+        
+        ### retrive current year loans
+        current_year = person_loans['current_year'].max()
+        is_year_filter = person_loans['current_year'] == current_year
+        current_year_loans = person_loans[is_year_filter].reset_index(drop=True)
+        ### sort loans by interest rate
+        current_year_loans = current_year_loans.sort_values(by=['interest_rate'], ascending=False).reset_index(drop=True)
 
-        day_to_day_data = {
-            'loan_id': loan_id,
-            'loan_balance': loan_df.at[loan_idx, 'loan_balance'],
-            # ... (other necessary fields)
-        }
-        return loan_df, loan_day_to_day_df.append(day_to_day_data, ignore_index=True)
-    
+        for i in range(len(current_year_loans)):
+            loan_id = current_year_loans['loan_id'][i]
+            loan_amount = current_year_loans['loan_amount'][i]
+            loan_term = current_year_loans['loan_term'][i]
+            interest_rate = current_year_loans['interest_rate'][i]
+            loan_term_payment = current_year_loans['loan_term_payment'][i]
+            loan_balance = current_year_loans['loan_balance'][i]
+
+            new_loan_balance, interest_paid_yearly, principal_paid_yearly = self.yearly_loan_amount_paid(principal=loan_balance, 
+                                                                                                     annual_interest_rate=interest_rate, 
+                                                                                                     loan_term_years=loan_term - loan_term_payment)
+            loan_yearly_payment = interest_paid_yearly + principal_paid_yearly
+            
+            loan_default_counter = current_year_loans['loan_default_counter'][i]
+            loan_type = current_year_loans['loan_type'][i]
+            loan_reason = current_year_loans['loan_reason'][i]
+
+            if person_balance >= loan_yearly_payment:
+                ### if the person balance is positive, try to subtract the total loan payment from the person balance
+                person_balance -= loan_yearly_payment
+                updated_load_counter = loan_default_counter
+                new_loan_term_payment = loan_term_payment + 1
+
+                if new_loan_term_payment - loan_term == 0:
+                    loan_status = 'paid - inactive'
+                else:
+                    loan_status = 'active'
+                
+                ### update the loan balance and loan term payment and append the loan payment to the history
+                city.financial_institution.loan_df = self.add_loan_record( city.financial_institution.loan_df, loan_id, person_id, person_balance, 
+                                                                           loan_amount, loan_term, interest_rate, 
+                                                                           loan_type, loan_reason, loan_yearly_payment, new_loan_term_payment, 
+                                                                           new_loan_balance, updated_load_counter, loan_status = loan_status)
+                ### if person spender profile is depressed or in-debt, change the spender profile
+                mode = "recover"
+                city = self.change_spender_profile(person_id, city, mode)
+                prob_switch = SPENDER_PROFILE_SWITCH_PROB
+
+            elif person_balance >= interest_paid_yearly:
+                loan_balance -= interest_paid_yearly
+                updated_load_counter = loan_default_counter + 0.5
+                city.financial_institution.loan_df = self.add_loan_record( city.financial_institution.loan_df, loan_id, person_id, person_balance, loan_amount, 
+                                                                           loan_term, interest_rate, 
+                                                                           loan_type, loan_reason, loan_yearly_payment, loan_term_payment, 
+                                                                           loan_balance, updated_load_counter, loan_status = 'active')
+                mode = "not recovered"
+                prob_switch = SPENDER_PROFILE_SWITCH_PROB
+
+            ### if the person balance is negative, update the loan balance and loan term payment
+            else:
+                updated_load_counter = loan_default_counter + 1
+                mode = "not recovered"
+                if loan_default_counter>= 3:
+                    loan_status = 'defaulted'
+                    prob_switch = 1
+                
+                else:
+                    loan_status = 'active'
+                    prob_switch = SPENDER_PROFILE_SWITCH_PROB
+                city.financial_institution.loan_df = self.add_loan_record(city.financial_institution.loan_df, loan_id, person_id, person_balance, 
+                                                                          loan_amount, loan_term, interest_rate, 
+                                                                         loan_type, loan_reason, loan_yearly_payment, loan_term_payment, 
+                                                                         loan_balance, updated_load_counter, loan_status = loan_status)
+                
+            city = self.change_spender_profile(person_id, city, prob_switch, mode)
+
+        return city
+
+    @staticmethod
+    def change_spender_profile(person_id, city, prob_switch, mode = "recover"):
+
+        ### generate a random value between 0 an 1 and compare with SPENDER_PROFILE_SWITCH_PROB
+        ### if the random value is less than SPENDER_PROFILE_SWITCH_PROB, change the spender profile
+        ### if the random value is greater than SPENDER_PROFILE_SWITCH_PROB, keep the spender profile
+
+        ### run probability to change spender profile
+        prob = np.random.uniform(0, 1)
+        if prob <= prob_switch:
+            person_spender_profile = city.people_obj_dict[person_id].spender_profile
+            if mode != "recover":
+                if person_spender_profile == 'Big Spender':
+                    city.people_obj_dict[person_id].spender_profile = 'Average'
+                elif person_spender_profile == 'Average':
+                    city.people_obj_dict[person_id].spender_profile = 'Small Spender'
+                elif person_spender_profile == 'Small Spender':
+                    city.people_obj_dict[person_id].spender_profile = 'In-Debt'
+                elif person_spender_profile == 'In-Debt':
+                    city.people_obj_dict[person_id].spender_profile = 'Depressed'
+            else:
+                if person_spender_profile == 'Depressed':
+                    city.people_obj_dict[person_id].spender_profile = 'In-Debt'
+                elif person_spender_profile == 'In-Debt':
+                    city.people_obj_dict[person_id].spender_profile = 'Small Spender'
+                elif person_spender_profile == 'Small Spender':
+                    city.people_obj_dict[person_id].spender_profile = 'Average'
+                elif person_spender_profile == 'Average':
+                    city.people_obj_dict[person_id].spender_profile = 'Big Spender'
+        return city
+
     @staticmethod
     def yearly_loan_amount_paid(principal, annual_interest_rate =  9.39, loan_term_years = 10):
         # Given loan details
@@ -349,58 +451,13 @@ class Financial_Institution:
                                                 interest_rate = interest_rate, loan_type = loan_type, loan_reason = f'{loan_type} loan',
                                                 loan_yearly_payment = new_loan_yearly_payment)
 
-
-
     def print_load_df(self):
         return self.loan_df
-    # ... (other methods)
-    # @staticmethod
-    # def add_insurance(insurance_type, insurance_amount, insurance_term, insurance_status, insurance_balance, insurance_payment):
-    #     insurance_data = {
-    #         'insurance_type': insurance_type,
-    #         'insurance_amount': insurance_amount,
-    #         'insurance_term': insurance_term,
-    #         'insurance_status': insurance_status,
-    #         'insurance_balance': insurance_balance,
-    #         'insurance_payment': insurance_payment
-    #     }
-    #     temp_insurance_df = pd.DataFrame(columns=[
-    #         'insurance_type', 'insurance_amount', 'insurance_term',
-    #         'insurance_status', 'insurance_balance', 'insurance_payment'
-    #     ])
-    #     ### append the new insurance data to the existing insurance data
 
-    #     return insurance_df.append(insurance_data, ignore_index=True)
 # Usage example:
 fi = Financial_Institution()
 fi.loan_df = Financial_Institution.add_loan(fi.loan_df, 'loan_001', 'person_001', 50000, 20000, 5, 3.5, 'personal', 'buy a car')
 
-
-#### Lets create a class to handle financial products such as loans and insurance
-#### the class will later register things as tables in a database
-#### one table will be the loan request table with
-#  the loan_id,
-#  the loan_purpose,
-#  the person_id, 
-#  the person_income at the time of the loan, 
-#  loan_amount, 
-#  loan_term, 
-#  interest_rate, and check if the person is eligible for the loan
-#  the loan_type,
-
-#### another table will be the loan day to day table with
-#  the loan_id,
-#  the loan balance,
-#  the loan total term,
-#  the loan current term,
-#  the loan payment,
-#  the loan status,
-
-#### how to handle the loan refinancing?
-
-### loan refinancing will be a new loan, with a new loan_id, and a new loan term, and a new loan payment
-### the previous loan will be closed and the previous loan balance will be zero and the status will be refinanced
-### the previous loan will be kept in the database for historical purposes
 
 #### how to handle the loan defaulting? Future Development
 

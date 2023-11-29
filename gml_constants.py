@@ -41,7 +41,15 @@ TUITION = {'Base': 6000, 'Medium': 10000, 'High': 18000, 'Very High': 25000} ###
 # Business & Commerce: CAD 8,000 - CAD 14,000 (higher for specialized or top-ranked 
 # MBA (Master of Business Administration): CAD 20,000 - CAD 40,000
 
-SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75}
+SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75, 'In-Debt': 0.5}
+SPENDER_PROFILE_SWITCH_PROB = 0.5
+### special profile for those who are in debt
+
+
+SPENDER_PROFILE_PROBS = {'Average': 0.5,
+                        'Big Spender': 0.3,
+                        'Small Spender': 0.2}
+
 PART_TIME_JOB_MIN_AGE = 16
 PART_TIME_JOB_PROB = 0.5
 UGRAD_START_AGE = 18
@@ -63,10 +71,6 @@ AGE_RANGE_PROB_DICT = {'Baby': 0.1,
 
 GENDER_PROBS = {'Male': 0.5,
                 'Female': 0.5}                   
-
-SPENDER_PROFILE_PROBS = {'Average': 0.5,
-                        'Big Spender': 0.3,
-                        'Small Spender': 0.2}
 
 CAR_FINANCING_OPTION_PROBS = {'Self-Financing': 0.1,
                             'Car Loan': 0.9}
