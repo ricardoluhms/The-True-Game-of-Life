@@ -123,3 +123,22 @@ SAME_GENDER_MARRIAGE_RATIO = 0.25
 AVG_MARRIAGE_COST_PER_GUEST = 34000 / 100
 
 BABY_MODE = {1:0.949, 2:0.04, 3:0.01, 4:0.001}
+
+###Death Probabilities
+
+CRITICAL_ILLNESS_PROBABILITY = {{"Age Range": [1, 15]} : 0.005,       #Base 0.005, increases by 50% for every age bracket
+                                {"Age Range": [16, 30]} : 0.0075,
+                                {"Age Range": [31, 45]} : 0.01,
+                                {"Age Range": [46, 60]} : 0.015,
+                                {"Age Range": [61, 75]} : 0.02,
+                                {"Age Range": [76, 90]} : 0.03,
+                                {"Age Range": [91, 105]} : 0.04
+                                }
+
+OLD_AGE_DEATH_PROBABILITY =    {{"Age Range": [50, 65]} : 0.005,      #From Canadian Stats of 2022, Death Rate by age group
+                                {"Age Range": [66, 80]} : 0.019,
+                                {"Age Range": [81, 95]} : 0.07,
+                                {"Age Range": [96, 110]} : 0.2
+                                }
+
+SEVERE_ACCIDENT_PROBABILITY = 0.0005 #2021 Death rate due to accidents in Canada
