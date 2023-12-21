@@ -8,7 +8,8 @@ from  gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES,
                             INITIAL_INCOME_RANGES,
                             FUTURE_CAREER_PAY_PROBS,STUDENT_LOAN_INTEREST_RATES,
                             CAR_FINANCING_OPTION_PROBS,CAR_MAX_DEBT_RATIO,
-                            CAR_DOWNPAYMENT_CONSTANT,CAR_SELF_FINANCING_CONSTANT)
+                            CAR_DOWNPAYMENT_CONSTANT,CAR_SELF_FINANCING_CONSTANT,
+                            RAISE_CONSTANTS)
 
 import random
 from datetime import date
@@ -435,7 +436,6 @@ class Person_Life(Person_Functions):
         ### may get married (OK)
         ### may have children (In progress)
         ### may get a house
-        ### may get a car
         pass
 
 
@@ -579,3 +579,35 @@ class Person_Life(Person_Functions):
         elif age_range == "Elder":
             pass
             #self.elder(max_age = max_age)
+
+
+
+    def got_promotion_salary_hike(temp_history):
+
+        age = temp_history['age']
+        career_path = temp_history['future_career']
+        job_type = temp_history['INITIAL_INCOME_RANGES']
+
+        if job_type != "Part Time" and job_type != "Pocket Money":
+            for age_range in RAISE_CONSTANTS.keys():
+                if age_range[0] <= age <= age_range[1]:
+                    
+                    for career in RAISE_CONSTANTS[age_range].keys():
+                        if career == career_path:
+                            chance = RAISE_CONSTANTS[age_range][career]['chance']
+                            hike = RAISE_CONSTANTS[age_range][career]['hike']
+                            if np.random.random() <= chance:
+                                temp_history['income'] = temp_history['income'] * (1+hike)
+                                event = f"Got a Promotion and Salary Hike of ({hike*100}%)"
+                                return temp_history , event
+                            else:
+                                event = "No Promotion"
+                                return temp_history , event
+                        else:
+                            pass
+        else:
+            event = "Not Eligible for Promotion or Salary Hike due to Job Type"
+            return temp_history , event
+  
+
+

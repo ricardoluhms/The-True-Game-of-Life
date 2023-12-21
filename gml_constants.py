@@ -123,3 +123,15 @@ SAME_GENDER_MARRIAGE_RATIO = 0.25
 AVG_MARRIAGE_COST_PER_GUEST = 34000 / 100
 
 BABY_MODE = {1:0.949, 2:0.04, 3:0.01, 4:0.001}
+
+
+RAISE_CONSTANTS = {[18,25] : {'Base': {"chance": 0.05, "hike": 0.1}, 'Medium': {"chance": 0.3, "hike": 0.3}, 'High': {"chance": 0.3, "hike": 0.5}, 'Very High': {"chance": 0.7, "hike": 0.5}},
+                [26,35] : {'Base' : {"chance": 0.1, "hike": 0.1}, 'Medium': {"chance": 0.2, "hike": 0.2}, 'High': {"chance": 0.3, "hike": 0.3}, 'Very High': {"chance": 0.4, "hike": 0.4}},
+                [36,45] : {'Base' : {"chance": 0.1, "hike": 0.1}, 'Medium': {"chance": 0.2, "hike": 0.2}, 'High': {"chance": 0.3, "hike": 0.3}, 'Very High': {"chance": 0.4, "hike": 0.4}},
+                [46,55] : {'Base' : {"chance": 0.1, "hike": 0.1}, 'Medium': {"chance": 0.2, "hike": 0.2}, 'High': {"chance": 0.3, "hike": 0.3}, 'Very High': {"chance": 0.4, "hike": 0.4}},
+                [56,65] : {'Base' : {"chance": 0.1, "hike": 0.1}, 'Medium': {"chance": 0.2, "hike": 0.2}, 'High': {"chance": 0.3, "hike": 0.3}, 'Very High': {"chance": 0.4, "hike": 0.4}},
+                [66,75] : {'Base' : {"chance": 0.1, "hike": 0.1}, 'Medium': {"chance": 0.2, "hike": 0.2}, 'High': {"chance": 0.3, "hike": 0.3}, 'Very High': {"chance": 0.4, "hike": 0.4}},
+                [76,100] : {'Base' : {"chance": 0.1, "hike": 0.1}, 'Medium': {"chance": 0.2, "hike": 0.2}, 'High': {"chance": 0.3, "hike": 0.3}, 'Very High': {"chance": 0.4, "hike": 0.4}}}
+
+
+
