@@ -2,7 +2,8 @@
 import pandas as pd
 from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
-from main import Person_Life, City
+from person import Person_Life
+from city import City
 
 ###Create a city
 city = City("Boludos City",population=2, current_year=1950, mode='testing')
@@ -20,7 +21,7 @@ Tests the marriage function by adding 2 specific people into the city
 Parameters:
     age1 - integer age of the first person
     age2 - integer age of the second peron
-    gender1 - string gender of the first person
+    gender1 - string gender of the first person 
     gender2 - string gender of the second person
     married1 - boolean if person1 is married
     married2 - boolean if person2 is married
@@ -102,7 +103,6 @@ def test_marriage(age1, age2, gender1, gender2, married1, married2):
 #print(people[1].history_df.iloc[-1]['spouse_name_id'] != people[0].history_df.iloc[-1]['unique_name_id'])
 
 #%%
-###AGE RANGE PARAMETER NOT WORKING PROPERLY###
 ### Test two people that are more than 5 years apart 
 #people = test_marriage(16, 24, 'Male', 'Female', False, False)
 
@@ -133,7 +133,7 @@ def test_marriage(age1, age2, gender1, gender2, married1, married2):
 #people = test_marriage(16, 16, 'Male', 'Female', False, False)
 
 ### Only need to test one person he should be married but not to himself
-#print(people.history_df.iloc[-1]['married'] == True)#
+#print(people.history_df.iloc[-1]['married'] == True)
 #print(people.history_df.iloc[-1]['spouse_name_id'] != people.history_df.iloc[-1]['unique_name_id'])
 
 

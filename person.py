@@ -26,7 +26,7 @@ class Person_Functions():
                       spouse_name_id: str = None,
                       years_of_study: int = None,
                       years_to_study: int = None,
-                      has_a_car: bool = False):
+                      has_a_car: bool = False, cause_of_death : str = None):
         
         """
         Initialize a new person with various attributes.
@@ -88,10 +88,13 @@ class Person_Functions():
         self.parent_name_id_A = parent_name_id_A
         self.parent_name_id_B = parent_name_id_B
         self.children_name_id = children_name_id
+        self.cause_of_death = cause_of_death
 
+
+       
 
         # Initialize the history DataFrame
-        self.history_df = pd.DataFrame(self.get_values(), index=[0])
+        self.history_df = pd.DataFrame([self.get_values()], index = [0])
 
     def get_values(self):
         """Return the current attributes of the person as a dictionary."""
@@ -397,11 +400,54 @@ class Person_Life(Person_Functions):
     ### if a person is created straight ahead as an teenager then we need to create child and baby classes and update their history
     ### if a person is created straight ahead as an child then we need to create baby classes and update their history
     ### if a person is created straight ahead as an baby then we need to create baby classes and update their history
-    def death(self):
+
+
+    ###What do we have to do in this death function?
+
+    #Add a column to the city history that keeps track of if that person is alive or not
+
+    #Add a column to the person history that keeps track of cause of death (sort of like an event)
+
+    #Add a column to the person history that keeps track of if that person is alive or not
+
+
+    #Update the death value for both the city and the person
+
+
+    def death(self, cause):
         ### add cause of death
         ### add probability of death based on age
-        ### ????
-        pass
+
+            #This will probably be triggered by other functions maybe we have a percent chance on ageup() to trigger death based on factors like age, health 
+            # and a complete random chance of like car accident or something
+
+        ### ???
+
+        
+        if cause == "Critical Illness":
+
+            self.history_df['cause_of_death'] = "Critcal Illness"
+            
+        elif cause == "Old Age":
+
+            self.history_df['cause_of_death'] = "Old Age"
+
+        elif cause == "Severe Accident":
+
+            self.history_df['cause_of_death'] = "Severe Accident"
+        else:
+            pass
+            
+
+
+
+        
+
+
+
+
+
+    
 
     def elder(self):
 
