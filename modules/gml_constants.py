@@ -41,7 +41,7 @@ TUITION = {'Base': 6000, 'Medium': 10000, 'High': 18000, 'Very High': 25000} ###
 # Business & Commerce: CAD 8,000 - CAD 14,000 (higher for specialized or top-ranked 
 # MBA (Master of Business Administration): CAD 20,000 - CAD 40,000
 
-SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75, 'In-Debt': 0.5}
+SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75, 'In-Debt': 0.5, 'Depressed': 0.4}
 SPENDER_PROFILE_SWITCH_PROB = 0.5
 ### special profile for those who are in debt
 
@@ -161,3 +161,56 @@ AVG_MARRIAGE_COST_PER_GUEST = 34000 / 100
 BABY_TWINS_MODE = {1:0.949, 2:0.04, 3:0.01, 4:0.001}
 
 EXISTING_CHILDREN_PROB_DICT = {0: 0.0, 1: 0.1, 2: 0.15, 3: 0.25, 4: 0.35, 5: 0.4, 6: 0.5, 7: 0.5, 8: 0.5, 9: 0.5}
+
+### create a function that generates a random value given a base value and a deviation
+
+RAISE_DEVIATION = 0.5
+
+# RAISE_CONSTANT_DICT = {"Base": {"chance": 0.1, "hike": 0.1},
+#                         "Medium": {"chance": 0.2, "hike": 0.2},
+#                         "High": {"chance": 0.3, "hike": 0.3},
+#                         "Very High": {"chance": 0.4, "hike": 0.4}}
+# RAISE_DEVIATION_BY_AGE = {[18, 25]: 0.5,
+#                             [26, 35]: 0.4,
+#                             [36, 45]: 0.3,
+#                             [46, 55]: 0.2,
+#                             [56, 65]: 0.1,
+#                             [66, 75]: 0.05,
+#                             [76, 100]: 0.01}
+
+# def fetch_raise_constant_by_age(age):
+#     for age_range in RAISE_DEVIATION_BY_AGE.keys():
+#         if age in range(age_range[0], age_range[1]):
+#             RAISE_DEVIATION = RAISE_DEVIATION_BY_AGE[age_range]
+#             break
+
+#     return RAISE_DEVIATION
+
+# def get_a_raise(current_salary, raise_ratio, career_path, age):
+
+
+#     ### raise chance
+
+#     raise_prob = RAISE_CONSTANT_DICT[career_path]["chance"]
+
+#     if np.random.uniform(0,1) > raise_prob:
+
+#         for age_range in RAISE_DEVIATION_BY_AGE.keys():
+#             if age in range(age_range[0], age_range[1]):
+#                 RAISE_DEVIATION = RAISE_DEVIATION_BY_AGE[age_range]
+#                 break
+
+#         base_rase_rate = RAISE_CONSTANT_DICT[career_path]["hike"]
+#         random_rate = generate_random_value(base_rase_rate, RAISE_DEVIATION)
+#         if random_rate < 0:
+#             random_rate = RAISE_DEVIATION
+#         new_salary = current_salary + current_salary *random_rate
+        
+
+
+
+#     ### raise amount
+#     return current_salary + current_salary * raise_ratio
+
+# def generate_random_value(base_value, deviation):
+#     return base_value + np.random.uniform(-deviation, deviation)

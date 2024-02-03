@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
-from  gml_constants import ( AGE_RANGES, 
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from  modules.gml_constants import ( AGE_RANGES, 
                             CAREERS_AND_MARRIAGE_PROBS,
                             MIN_MARRIAGE_ALLOWED_AGE, 
                             SAME_GENDER_MARRIAGE_RATIO,
@@ -9,8 +12,8 @@ from  gml_constants import ( AGE_RANGES,
                             MAX_DEBT_RATIO,
                             INTEREST_RATE_PER_TYPE)
 
-from person import Person_Life
-from financial_institution import Financial_Institution
+from modules.person import Person_Life
+from modules.financial_institution import Financial_Institution
 
 class City():
   
@@ -66,7 +69,6 @@ class City():
             ### Placeholder for marriage function
             self.handle_marriage(person_obj)
             self.handle_child_born(person_obj)
-
 
     def generate_young_adults(self, population:int = None):
         # make a even distribution of gender

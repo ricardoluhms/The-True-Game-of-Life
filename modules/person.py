@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from  gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES, 
+from  modules.gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES, 
                             GENDER_PROBS,SPENDER_PROFILE_PROBS,
                             AGE_RANGES, PART_TIME_JOB_PROB,                           
                             YEARS_OF_STUDY, TUITION, SPENDER_PROFILE,
@@ -437,7 +437,6 @@ class Person_Life(Person_Functions):
         ### may get a house
         ### may get a car
         pass
-
 
     def young_adult_one_year(self, temp_history = None,car_prob = None):
 
