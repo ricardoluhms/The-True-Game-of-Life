@@ -6,9 +6,9 @@ from  modules.gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_N
                             AGE_RANGES, PART_TIME_JOB_PROB,                           
                             YEARS_OF_STUDY, TUITION, SPENDER_PROFILE,
                             INITIAL_INCOME_RANGES,
-                            FUTURE_CAREER_PAY_PROBS,STUDENT_LOAN_INTEREST_RATES,
-                            CAR_FINANCING_OPTION_PROBS,CAR_MAX_DEBT_RATIO,
-                            CAR_DOWNPAYMENT_CONSTANT,CAR_SELF_FINANCING_CONSTANT)
+                            FUTURE_CAREER_PAY_PROBS,STUDENT_LOAN_INTEREST_RATES)
+                            # CAR_FINANCING_OPTION_PROBS,CAR_MAX_DEBT_RATIO,
+                            # CAR_DOWNPAYMENT_CONSTANT,CAR_SELF_FINANCING_CONSTANT)
 
 import random
 from datetime import date

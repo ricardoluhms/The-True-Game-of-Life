@@ -2,7 +2,7 @@
 
 #%%
 import pandas as pd
-from gml_constants import MAX_DEBT_RATIO, INTEREST_RATE_PER_TYPE,LOAN_TERM_PER_TYPE, SPENDER_PROFILE_SWITCH_PROB
+from modules.gml_constants import MAX_DEBT_RATIO, INTEREST_RATE_PER_TYPE,LOAN_TERM_PER_TYPE, SPENDER_PROFILE_SWITCH_PROB
 import numpy as np
 
 class Financial_Institution:
