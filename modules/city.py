@@ -73,6 +73,12 @@ class City():
                 ### Placeholder for marriage function
                 self.handle_marriage(person_obj)
                 self.handle_child_born(person_obj)
+                ### Placeholder for getting a loan for:
+                # - buying a house
+                # - buying a car
+                # - getting married
+                # - having a child
+                # - going to college
 
     def generate_starting_pop(self, population:int = None, age_range:str = 'Young Adult'):
         # make a even distribution of gender
