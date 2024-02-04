@@ -4,3 +4,6 @@ single_person_history.xlsx
 test_person.py
 *.xlsx
 test_person_life_functions.py
+*.db
+*.db-shm
+*.db-wal

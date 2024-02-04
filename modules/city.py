@@ -1,15 +1,19 @@
 import numpy as np
 import pandas as pd
-from  gml_constants import ( AGE_RANGES, 
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from  modules.gml_constants import ( AGE_RANGES, 
                             CAREERS_AND_MARRIAGE_PROBS,
                             MIN_MARRIAGE_ALLOWED_AGE, 
-                            SAME_GENDER_MARRIAGE_RATIO,)
+                            SAME_GENDER_MARRIAGE_RATIO,
+                            BABY_TWINS_MODE, 
+                            EXISTING_CHILDREN_PROB_DICT,
+                            MAX_DEBT_RATIO,
+                            INTEREST_RATE_PER_TYPE)
 
-                            ### These are not defined yet?
-                            #BABY_TWINS_MODE, 
-                            #EXISTING_CHILDREN_PROB_DICT)
-
-from person import Person_Life
+from modules.person import Person_Life
+from modules.financial_institution import Financial_Institution
 
 class City():
   
@@ -30,59 +34,70 @@ class City():
         self.city_name = name
         self.population = population
         self.current_year = current_year
-        self.young_adults = []
         self.history = pd.DataFrame()
         self.financial_institution = finance_institution
+        self.deceased_people = {}
         if mode == 'default':
             ###For generating random young adults
-            self.people_obj_dict = self.generate_young_adults(population)
+            self.people_obj_dict = self.generate_starting_pop(population=population, age_range='Young Adult')
         
         elif mode == 'testing':
             ###For generating specific people
             self.people_obj_dict = {}
         ### explain what City class does and the inputs, outputs and attributes
+        if finance_institution is None:
+            finance_institution = Financial_Institution(bank_name=f"{name} Bank")
+        self.financial_institution = finance_institution
        
     def age_up(self):
         self.current_year += 1
-        ### 
 
         ### Had to be changed to .copy() since we can't change the size of the acutal dictionary while its looping (when adding spouse)
         for person_id in self.people_obj_dict.copy():
 
-
             person_obj = self.people_obj_dict[person_id]
-            person_obj.age_up()
+
+            death = person_obj.age_up_one_year_any_life_stage()
             
             ### updating city history with each person history avoiding duplicates
             current_history = person_obj.history_df
             self.history = pd.concat([self.history, current_history], ignore_index=True)
             self.history.drop_duplicates(subset=['unique_name_year_event_id'], keep='last', inplace=True)
             ### overwriting the person in people_obj_dict with the updated person
-            self.people_obj_dict[person_id] = person_obj
-            ### check current history, if there is a marriage, check person id is in the city history
-            ### Placeholder for marriage function
-            self.handle_marriage(person_obj)
-            self.handle_child_born(person_obj)
+            if death:
+                self.deceased_people[person_id] = person_obj
+                del self.people_obj_dict[person_id]
+            else:
+                self.people_obj_dict[person_id] = person_obj
+                ### check current history, if there is a marriage, check person id is in the city history
+                ### Placeholder for marriage function
+                self.handle_marriage(person_obj)
+                self.handle_child_born(person_obj)
+                ### Placeholder for getting a loan for:
+                # - buying a house
+                # - buying a car
+                # - getting married
+                # - having a child
+                # - going to college
 
-    def generate_young_adults(self, population:int = None):
+    def generate_starting_pop(self, population:int = None, age_range:str = 'Young Adult'):
         # make a even distribution of gender
         people_list = {}
         if population is None:
             population = 1
         for _ in range(self.population):
-            current_person = Person_Life(age_range='Young Adult', current_year=self.current_year)
+            current_person = Person_Life(age_range= age_range, current_year=self.current_year)
 
             ### a random max age to a teenager
-            max_age = np.random.randint(AGE_RANGES['Teenager'][0],AGE_RANGES['Teenager'][1])
+            max_age = np.random.randint(AGE_RANGES[age_range][0],AGE_RANGES[age_range][1])
 
-            current_person.teenager_life(max_age)
+            current_person.complete_age_up_to_age_range(age_range=age_range, max_age=max_age)
             ### retrieve the last history of the person and the unique_name_id
             temp_history = current_person.history_df.iloc[-1].copy()
             unique_name_id = temp_history['unique_name_id']
             people_list[unique_name_id] = current_person
         
         return people_list
-
 
     def retrieve_history_from_people(self): ### will be deprecated in the future
         for person in self.people:
@@ -172,7 +187,7 @@ class City():
                 # the person last history:
 
                 # - change the spouse_name_id to the spouse unique_name_id
-                person.history_df.loc[-1, 'spouse_name_id'] = spouse_last_history['unique_name_id']
+                person.history_df.iloc[-1, 'spouse_name_id'] = spouse_last_history['unique_name_id']
                 # update the history of the person and the spouse candidate
                 
                 person_last_history['married'] = True
@@ -208,7 +223,7 @@ class City():
                 ### get the age range based on the age
                 spouse_age_range = Person_Life.update_age_range(spouse_age) ### TO BE DEVELOPED - SKIP AGE RANGE TO REPLACE WITH THE AGE WHEN CREATING A NEW PERSON
                 spouse = Person_Life(gender= spouse_gender, age_range= spouse_age_range, current_year= person_most_recent_year, married = True)
-                spouse.age_group_up(age_range=spouse_age_range, max_age=spouse_age) ### TO BE DEVELOPED - when creating a new person and age up for marriage set married to True
+                spouse.complete_age_up_to_age_range(age_range=spouse_age_range, max_age=spouse_age) ### TO BE DEVELOPED - when creating a new person and age up for marriage set married to True
 
                 ### married to true will be applied to all the history of the person so it need to be removed from the history later
                 spouse_all_history = spouse.history_df.copy()
@@ -216,9 +231,9 @@ class City():
                 criteria_age = spouse_all_history["age"] == spouse_age
                 criteria_year = spouse_all_history["year"] == person_most_recent_year
 
-                spouse_all_history.loc[~(criteria_arange & criteria_age & criteria_year),"married"] = False
-                spouse_all_history.loc[(criteria_arange & criteria_age & criteria_year),"just_married"] = True
-                spouse_all_history.loc[(criteria_arange & criteria_age & criteria_year),"spouse_name_id"] = person_last_history['unique_name_id']
+                spouse_all_history.iloc[~(criteria_arange & criteria_age & criteria_year),"married"] = False
+                spouse_all_history.iloc[(criteria_arange & criteria_age & criteria_year),"just_married"] = True
+                spouse_all_history.iloc[(criteria_arange & criteria_age & criteria_year),"spouse_name_id"] = person_last_history['unique_name_id']
                 spouse.history_df = spouse_all_history
 
 
@@ -252,8 +267,7 @@ class City():
             #         print('You cannot afford the marriage expense. You have reached the maximum loan amount.')
             pass
 
-    def handle_child_born(self, person):
-        babies = []
+    def handle_child_born(self, person, baby_count = None):
         # retrieve the last history of the person and:
         person_last_history = person.history_df.iloc[-1].copy()
         spouse_id = person_last_history['spouse_name_id']
@@ -284,10 +298,10 @@ class City():
         
         if can_have_child_cri is False:
             ### check if the mother is old enough to have a child
-            return "Cannot have a child - Mother is not old enough", babies
+            return "Cannot have a child - Mother is not old enough"
 
         if age_mother is None:
-            return "Cannot have a child - Mother is not defined", babies
+            return "Cannot have a child - Mother is not defined"
 
         ### rewrite base_prob to be a function of the age of the mother and will decrease with age
         base_prob = 0.65
@@ -295,211 +309,68 @@ class City():
 
         total_prob = base_prob + decreasing_prob
         if total_prob <= 0:
-            return "Cannot have a child - Age of the mother is too high", babies
+            return "Cannot have a child - Age of the mother is too high"
 
         if np.random.random() <= total_prob:
-            return "", babies
+            return ""
 
         ### twins or more probability
-        baby_count = np.random.choice( list(BABY_TWINS_MODE.keys()),
-                                    p=np.array(list(BABY_TWINS_MODE.values())))
-        
+        if baby_count is None:
+            baby_count = np.random.choice( list(BABY_TWINS_MODE.keys()),
+                                        p=np.array(list(BABY_TWINS_MODE.values())))
         
         for _ in range(baby_count):
-            babies.append(Person_Life(age_range='Baby', age = 0, current_year=self.current_year,
+            baby = Person_Life(age_range='Baby', age = 0, current_year=self.current_year,
                                       last_name=person_last_history['last_name']+" "+spouse_last_history['last_name'],
                                       parent_name_id_A = person_last_history["unique_name_id"], 
-                                      parent_name_id_B= person_last_history["unique_name_id"]))
+                                      parent_name_id_B= person_last_history["unique_name_id"])
+            
+            ### add the baby into the person and spouse children_name_id list
+            person_last_history["children_name_id"].append(baby.unique_name_id)
+            spouse_last_history["children_name_id"].append(baby.unique_name_id)
+            ### add baby to city
+            self.people_obj_dict[baby.unique_name_id] = baby
+             
+            
 
-        return "Child(s) Born", babies
+        ### Add Event to the history of the person and the spouse
+        if baby_count == 1:
+            person_last_history["event"] += "1 Child Born"
+            spouse_last_history["event"] += "1 Child Born"
+        else:
+            person_last_history["event"] += f"{baby_count} Children Born"
+            spouse_last_history["event"] += f"{baby_count} Children Born"
 
-#### Lets create a class to handle financial products such as loans and insurance
-#### the class will later register things as tables in a database
-#### one table will be the loan request table with
-#  the loan_id,
-#  the loan_purpose,
-#  the person_id, 
-#  the person_income at the time of the loan, 
-#  loan_amount, 
-#  loan_term, 
-#  interest_rate, and check if the person is eligible for the loan
-#  the loan_type,
+    def retrieve_loan_customer_data(self, person_id = None):
 
-#### another table will be the loan day to day table with
-#  the loan_id,
-#  the loan balance,
-#  the loan total term,
-#  the loan current term,
-#  the loan payment,
-#  the loan status,
+        ids = [person_id]
+        # check if the person has spouse
+        spouse_id = self.people_obj_dict[person_id].spouse_name_id
+        if spouse_id is not None:
+            ids.append(spouse_id)
+        
+        # check if the person has children
+        children_ids = self.people_obj_dict[person_id].children_name_id
 
-#### how to handle the loan refinancing?
+        if len(children_ids) > 0:
+            for child_id in children_ids:
+                ### check if the child is older than 18 so they will not be included in the loan calculation ### improve this later
+                if self.people_obj_dict[child_id].age < 18:
+                    ids.append(child_id)
+        
+        ### retrieve their income and balance
+        income_and_bal_df = pd.DataFrame()
 
-### loan refinancing will be a new loan, with a new loan_id, and a new loan term, and a new loan payment
-### the previous loan will be closed and the previous loan balance will be zero and the status will be refinanced
-### the previous loan will be kept in the database for historical purposes
+        for id in ids:
+            income_and_bal_df = income_and_bal_df.append(self.people_obj_dict[id].history_df.iloc[-1].copy()[['unique_name_id','income','balance']])
 
-#### how to handle the loan defaulting? Future Development
+        ### retrieve their loan data
+        loan_df = self.financial_institution.loan_df.copy()
+        family_loans_df = loan_df[loan_df['person_id'].isin(ids)]
 
-#### hot to handle the loan payment?
+        ### loan must be active
+        family_loans_df = family_loans_df[family_loans_df['loan_status'] == 'active']
 
-#### Creating a class to handle loans and other financial products - Financial Institution
-#### Financial Institution will get person_id, person_income at the time of the loan, loan_amount, loan_term, interest_rate, and check if the person is eligible for the loan
-#### Financial Institution will keep record of the person balance and the loan balance
-#### Financial Institution will know what is the loan type/reason and if the loan was refinanced
-#### main loan types: mortgage, student loan, car loan, personal loan
-#### main loan reasons: buy a house, pay for college, buy a car, personal loan
-#### main loan refinanced: yes, no
-#### main loan status: active, paid, defaulted
-#### main loan balance: current balance of the loan
-#### main loan term: number of years to pay the loan
-#### Financial Institution will also keep track of the interest rate and the interest rate type (fixed or variable) ### future development
-#### Financial Institution will also provide the yearly payment
-#### Financial Institution will provide a new Insurance table with 
-# ... the insurance type, insurance amount also know as face amount, insurance term if applicable, insurance status, insurance balance, insurance term, insurance payment
-
-#%%
-import pandas as pd
-# class Financial_Institution():
-#     def __init__(self, bank_name = None):
-#         self.bank_name = bank_name
-#         self.loan_df = pd.DataFrame(columns=['person_id', 'person_income', 'loan_amount', 'loan_term', 
-#                                              'interest_rate', 'loan_type', 'loan_reason', 'loan_refinanced', 
-#                                              'person_balance', 'year'])
-
-
-#         self.insurance_df = pd.DataFrame()
+        return income_and_bal_df, family_loans_df
     
-#     @staticmethod
-#     def eligibility(person_income, loan_amount, loan_term, interest_rate, loan_type, loan_reason, loan_refinanced, person_balance, year):
-#         # Procedure CheckLoanEligibility:
-#         # Input: person_income, loan_amount, loan_term, interest_rate, loan_type, loan_reason, loan_refinanced, person_balance, year, x, other_loan_amount
-#         # Output: eligibility
-
-#         # 1. total_loan_amount ← loan_amount + other_loan_amount  // Sum of current loan amount and loans from other sources
-#         # 2. income_threshold ← (x / 100) * person_income  // Maximum loan amount allowed based on person's income
-
-#         # 3. If total_loan_amount ≤ income_threshold Then
-#         # 4. // Additional eligibility checks can be performed here, for example:
-#         # 5. If loan_refinanced = True Then
-#         # 6. eligibility ← False
-#         # 7. Else If person_balance < (0.10 * total_loan_amount) Then
-#         # 8. eligibility ← False  // Person should have at least 10% of the total loan amount in balance
-#         # 9. Else If loan_term > 30 or loan_term < 1 Then
-#         # 10. eligibility ← False  // Loan term should be between 1 and 30 years
-#         # 11. Else
-#         # 12. eligibility ← True
-#         # 13. Else
-#         # 14. eligibility ← False
-#         # 15. Return eligibility
-#         pass
-
-#     def get_loan(self, person_id, person_income, loan_amount, loan_term, interest_rate,
-#                         loan_type, loan_reason, loan_refinanced, person_balance, year):
-
-#         ### check if the person is eligible for the loan
-#         ### check if the person has a loan already
-#         ### check if the person has a loan and is refinancing
-#         ### check if the person has a loan and is refinancing and the loan is the same type as the previous loan
-#         ### check if the person has a loan and is refinancing and the loan is a different type as the previous loan
-#         ### check if the person has a loan and is not refinancing
-#         ### check if the person has a loan and is not refinancing and the loan is the same type as the previous loan
-#         ### check if the person has a loan and is not refinancing and the loan is a different type as the previous loan
-#         ### check if the person does not have a loan
-#         pass
-
-class Financial_Institution:
-    def __init__(self, bank_name=None):
-        self.bank_name = bank_name
-        self.loan_df = pd.DataFrame(columns=[
-            'loan_id', 'person_id', 'person_income', 'loan_amount', 'loan_term',
-            'interest_rate', 'loan_type', 'loan_reason', 'loan_refinanced',
-            'loan_balance', 'loan_status', 'loan_payment'
-        ])
-        self.loan_day_to_day_df = pd.DataFrame(columns=[
-            'loan_id', 'loan_balance', 'loan_total_term', 'loan_current_term',
-            'loan_payment', 'loan_status'
-        ])
-        self.insurance_df = pd.DataFrame(columns=[
-            'insurance_type', 'insurance_amount', 'insurance_term',
-            'insurance_status', 'insurance_balance', 'insurance_payment'
-        ])
-
-    @staticmethod
-    def check_eligibility(person_income, loan_amount):
-        # Example eligibility check: person's income should be at least twice the loan amount
-        # simple eligibility check that will be replaced by a more complex one
-        return person_income >= 2 * loan_amount
-
-    @staticmethod
-    def add_loan(loan_df, loan_id, person_id, person_income, loan_amount, loan_term, interest_rate, loan_type, loan_reason):
-        if not Financial_Institution.check_eligibility(person_income, loan_amount):
-            print(f'Person {person_id} is not eligible for the loan')
-            return loan_df
-
-        loan_data = {
-            'loan_id': loan_id,
-            'person_id': person_id,
-            'person_income': person_income,
-            'loan_amount': loan_amount,
-            'loan_term': loan_term,
-            'interest_rate': interest_rate,
-            'loan_type': loan_type,
-            'loan_reason': loan_reason,
-            'loan_refinanced': 'no',
-            'loan_balance': loan_amount,
-            'loan_status': 'active',
-            'loan_payment': 0  # Initial payment is 0
-        }
-        return pd.concat([loan_df, pd.DataFrame([loan_data])], ignore_index=True)
-
-    @staticmethod
-    def add_payment(loan_df, loan_day_to_day_df, loan_id, payment_amount):
-        loan_idx = loan_df[loan_df['loan_id'] == loan_id].index[0]
-        loan_df.at[loan_idx, 'loan_balance'] -= payment_amount
-        loan_df.at[loan_idx, 'loan_payment'] += payment_amount
-
-        day_to_day_data = {
-            'loan_id': loan_id,
-            'loan_balance': loan_df.at[loan_idx, 'loan_balance'],
-            # ... (other necessary fields)
-        }
-        return loan_df, pd.concat([loan_day_to_day_df, pd.DataFrame([day_to_day_data])],ignore_index=True)
-    
-    @staticmethod
-    def refinance_loan(loan_df, loan_id, new_loan_id, new_loan_term, new_loan_payment):
-        # Close old loan
-        loan_idx = loan_df[loan_df['loan_id'] == loan_id].index[0]
-        loan_df.at[loan_idx, 'loan_status'] = 'refinanced'
-        loan_df.at[loan_idx, 'loan_balance'] = 0
-
-        # Create new loan
-        new_loan_data = loan_df.loc[loan_idx].to_dict()
-        new_loan_data['loan_id'] = new_loan_id
-        new_loan_data['loan_term'] = new_loan_term
-        new_loan_data['loan_payment'] = new_loan_payment
-        return loan_df.append(new_loan_data, ignore_index=True)
-    
-    def print_load_df(self):
-        return self.loan_df
-    # ... (other methods)
-    # @staticmethod
-    # def add_insurance(insurance_type, insurance_amount, insurance_term, insurance_status, insurance_balance, insurance_payment):
-    #     insurance_data = {
-    #         'insurance_type': insurance_type,
-    #         'insurance_amount': insurance_amount,
-    #         'insurance_term': insurance_term,
-    #         'insurance_status': insurance_status,
-    #         'insurance_balance': insurance_balance,
-    #         'insurance_payment': insurance_payment
-    #     }
-    #     temp_insurance_df = pd.DataFrame(columns=[
-    #         'insurance_type', 'insurance_amount', 'insurance_term',
-    #         'insurance_status', 'insurance_balance', 'insurance_payment'
-    #     ])
-    #     ### append the new insurance data to the existing insurance data
-
-    #     return insurance_df.append(insurance_data, ignore_index=True)
-# Usage example:
-fi = Financial_Institution()
-fi.loan_df = Financial_Institution.add_loan(fi.loan_df, 'loan_001', 'person_001', 50000, 20000, 5, 3.5, 'personal', 'buy a car')
+# %%
