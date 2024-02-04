@@ -65,7 +65,6 @@ if True:
     GENDER_PROBS = {'Male': 0.5,
                     'Female': 0.5}                   
 
-
 ### Financial Constants
 if True:    
     CAR_FINANCING_OPTION_PROBS = {'Self-Financing': 0.1,
@@ -172,11 +171,12 @@ if True:
     RAISE_HIKE_BASE = 0.065
     RAISE_HIKE_BASE_STEP = 0.05 
 
-    RAISE_DICT = {"Part Time": {"chance": RAISE_PROB_CHANGE_BASE/3, "hike_range": [RAISE_HIKE_BASE/3, RAISE_HIKE_BASE/3+RAISE_HIKE_BASE_STEP]},
-                "Base": {"chance": RAISE_PROB_CHANGE_BASE, "hike_range": [RAISE_HIKE_BASE, RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP]},
-                "Medium": {"chance": RAISE_PROB_CHANGE_BASE+RAISE_PROB_CHANCE_STEPS, "hike_range": [RAISE_HIKE_BASE, RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP*2]},
-                "High": {"chance": RAISE_PROB_CHANGE_BASE+RAISE_PROB_CHANCE_STEPS*2, "hike_range": [RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP, RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP*2.2]},
-                "Very High": {"chance": RAISE_PROB_CHANGE_BASE+RAISE_PROB_CHANCE_STEPS*3, "hike_range": [RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP, RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP*2.5]}}
+    RAISE_DICT = {'Pocket Money': {"chance": 0, "hike_range": [0, 0] },
+                  "Part Time": {"chance": RAISE_PROB_CHANGE_BASE/3, "hike_range": [RAISE_HIKE_BASE/3, RAISE_HIKE_BASE/3+RAISE_HIKE_BASE_STEP]},
+                  "Base": {"chance": RAISE_PROB_CHANGE_BASE, "hike_range": [RAISE_HIKE_BASE, RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP]},
+                  "Medium": {"chance": RAISE_PROB_CHANGE_BASE+RAISE_PROB_CHANCE_STEPS, "hike_range": [RAISE_HIKE_BASE, RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP*2]},
+                  "High": {"chance": RAISE_PROB_CHANGE_BASE+RAISE_PROB_CHANCE_STEPS*2, "hike_range": [RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP, RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP*2.2]},
+                  "Very High": {"chance": RAISE_PROB_CHANGE_BASE+RAISE_PROB_CHANCE_STEPS*3, "hike_range": [RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP, RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP*2.5]}}
 
 ### Death Constants
 

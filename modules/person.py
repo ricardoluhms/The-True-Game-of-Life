@@ -10,7 +10,10 @@ from  modules.gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_N
                             RAISE_DICT, DEATH_PROB_MODEL_COEF,CRIT_ILL_DEATH_PROB_MODEL_COEF)
                             # CAR_FINANCING_OPTION_PROBS,CAR_MAX_DEBT_RATIO,
                             # CAR_DOWNPAYMENT_CONSTANT,CAR_SELF_FINANCING_CONSTANT)
-
+### ignore future warnings
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+ 
 import random
 from datetime import date
 
@@ -21,6 +24,7 @@ class Person_Functions():
                       career: str = None, future_career: str = None, income: int = None,
                       loan: int = None, loan_term: int = None, balance: int = None,
                       married: bool = False, just_married = False, children: int = 0, spender_prof: str = None,
+                      death: bool = False,
                       parent_name_id_A: str = None, parent_name_id_B: str = None, children_name_id:list = [],
 
                       spouse_name_id: str = None,
@@ -88,6 +92,7 @@ class Person_Functions():
         self.parent_name_id_A = parent_name_id_A
         self.parent_name_id_B = parent_name_id_B
         self.children_name_id = children_name_id
+        self.death = death
 
 
         # Initialize the history DataFrame
@@ -162,7 +167,7 @@ class Person_Functions():
                 max_age = max_age
             return max_age
 
-    def update_history(self,  event:str, new_history=None):
+    def update_history(self,  event:str, new_history=None, death = False):
         """Update the person's history with a new event."""
         if event is None:
             event = self.event
@@ -179,7 +184,8 @@ class Person_Functions():
         new_history_df["unique_name_year_event_id"] = new_history_df["unique_name_id"] + "_" +\
                                           new_history_df["year"].astype(str) + "_" +\
                                           new_history_df["event"]
-          
+        new_history_df["death"] = death
+
         self.history_df = pd.concat([self.history_df, new_history_df], ignore_index=True)
 
     @staticmethod
@@ -263,8 +269,7 @@ class Person_Functions():
         temp_history['years_of_study'] = YEARS_OF_STUDY[temp_history['career']]
         temp_history['years_to_study'] = 0
         new_income = abs(np.random.choice(INITIAL_INCOME_RANGES[temp_history['career']]))
-        #month = 1/np.random.randint(1, 13)
-        #temp_history['income'] = new_income*month + temp_history['income']*(1-month)
+        temp_history['income'] = new_income
         return event, temp_history
 
     @staticmethod
@@ -314,22 +319,22 @@ class Person_Functions():
 
         ### raise chance
         raise_prob = RAISE_DICT[career_path]["chance"]
+        raise_event = np.random.uniform(0,1)
 
-        if np.random.uniform(0,1) > raise_prob:
+        #print(career_path, raise_prob, raise_event, f"Raise? {raise_event <= raise_prob}")
+        if raise_event <= raise_prob:
 
             hike_range = RAISE_DICT[career_path]["hike_range"]
             random_rate = np.random.uniform(hike_range[0], hike_range[1])
-            new_salary = current_salary + current_salary*random_rate
+            new_salary = round(current_salary + current_salary*random_rate,2)
             event = "Got a Raise"
         else:
             ### raise amount
-            new_salary = current_salary
+            new_salary = round(current_salary,2)
+            
             event = "No Raise"
 
         return new_salary, event
-
-    def generate_random_value(base_value, deviation):
-        return
 
     @staticmethod 
     def calculate_death_chance(age,gender):
@@ -462,7 +467,7 @@ class Person_Life(Person_Functions):
     ### if a person is created straight ahead as an child then we need to create baby classes and update their history
     ### if a person is created straight ahead as an baby then we need to create baby classes and update their history
         
-    def death(self, age, gender):
+    def death_check(self, age, gender):
         ### add cause of death
         ### add probability of death based on age
 
@@ -522,12 +527,24 @@ class Person_Life(Person_Functions):
         ### may get a house
         ### may get a car
 
+        ### Stage 0: Check if the person has a history
+        if temp_history is None:
+            ### Stage 0.1: Retrieve the last history of the person
+            temp_history = self.history_df.iloc[-1].copy()
+        
+        death = temp_history["death"]
+        if death:
+            return print("Dead - Cannot Age Up")
 
         ### Stage 1: Older temp_age_up Function:
         if temp_history is None:
 
             ### Stage 1.1: Retrieve the last history of the person
             temp_history = self.history_df.iloc[-1].copy()
+            
+
+        
+
             ### Stage 1.2: Age up the person and year       
             temp_history['year'] += 1
             temp_history['age'] += 1
@@ -629,8 +646,8 @@ class Person_Life(Person_Functions):
             event = event + " - " + raise_event
         
         ### Stage X: Check if the person will die
-        death_event, death = self.death(temp_history['age'], temp_history["gender"])
+        death_event, death = self.death_check(temp_history['age'], temp_history["gender"])
         if death:
             event = death_event                                
 
-        self.update_history(new_history = temp_history, event=event)
+        self.update_history(new_history = temp_history, event=event, death=death)
