@@ -515,7 +515,9 @@ class Person_Life(Person_Functions):
                 temp_history['year'] = (reference_year - current_age + loop_age)
                 temp_history['age'] = loop_age
                 temp_history['age_range'] = self.update_age_range(loop_age)
-                self.age_up_one_year_any_life_stage(temp_history)
+                death = self.age_up_one_year_any_life_stage(temp_history)
+                if death:
+                    break
 
     def age_up_one_year_any_life_stage(self, temp_history = None):
 
@@ -651,3 +653,4 @@ class Person_Life(Person_Functions):
             event = death_event                                
 
         self.update_history(new_history = temp_history, event=event, death=death)
+        return death

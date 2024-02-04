@@ -34,12 +34,12 @@ class City():
         self.city_name = name
         self.population = population
         self.current_year = current_year
-        self.young_adults = []
         self.history = pd.DataFrame()
         self.financial_institution = finance_institution
+        self.deceased_people = {}
         if mode == 'default':
             ###For generating random young adults
-            self.people_obj_dict = self.generate_young_adults(population)
+            self.people_obj_dict = self.generate_starting_pop(population=population, age_range='Young Adult')
         
         elif mode == 'testing':
             ###For generating specific people
@@ -56,31 +56,36 @@ class City():
         for person_id in self.people_obj_dict.copy():
 
             person_obj = self.people_obj_dict[person_id]
-            person_obj.age_up_one_year_any_life_stage()
+
+            death = person_obj.age_up_one_year_any_life_stage()
             
             ### updating city history with each person history avoiding duplicates
             current_history = person_obj.history_df
             self.history = pd.concat([self.history, current_history], ignore_index=True)
             self.history.drop_duplicates(subset=['unique_name_year_event_id'], keep='last', inplace=True)
             ### overwriting the person in people_obj_dict with the updated person
-            self.people_obj_dict[person_id] = person_obj
-            ### check current history, if there is a marriage, check person id is in the city history
-            ### Placeholder for marriage function
-            self.handle_marriage(person_obj)
-            self.handle_child_born(person_obj)
+            if death:
+                self.deceased_people[person_id] = person_obj
+                del self.people_obj_dict[person_id]
+            else:
+                self.people_obj_dict[person_id] = person_obj
+                ### check current history, if there is a marriage, check person id is in the city history
+                ### Placeholder for marriage function
+                self.handle_marriage(person_obj)
+                self.handle_child_born(person_obj)
 
-    def generate_young_adults(self, population:int = None):
+    def generate_starting_pop(self, population:int = None, age_range:str = 'Young Adult'):
         # make a even distribution of gender
         people_list = {}
         if population is None:
             population = 1
         for _ in range(self.population):
-            current_person = Person_Life(age_range='Young Adult', current_year=self.current_year)
+            current_person = Person_Life(age_range= age_range, current_year=self.current_year)
 
             ### a random max age to a teenager
-            max_age = np.random.randint(AGE_RANGES['Teenager'][0],AGE_RANGES['Teenager'][1])
+            max_age = np.random.randint(AGE_RANGES[age_range][0],AGE_RANGES[age_range][1])
 
-            current_person.teenager_life(max_age)
+            current_person.complete_age_up_to_age_range(age_range=age_range, max_age=max_age)
             ### retrieve the last history of the person and the unique_name_id
             temp_history = current_person.history_df.iloc[-1].copy()
             unique_name_id = temp_history['unique_name_id']
