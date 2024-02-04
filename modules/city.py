@@ -57,7 +57,7 @@ class City():
 
 
             person_obj = self.people_obj_dict[person_id]
-            person_obj.age_up()
+            person_obj.age_up_one_year_any_life_stage()
             
             ### updating city history with each person history avoiding duplicates
             current_history = person_obj.history_df
@@ -213,7 +213,7 @@ class City():
                 ### get the age range based on the age
                 spouse_age_range = Person_Life.update_age_range(spouse_age) ### TO BE DEVELOPED - SKIP AGE RANGE TO REPLACE WITH THE AGE WHEN CREATING A NEW PERSON
                 spouse = Person_Life(gender= spouse_gender, age_range= spouse_age_range, current_year= person_most_recent_year, married = True)
-                spouse.age_group_up(age_range=spouse_age_range, max_age=spouse_age) ### TO BE DEVELOPED - when creating a new person and age up for marriage set married to True
+                spouse.complete_age_up_to_age_range(age_range=spouse_age_range, max_age=spouse_age) ### TO BE DEVELOPED - when creating a new person and age up for marriage set married to True
 
                 ### married to true will be applied to all the history of the person so it need to be removed from the history later
                 spouse_all_history = spouse.history_df.copy()

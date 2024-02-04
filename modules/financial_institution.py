@@ -455,8 +455,8 @@ class Financial_Institution:
         return self.loan_df
 
 # Usage example:
-fi = Financial_Institution()
-fi.loan_df = Financial_Institution.add_loan(fi.loan_df, 'loan_001', 'person_001', 50000, 20000, 5, 3.5, 'personal', 'buy a car')
+#fi = Financial_Institution()
+#fi.loan_df = Financial_Institution.add_loan(fi.loan_df, 'loan_001', 'person_001', 50000, 20000, 5, 3.5, 'personal', 'buy a car')
 
 
 #### how to handle the loan defaulting? Future Development
