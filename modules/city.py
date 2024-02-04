@@ -55,7 +55,6 @@ class City():
         ### Had to be changed to .copy() since we can't change the size of the acutal dictionary while its looping (when adding spouse)
         for person_id in self.people_obj_dict.copy():
 
-
             person_obj = self.people_obj_dict[person_id]
             person_obj.age_up_one_year_any_life_stage()
             

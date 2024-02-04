@@ -6,7 +6,8 @@ from  modules.gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_N
                             AGE_RANGES, PART_TIME_JOB_PROB,                           
                             YEARS_OF_STUDY, TUITION, SPENDER_PROFILE,
                             INITIAL_INCOME_RANGES,
-                            FUTURE_CAREER_PAY_PROBS,STUDENT_LOAN_INTEREST_RATES)
+                            FUTURE_CAREER_PAY_PROBS,STUDENT_LOAN_INTEREST_RATES,
+                            RAISE_DICT, DEATH_PROB_MODEL_COEF,CRIT_ILL_DEATH_PROB_MODEL_COEF)
                             # CAR_FINANCING_OPTION_PROBS,CAR_MAX_DEBT_RATIO,
                             # CAR_DOWNPAYMENT_CONSTANT,CAR_SELF_FINANCING_CONSTANT)
 
@@ -299,6 +300,92 @@ class Person_Functions():
                                          p=np.array(list(SPENDER_PROFILE_PROBS.values())))
         return spender_profile
 
+    @staticmethod
+    def fetch_raise_constant_by_age(age):
+        for age_range in RAISE_DEVIATION_BY_AGE.keys():
+            if age in range(age_range[0], age_range[1]):
+                RAISE_DEVIATION = RAISE_DEVIATION_BY_AGE[age_range]
+                break
+
+        return RAISE_DEVIATION
+
+    @staticmethod
+    def get_a_raise(current_salary, career_path):
+
+        ### raise chance
+        raise_prob = RAISE_DICT[career_path]["chance"]
+
+        if np.random.uniform(0,1) > raise_prob:
+
+            hike_range = RAISE_DICT[career_path]["hike_range"]
+            random_rate = np.random.uniform(hike_range[0], hike_range[1])
+            new_salary = current_salary + current_salary*random_rate
+            event = "Got a Raise"
+        else:
+            ### raise amount
+            new_salary = current_salary
+            event = "No Raise"
+
+        return new_salary, event
+
+    def generate_random_value(base_value, deviation):
+        return
+
+    @staticmethod 
+    def calculate_death_chance(age,gender):
+        if gender == "Male":
+            gender_val =  0
+        elif gender == "Female":
+            gender_val = 1
+        else:
+            gender_val = gender
+
+        pred_lin = DEATH_PROB_MODEL_COEF['lin_reg']['age']*age +\
+                DEATH_PROB_MODEL_COEF['lin_reg']['gender']*gender_val +\
+                DEATH_PROB_MODEL_COEF['lin_reg']['intercept']
+
+        pred_log2 = DEATH_PROB_MODEL_COEF['lin_reg_log']['age']*age +\
+                    DEATH_PROB_MODEL_COEF['lin_reg_log']['gender']*gender_val +\
+                    DEATH_PROB_MODEL_COEF['lin_reg_log']['lin_pred']*pred_lin +\
+                    DEATH_PROB_MODEL_COEF['lin_reg']['intercept']
+        
+        pred_log2_final = np.power(2,pred_log2)
+
+        if pred_lin > 1:
+            output_a = 1
+        else:
+            output_a = pred_lin
+
+        if pred_log2_final > 1:
+            output_b = 1
+        else:
+            output_b = pred_log2_final
+
+        if age > 55:
+            return 1 - output_b
+        else:
+            return 1 - output_a
+
+    @staticmethod
+    def calculate_death_chance_crit_ill(age):
+        prob = CRIT_ILL_DEATH_PROB_MODEL_COEF['age']*age +\
+                CRIT_ILL_DEATH_PROB_MODEL_COEF['age_sq']*age**2 +\
+                CRIT_ILL_DEATH_PROB_MODEL_COEF['age_cub']*age**3 +\
+                CRIT_ILL_DEATH_PROB_MODEL_COEF['age_qd']*age**4 +\
+                CRIT_ILL_DEATH_PROB_MODEL_COEF['intercept']
+        if age <20:
+            prob = 0
+        elif age >=20 and age < 40:
+            prob = np.abs(prob)/5
+
+        elif age >=40 and age < 55:
+            prob = np.abs(prob)/3
+
+        elif age >=55 and age < 60:
+            prob = np.abs(prob)
+
+        return prob
+
     # @staticmethod
     # def get_a_car(temp_history, finance_option):
     #     age = temp_history['age']
@@ -374,11 +461,38 @@ class Person_Life(Person_Functions):
     ### if a person is created straight ahead as an teenager then we need to create child and baby classes and update their history
     ### if a person is created straight ahead as an child then we need to create baby classes and update their history
     ### if a person is created straight ahead as an baby then we need to create baby classes and update their history
-    def death(self):
+        
+    def death(self, age, gender):
         ### add cause of death
         ### add probability of death based on age
-        ### ????
-        pass
+
+            #This will probably be triggered by other functions maybe we have a percent chance on ageup() to trigger death based on factors like age, health 
+            # and a complete random chance of like car accident or something
+
+
+        death = False
+        age_death = self.calculate_death_chance(age,gender)
+        ci_death = self.calculate_death_chance_crit_ill(age)
+        if np.random.random() <= age_death:
+            event = "Death - Old Age"
+            
+        
+        if age <= 1 and np.random.random() <= 0.0045:
+            event = "Death - Unexpected Infant Death"
+            death = True
+        
+        elif np.random.random() <= 0.0001:
+            event = "Death - Severe Accident"
+            death = True
+        
+        elif np.random.random() <= ci_death:
+            event = "Death - Critical Illness"
+            death = True
+        
+        else:
+            event = ""
+        
+        return event, death
 
     def generate_past_events(self):
         ### check self.history_df.iloc[0] to get the last history of the person
@@ -499,10 +613,24 @@ class Person_Life(Person_Functions):
             #event  =self.get_a_car(temp_history,car_prob)
             temp_history = self.update_income_to_balance(temp_history)
 
+        ### Stage 5: If age range is adult, then age up the adult
         elif age_range == "Adult":
-            pass
-            #temp_history,event = self.adult_one_year(temp_history)
+            temp_history = self.update_income_to_balance(temp_history)
+            event = "Adult - Aged Up"
+            
         elif age_range == "Elder":
-            pass
-            #temp_history,event =  self.elder_one_year(temp_history)
+            temp_history = self.update_income_to_balance(temp_history)
+            event = "Elder - Aged Up"
+        if age_range in ["Young Adult", "Adult", "Elder"]:
+            ### check if event variable exists
+            if event is None:
+                event = "Aged Up"
+            temp_history['income'], raise_event = self.get_a_raise(temp_history['income'], temp_history['career'])
+            event = event + " - " + raise_event
+        
+        ### Stage X: Check if the person will die
+        death_event, death = self.death(temp_history['age'], temp_history["gender"])
+        if death:
+            event = death_event                                
+
         self.update_history(new_history = temp_history, event=event)
