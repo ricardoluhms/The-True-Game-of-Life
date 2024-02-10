@@ -186,7 +186,9 @@ class Person_Functions():
                                           new_history_df["event"]
         new_history_df["death"] = death
 
+        #print("Old History", len(self.history_df))
         self.history_df = pd.concat([self.history_df, new_history_df], ignore_index=True)
+        #print("New History", len(self.history_df))
 
     @staticmethod
     def handle_part_time_job(temp_history, mode="Teenager"):
@@ -242,6 +244,8 @@ class Person_Functions():
     
     @staticmethod
     def update_years_of_study(temp_history):
+        if temp_history['years_of_study'] == None:
+            temp_history['years_of_study'] = 0
         temp_history['years_of_study'] += 1
         temp_history['years_to_study'] -= 1
         return temp_history
@@ -391,6 +395,13 @@ class Person_Functions():
 
         return prob
 
+    def update_values(self, temp_history):
+        """Update the person's attributes with new values."""
+        for col in temp_history.index:
+            ### check if the column is in the object
+            if col in self.__dict__.keys():
+                setattr(self, col, temp_history[col])
+
     # @staticmethod
     # def get_a_car(temp_history, finance_option):
     #     age = temp_history['age']
@@ -453,10 +464,13 @@ class Person_Functions():
 
 class Person_Life(Person_Functions):
     def __init__(self, gender:str =None, first_name:str = None, last_name:str = None, 
-                 current_year:int = None, age_range: str = None, married: bool = False, ):
+                 current_year:int = None, age_range: str = None, married: bool = False,
+                 parent_name_id_A: str = None, parent_name_id_B: str = None, children_name_id:list = []):
 
         super().__init__(gender, first_name, last_name, current_year, age_range, career=None, income=None, 
-                         loan=None, loan_term=None, balance=None, married=married)
+                         loan=None, loan_term=None, balance=None, married=married, 
+                         parent_name_id_A=parent_name_id_A, parent_name_id_B=parent_name_id_B,
+                         children_name_id=children_name_id)
     ### there will be two main scenarios:
     # - the person is a recent born from a couple and just ages up
     # - the person was randomly generated and has a random age and we would need to know previous events from the past and then age up
@@ -516,63 +530,33 @@ class Person_Life(Person_Functions):
                 temp_history['age'] = loop_age
                 temp_history['age_range'] = self.update_age_range(loop_age)
                 death = self.age_up_one_year_any_life_stage(temp_history)
+
                 if death:
                     break
 
-    def age_up_one_year_any_life_stage(self, temp_history = None):
-
-        ### will go to college/university (OK)
-        ### will get a loan (OK)
-        ### will get a job (OK)
-        ### may get married (OK)
-        ### may have children (OK) Managed by city class
-        ### may get a house
-        ### may get a car
-
-        ### Stage 0: Check if the person has a history
-        if temp_history is None:
-            ### Stage 0.1: Retrieve the last history of the person
-            temp_history = self.history_df.iloc[-1].copy()
-        
+    def age_up_one_year_any_life_stage(self, temp_history):
+        event = "This is a test event - this should be overwritten by the function"
         death = temp_history["death"]
         if death:
             return print("Dead - Cannot Age Up")
 
-        ### Stage 1: Older temp_age_up Function:
-        if temp_history is None:
-
-            ### Stage 1.1: Retrieve the last history of the person
-            temp_history = self.history_df.iloc[-1].copy()
-            
-
-        
-
-            ### Stage 1.2: Age up the person and year       
-            temp_history['year'] += 1
-            temp_history['age'] += 1
-            ### Stage 1.3: Update the age range of the person
-            temp_history['age_range'] = self.update_age_range(temp_history['age'])
-            ### Stage 1.4: Also update the objects values not just their history
-            self.age += 1
-            self.age_range = self.update_age_range(temp_history['age'])
-            ### Stage 1.5: updade object year
-            self.year += 1
-            ### Stage 1.6: store age range
-            age_range = temp_history['age_range']
-        else:
-            age_range = temp_history['age_range']
+        temp_history['year'] += 1
+        temp_history['age'] += 1
+        age_range = temp_history['age_range'] = self.update_age_range(temp_history['age'])
 
         ### Stage 2: Check the age range and call the corresponding life_one_year function
         ## Stage 2.1: If age range is baby, then age up the baby
         if age_range == "Baby":
             ### Stage 2.2: If age range is baby, then update the event
             event = "Baby - Aged Up"
+            #print("Baby - Aged Up")
 
         ### Stage 2.2: If age range is child, then age up the child
         elif age_range == "Child":
             ### Stage 2.3: If child is age is the first year as a child, then update the event
             if temp_history['age'] == AGE_RANGES["Child"][0]:
                 event = "Become Child"
+
 
             ### Stage 2.3: If child is age is 5 it is time to give them pocket money and set their spender profile
             elif temp_history['age'] == 5:
@@ -589,7 +573,8 @@ class Person_Life(Person_Functions):
                     temp_history['balance'] = 0
                 else:
                     temp_history = self.update_income_to_balance(temp_history)
-
+            #print("Children - Aged Up")
+        
         ### Stage 3: If age range is teenager, then age up the teenager
         elif age_range == "Teenager":
 
@@ -602,17 +587,20 @@ class Person_Life(Person_Functions):
                 event, temp_history = self.handle_part_time_job(temp_history, mode="Teenager")
             ### Stage 3.3: If teenager is on pocket money or part time job, then update the balance 
             temp_history = self.update_income_to_balance(temp_history)
-
+            #print("Teenager - Aged Up")
+        
         ### Stage 4: If age range is young adult, then age up the young adult
         elif age_range == "Young Adult":
             ### Stage 4.1: If young adult is age is the first year as a young adult, then update the event
+
+                
             if temp_history['age'] == AGE_RANGES['Young Adult'][0]:
                 ### If first year as a young adult, then define study and future career, check if they will get a loan and get a part time job
                 temp_history = self.define_study_and_fut_career(temp_history)
                 event, temp_history = self.handle_part_time_job(temp_history, mode = "Young Adult")
                 temp_history = self.handle_get_student_loan(temp_history)
                 event = event.replace("Young Adult", "Become Young Adult")
-                
+      
             ### Stage 4.2: If young adult is age is not the first year as a young adult, then update the event
             else:
                 ### Stage 4.2.1: Check if Completed Studies (if years to study is 0 then the person has completed studies)
@@ -625,32 +613,46 @@ class Person_Life(Person_Functions):
 
                 ### did not complete studies yet
                 ### Stage 4.2.2: If the person did not complete studies yet, then update the years of study, get a part time job and check if they will get a loan
+                elif temp_history['years_to_study'] == None:
+                    pass
                 else:
                     temp_history = self.update_years_of_study(temp_history)
                     event, temp_history = self.handle_part_time_job(temp_history, mode = "Teenager")
                     temp_history = self.handle_get_student_loan(temp_history)
             #event  =self.get_a_car(temp_history,car_prob)
-            temp_history = self.update_income_to_balance(temp_history)
-
+            if temp_history['balance'] == None:
+                pass
+            else:
+                temp_history = self.update_income_to_balance(temp_history)
+            if temp_history['event'] == "Created":
+                event = ""
+            #print("Young Adult - Aged Up")  
+        
         ### Stage 5: If age range is adult, then age up the adult
         elif age_range == "Adult":
             temp_history = self.update_income_to_balance(temp_history)
             event = "Adult - Aged Up"
+            #print("Adult - Aged Up")
             
         elif age_range == "Elder":
             temp_history = self.update_income_to_balance(temp_history)
             event = "Elder - Aged Up"
+            #print("Elder - Aged Up")
         if age_range in ["Young Adult", "Adult", "Elder"]:
             ### check if event variable exists
             if event is None:
                 event = "Aged Up"
-            temp_history['income'], raise_event = self.get_a_raise(temp_history['income'], temp_history['career'])
-            event = event + " - " + raise_event
-        
+            if temp_history['income'] is None:
+                pass
+            else:
+                temp_history['income'], raise_event = self.get_a_raise(temp_history['income'], temp_history['career'])
+                event = event + " - " + raise_event
+            #print("Raise Event", raise_event)
         ### Stage X: Check if the person will die
         death_event, death = self.death_check(temp_history['age'], temp_history["gender"])
         if death:
             event = death_event                                
-
+  
         self.update_history(new_history = temp_history, event=event, death=death)
+        self.update_values(temp_history)
         return death

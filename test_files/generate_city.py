@@ -1,4 +1,10 @@
 #%%
+### set system path
+import os
+import sys
+import tqdm
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 ### remove Future Warning from pandas
 import os
 import sys
@@ -7,26 +13,20 @@ from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
 from modules.city import City # , 
 import pandas as pd
+import tqdm
+
 # Create a city
 #%%
 
-city = City("Boludos City",population=2, current_year=1950, mode='default')
-
-city.age_up()
-city.age_up()
-
+city = City("Test City",population=1, current_year=2000, mode='default')
+#print(city.history)
 #%%
-city.age_up()
+### age up the city 100 years
+for i in range(50):
+    city.age_up()
+    ### average
 
-# %%
-temp_list = []
-for pep in city.people:
-    temp_list.append(pep.history_df)
-city.history_df = pd.concat(temp_list)
-a = city.history_df
-### check duplicated events in update_history
-### check negative values in income - working on it
-### check for loan term 0 even if a loan is taken - working on it
-### check future career issues - working it
-
+# for i in tqdm.tqdm(range(300)):
+#     city.age_up()
+#     ### average
 #%%

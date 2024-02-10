@@ -74,11 +74,12 @@ display(unique_person_carreer_by_age_piv)
 # %%
 ### check income distribution - check negative values
 ### drop pocket money and part time jobs
-filter_income = city_history_df["income"] > 0
+#filter_income = city_history_df["income"] > 0
 #valid_career = ['Part Time', 'Medium', 'Base', 'High','Very High']
 valid_career = [ 'Medium', 'Base', 'High','Very High']
 filter_career = city_history_df["career"].isin(valid_career)
-city_history_df_filter = city_history_df[filter_income & filter_career]
+#city_history_df_filter = city_history_df[filter_income & filter_career]
+city_history_df_filter = city_history_df.copy()
 
 a = city_history_df_filter["income"].fillna(0)
 b = city_history_df_filter["age"]

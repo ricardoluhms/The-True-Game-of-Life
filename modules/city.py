@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 import sys
+import tqdm
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from  modules.gml_constants import ( AGE_RANGES, 
                             CAREERS_AND_MARRIAGE_PROBS,
@@ -38,9 +39,9 @@ class City():
         self.financial_institution = finance_institution
         self.deceased_people = {}
         if mode == 'default':
-            ###For generating random young adults
+            ###For generating random 
             self.people_obj_dict = self.generate_starting_pop(population=population, age_range='Young Adult')
-        
+            self.retrieve_history_from_people()
         elif mode == 'testing':
             ###For generating specific people
             self.people_obj_dict = {}
@@ -48,50 +49,81 @@ class City():
         if finance_institution is None:
             finance_institution = Financial_Institution(bank_name=f"{name} Bank")
         self.financial_institution = finance_institution
-       
+    
+    @staticmethod
+    def update_person_constant(person, person_history):
+        ### loop over person constants and check if the person has the constant
+        ### loop over person last history and update the constant based on the person history
+        ### person is a class object and some of the constants are in the class object
+        #print("Person Constant Update - City Mode")
+        for constant in person.__dict__.keys():
+            if constant in person_history:
+                person.__dict__[constant] = person_history[constant]
+        return person
+
     def age_up(self):
         self.current_year += 1
 
         ### Had to be changed to .copy() since we can't change the size of the acutal dictionary while its looping (when adding spouse)
         for person_id in self.people_obj_dict.copy():
-
-            person_obj = self.people_obj_dict[person_id]
-
-            death = person_obj.age_up_one_year_any_life_stage()
             
-            ### updating city history with each person history avoiding duplicates
-            current_history = person_obj.history_df
-            self.history = pd.concat([self.history, current_history], ignore_index=True)
-            self.history.drop_duplicates(subset=['unique_name_year_event_id'], keep='last', inplace=True)
-            ### overwriting the person in people_obj_dict with the updated person
-            if death:
-                self.deceased_people[person_id] = person_obj
-                del self.people_obj_dict[person_id]
-            else:
-                self.people_obj_dict[person_id] = person_obj
-                ### check current history, if there is a marriage, check person id is in the city history
-                ### Placeholder for marriage function
-                self.handle_marriage(person_obj)
-                self.handle_child_born(person_obj)
-                ### Placeholder for getting a loan for:
-                # - buying a house
-                # - buying a car
-                # - getting married
-                # - having a child
-                # - going to college
+            ### check if the person is deceased list
+            if person_id not in self.deceased_people:
 
+                ### retrieve the person object in active people
+                person_obj = self.people_obj_dict[person_id]
+                temp_history = person_obj.history_df.iloc[-1].copy()
+                ### Age up the person and check if the person is deceased
+                ### check age before 
+                #print("debugging age_up before - person_id", person_id, "age", person_obj.history_df.iloc[-1]['age'])
+                death = person_obj.age_up_one_year_any_life_stage(temp_history)
+                ### check age after 
+                #print("debugging age_up afeter - person_id", person_id, "age", person_obj.history_df.iloc[-1]['age'])
+
+                ### check if the person is deceased
+                if death or death is None:
+                    ### if the person is deceased, add the person to the deceased list and remove from the active people
+                    self.deceased_people[person_id] = person_obj
+                    del self.people_obj_dict[person_id]
+                    #print("debugging Death")
+                    print("Death Status: ", death, "Person ID: ", person_id)
+                    print("Event: ", person_obj.history_df.iloc[-1]['event'])
+                    print("Age: ", person_obj.history_df.iloc[-1]['age'])
+                    print("Year: ", person_obj.history_df.iloc[-1]['year'])
+
+                else:
+                    ### check current history, if there is a marriage, check person id is in the city history
+                    ### Placeholder for marriage function
+                    self.handle_marriage(person_obj)
+                    self.handle_child_born(person_obj)
+                    ### Placeholder for getting a loan for:
+                    # - buying a house (loan reason)
+                    # - buying a car (loan reason)
+                    # - getting married (loan reason)
+                    # - having a child (loan reason)
+                    # - going to college (loan reason)
+                    ### if the person is not deceased, update the person object in the active people
+                    person_obj = self.update_person_constant(person_obj, person_obj.history_df.iloc[-1]) 
+                    #print("debugging age_up - person_id", person_id, "age", person_obj.history_df.iloc[-1]['age'])
+                    self.people_obj_dict[person_id] = person_obj
+
+                    ### append the person history to the city history
+                    self.history = pd.concat([self.history, person_obj.history_df])
+                    ### drop duplicates
+                    self.history = self.history.drop_duplicates(subset=['unique_name_id', 'year','event'], keep='last')
+                    
     def generate_starting_pop(self, population:int = None, age_range:str = 'Young Adult'):
         # make a even distribution of gender
         people_list = {}
         if population is None:
             population = 1
-        for _ in range(self.population):
+        for _ in tqdm.tqdm(range(self.population)):
             current_person = Person_Life(age_range= age_range, current_year=self.current_year)
 
             ### a random max age to a teenager
-            max_age = np.random.randint(AGE_RANGES[age_range][0],AGE_RANGES[age_range][1])
+            #max_age = np.random.randint(AGE_RANGES[age_range][0],AGE_RANGES[age_range][1])
 
-            current_person.complete_age_up_to_age_range(age_range=age_range, max_age=max_age)
+            current_person.generate_past_events()
             ### retrieve the last history of the person and the unique_name_id
             temp_history = current_person.history_df.iloc[-1].copy()
             unique_name_id = temp_history['unique_name_id']
@@ -100,8 +132,14 @@ class City():
         return people_list
 
     def retrieve_history_from_people(self): ### will be deprecated in the future
-        for person in self.people:
-            self.history.extend(person.retrieve_history())
+        for person_id in self.people_obj_dict.keys():
+            person = self.people_obj_dict[person_id]
+            if len(self.history) == 0:
+                print("debugging history retrieval")
+                self.history = person.history_df
+            else:
+                self.history = pd.concat([self.history, 
+                                 person.history_df])
 
     def calculate_marriage_cost(self, fixed_guests: int = None): ### being developed
         # Average cost per person - Move value to constants in the future - to be developed
@@ -124,153 +162,173 @@ class City():
     def handle_marriage(self, person):
         # retrieve the last history of the person and:
         person_last_history = person.history_df.iloc[-1].copy()
+        if person_last_history['age_range'] not in ["Baby", "Child", "Teenager"]:
+            
+            if person_last_history['career'] is None:
+                print("debugging handle_marriage - career is None")
+                print(person_last_history)
+            ### check current employment status to retrieve the marriage probability
+            career_crit_chance = CAREERS_AND_MARRIAGE_PROBS[person_last_history['career']] ### test for all careers later - to be developed
+            
+            ### check if the person is old enough to get married and is not married
+            age_cri = person_last_history["age"] >= MIN_MARRIAGE_ALLOWED_AGE
+            married_cri = person_last_history["married"] == False
+            prob_cri = np.random.random() < career_crit_chance
 
-        ### check current employment status to retrieve the marriage probability
-        career_crit_chance = CAREERS_AND_MARRIAGE_PROBS[person_last_history['career']] ### test for all careers later - to be developed
-        
-        ### check if the person is old enough to get married and is not married
-        age_cri = person_last_history["age"] >= MIN_MARRIAGE_ALLOWED_AGE
-        married_cri = person_last_history["married"] == False
-        prob_cri = np.random.random() < career_crit_chance
+            ### FOR TESTING MARRIAGE
+            prob_cri = True
 
-        ### FOR TESTING MARRIAGE
-        prob_cri = True
-
-        ### Based on the career of the person, check if the person will get married
-        if age_cri and married_cri and prob_cri:
-            # 1st - get the gender of the person to be married & check what will be gender of the spouse
-            person_gender =  person_last_history['gender']
-            if person_gender == "Male":
-                spouse_gender = 'Female' if np.random.random() < (1 - SAME_GENDER_MARRIAGE_RATIO) else 'Male'
-            else:
-                spouse_gender = 'Male' if np.random.random() < (1 - SAME_GENDER_MARRIAGE_RATIO) else 'Female'
-            # 2nd - check if exist spouse candidate in the city:`
-            person_age = person_last_history['age']
-            person_most_recent_year = person_last_history['year']
-            all_population = self.history.copy()
-            # - is not married and; 
-            # - is not the person itself in the city and;
-            # - is within +- 5 years of the person age and;
-            # - has the gender defined for the spouse and;
-            # - has the age to get married
-            # - must be the information on the same year as the person
-            is_married = all_population['married'] == False
-            is_not_person = all_population['unique_name_id'] != person_last_history['unique_name_id']
-            is_age_range = (all_population['age'] >= person_age - 5) & (all_population['age'] <= person_age + 5)
-            is_gender = all_population['gender'] == spouse_gender
-            is_age_to_get_married = all_population['age'] >= MIN_MARRIAGE_ALLOWED_AGE
-            is_same_year = all_population['year'] == person_most_recent_year
-            marriage_criteria = is_married & is_not_person & is_age_range & is_gender & is_age_to_get_married & is_same_year
-
-            if marriage_criteria.sum() > 0:
-                # retrieve the spouse candidate from the city
-                spouse_id = all_population[marriage_criteria].sample(1).iloc[0].copy()['unique_name_id'] ### select on from the list
-                spouse = self.people_obj_dict[spouse_id]
-                spouse_last_history = spouse.history_df.iloc[-1].copy()
-                #Retrieve the person history
-                person_last_history = person.history_df.iloc[-1].copy()
-
-                ### quick error check to see if the last history is the same year as the person - else solve the issue
-                if spouse_last_history['year'] != person_last_history['year']:
-                    ### solve the issue
-                    print('Solve the issue - Last history of the spouse candidate is not the same year as the person which means there is a problem with the current logic')
-                    pass
-
-                ###Update the spouse and person values so they are married
-
-                # - change the married status to True
-                spouse_last_history['married'] = True
-                # - change the just_married status to True
-                spouse_last_history['just_married'] = True
-                # - change the spouse_name_id to the person unique_name_id
-                spouse_last_history['spouse_name_id'] = person_last_history['unique_name_id']
-                # the person last history:
-
-                # - change the spouse_name_id to the spouse unique_name_id
-                person.history_df.iloc[-1, 'spouse_name_id'] = spouse_last_history['unique_name_id']
-                # update the history of the person and the spouse candidate
-                
-                person_last_history['married'] = True
-                person_last_history['just_married'] = True
-                person_last_history['spouse_name_id'] = spouse_last_history['unique_name_id']
-
-                ###Update the actual dataframes
-                person.history_df.iloc[-1] = person_last_history
-                spouse.history_df.iloc[-1] = spouse_last_history
-
-                # update the object status
-                person.married = True
-                person.just_married = True
-                self.people_obj_dict[spouse.unique_name_id] = spouse
-                
-                #person.update_history(new_history=person_last_history) 
-                #### FUTURE ISSUES TO SOLVE:
-                # - IF THE PERSON CURRENT YEAR WAS NOT UPDATED YET SO THE PERSON WILL NOT BE A CANIDATE FOR MARRIAGE
-                # - UPDATE HISTORY ISSUE - A SPOUSE CANDIDATE HAS THE CURRENT HISTORY APPENDED TO THE PERSON HISTORY AND CITY HISTORY BUT THEY SHOULD BE UPDATED IN BOTH
-
-            else:
-                # if there is no spouse candidate, then create a new person and get married
-                # get a random age between the minimum age to get married and the maximum age to get married 
-                # get the age range based on the age
-                # create a new person with the age range and the current year
-                
-                if person_age - 5 < MIN_MARRIAGE_ALLOWED_AGE:
-                    spouse_min_age = MIN_MARRIAGE_ALLOWED_AGE
+            ### Based on the career of the person, check if the person will get married
+            if age_cri and married_cri and prob_cri:
+                # 1st - get the gender of the person to be married & check what will be gender of the spouse
+                person_gender =  person_last_history['gender']
+                if person_gender == "Male":
+                    spouse_gender = 'Female' if np.random.random() < (1 - SAME_GENDER_MARRIAGE_RATIO) else 'Male'
                 else:
-                    spouse_min_age = person_age - 5
-                
-                spouse_age = np.random.randint(spouse_min_age, person_age + 5)
-                ### get the age range based on the age
-                spouse_age_range = Person_Life.update_age_range(spouse_age) ### TO BE DEVELOPED - SKIP AGE RANGE TO REPLACE WITH THE AGE WHEN CREATING A NEW PERSON
-                spouse = Person_Life(gender= spouse_gender, age_range= spouse_age_range, current_year= person_most_recent_year, married = True)
-                spouse.complete_age_up_to_age_range(age_range=spouse_age_range, max_age=spouse_age) ### TO BE DEVELOPED - when creating a new person and age up for marriage set married to True
+                    spouse_gender = 'Male' if np.random.random() < (1 - SAME_GENDER_MARRIAGE_RATIO) else 'Female'
+                # 2nd - check if exist spouse candidate in the city:`
+                person_age = person_last_history['age']
+                person_most_recent_year = person_last_history['year']
+                all_population = self.history.copy()
+                # - is not married and; 
+                # - is not the person itself in the city and;
+                # - is within +- 5 years of the person age and;
+                # - has the gender defined for the spouse and;
+                # - has the age to get married
+                # - must be the information on the same year as the person
+                is_married = all_population['married'] == False
+                is_not_person = all_population['unique_name_id'] != person_last_history['unique_name_id']
+                is_age_range = (all_population['age'] >= person_age - 5) & (all_population['age'] <= person_age + 5)
+                is_gender = all_population['gender'] == spouse_gender
+                is_age_to_get_married = all_population['age'] >= MIN_MARRIAGE_ALLOWED_AGE
+                is_same_year = all_population['year'] == person_most_recent_year
+                marriage_criteria = is_married & is_not_person & is_age_range & is_gender & is_age_to_get_married & is_same_year
 
-                ### married to true will be applied to all the history of the person so it need to be removed from the history later
-                spouse_all_history = spouse.history_df.copy()
-                criteria_arange = spouse_all_history["age_range"] == spouse_age_range
-                criteria_age = spouse_all_history["age"] == spouse_age
-                criteria_year = spouse_all_history["year"] == person_most_recent_year
+                if marriage_criteria.sum() > 0:
+                    # retrieve the spouse candidate from the city
+                    spouse_id = all_population[marriage_criteria].sample(1).iloc[0].copy()['unique_name_id'] ### select on from the list
+                    print("debugging marriage - spouse_id", spouse_id, type(spouse_id))
+                    print("debugging marriage - person_id", person_last_history['unique_name_id'], type(person_last_history['unique_name_id']))
 
-                spouse_all_history.iloc[~(criteria_arange & criteria_age & criteria_year),"married"] = False
-                spouse_all_history.iloc[(criteria_arange & criteria_age & criteria_year),"just_married"] = True
-                spouse_all_history.iloc[(criteria_arange & criteria_age & criteria_year),"spouse_name_id"] = person_last_history['unique_name_id']
-                spouse.history_df = spouse_all_history
+                    #print("debugging marriage", spouse_id, type(spouse_id))
+                    spouse = self.people_obj_dict[spouse_id]
+                    spouse_last_history = spouse.history_df.iloc[-1].copy()
+                    #Retrieve the person history
+                    person_last_history = person.history_df.iloc[-1].copy()
 
+                    ### quick error check to see if the last history is the same year as the person - else solve the issue
+                    if spouse_last_history['year'] != person_last_history['year']:
+                        ### solve the issue
+                        print('Solve the issue - Last history of the spouse candidate is not the same year as the person which means there is a problem with the current logic')
+                        pass
 
+                    ###Update the spouse and person values so they are married
 
-                ### Change values so that the person being married is actually married
+                    # - change the married status to True
+                    spouse_last_history['married'] = True
+                    # - change the just_married status to True
+                    spouse_last_history['just_married'] = True
+                    # - change the spouse_name_id to the person unique_name_id
+                    spouse_last_history['spouse_name_id'] = person_last_history['unique_name_id']
+                    # the person last history:
 
-                ###Grabs the histories we need
-                spouse_last_history = spouse.history_df.iloc[-1].copy()
-                person_last_history = person.history_df.iloc[-1].copy()
+                    # - change the spouse_name_id to the spouse unique_name_id
+                    last_index = person.history_df.index[-1]
+                    person.history_df.loc[last_index, 'spouse_name_id'] = spouse_last_history['unique_name_id']
+                    # update the history of the person and the spouse candidate
+                    
+                    person_last_history['married'] = True
+                    person_last_history['just_married'] = True
+                    person_last_history['spouse_name_id'] = spouse_last_history['unique_name_id']
 
-                ###Updates everything for the person getting married to the spouse
-                person_last_history['married'] = True
-                person_last_history["just_married"] = True
-                person_last_history["spouse_name_id"] = spouse_last_history['unique_name_id']
+                    ###Update the actual dataframes
+                    person.history_df.iloc[-1] = person_last_history
+                    spouse.history_df.iloc[-1] = spouse_last_history
 
-                person.history_df.iloc[-1] = person_last_history
+                    # update the object status
+                    person.married = True
+                    person.just_married = True
+                    self.people_obj_dict[spouse.unique_name_id] = spouse
+                    
+                    #person.update_history(new_history=person_last_history) 
+                    #### FUTURE ISSUES TO SOLVE:
+                    # - IF THE PERSON CURRENT YEAR WAS NOT UPDATED YET SO THE PERSON WILL NOT BE A CANIDATE FOR MARRIAGE
+                    # - UPDATE HISTORY ISSUE - A SPOUSE CANDIDATE HAS THE CURRENT HISTORY APPENDED TO THE PERSON HISTORY AND CITY HISTORY BUT THEY SHOULD BE UPDATED IN BOTH
 
-                ###Updates the values of the acutal object
-                person.married = True
-                person.just_married = True
-                self.people_obj_dict[spouse.unique_name_id] = spouse
+                else:
+                    # if there is no spouse candidate, then create a new person and get married
+                    # get a random age between the minimum age to get married and the maximum age to get married 
+                    # get the age range based on the age
+                    # create a new person with the age range and the current year
+                    
+                    if person_age - 5 < MIN_MARRIAGE_ALLOWED_AGE:
+                        spouse_min_age = MIN_MARRIAGE_ALLOWED_AGE
+                    else:
+                        spouse_min_age = person_age - 5
+                    
+                    spouse_age = np.random.randint(spouse_min_age, person_age + 5)
+                    ### get the age range based on the age
+                    spouse_age_range = Person_Life.update_age_range(spouse_age) ### TO BE DEVELOPED - SKIP AGE RANGE TO REPLACE WITH THE AGE WHEN CREATING A NEW PERSON
+                    spouse = Person_Life(gender= spouse_gender, age_range= spouse_age_range, current_year= person_most_recent_year, married = True)
+                    spouse.generate_past_events()
 
-            ### TO BE DEVELOPED ###
-            # # check if the person has enough money to get married    
-            # _, marriage_expense = self.calculate_marriage_cost() ### to be developed
-            # total_balance = person_last_history['balance'] + spouse_last_history['balance']
-            # ### if the person does not have enough money, then check both person and spouse candidate can get a loan
-            # if total_balance < marriage_expense:
-            #     get_loan_status = self.get_loan(desired_loan_amount=marriage_expense-total_balance)
-            #     if  get_loan_status is None:
-            #         print('You cannot afford the marriage expense. You have reached the maximum loan amount.')
-            pass
+                    ### married to true will be applied to all the history of the person so it need to be removed from the history later
+                    spouse_all_history = spouse.history_df.copy()
+                    criteria_arange = spouse_all_history["age_range"] == spouse_age_range
+                    criteria_age = spouse_all_history["age"] == spouse_age
+                    criteria_year = spouse_all_history["year"] == person_most_recent_year
+
+                    spouse_all_history.loc[~(criteria_arange & criteria_age & criteria_year),"married"] = False
+                    spouse_all_history.loc[(criteria_arange & criteria_age & criteria_year),"just_married"] = True
+                    spouse_all_history.loc[(criteria_arange & criteria_age & criteria_year),"spouse_name_id"] = person_last_history['unique_name_id']
+                    spouse.history_df = spouse_all_history
+
+                    ### Change values so that the person being married is actually married
+
+                    ###Grabs the histories we need
+                    spouse_last_history = spouse.history_df.iloc[-1].copy()
+                    person_last_history = person.history_df.iloc[-1].copy()
+
+                    ###Updates everything for the person getting married to the spouse
+                    person_last_history['married'] = True
+                    person_last_history["just_married"] = True
+                    person_last_history["spouse_name_id"] = spouse_last_history['unique_name_id']
+
+                    person.history_df.iloc[-1] = person_last_history
+
+                    ###Updates the values of the acutal object
+                    person.married = True
+                    person.just_married = True
+                    self.people_obj_dict[spouse.unique_name_id] = spouse
+                    ### append the spouse to the city history
+                    self.history = pd.concat([self.history, spouse.history_df])
+
+                ### TO BE DEVELOPED ###
+                # # check if the person has enough money to get married    
+                # _, marriage_expense = self.calculate_marriage_cost() ### to be developed
+                # total_balance = person_last_history['balance'] + spouse_last_history['balance']
+                # ### if the person does not have enough money, then check both person and spouse candidate can get a loan
+                # if total_balance < marriage_expense:
+                #     get_loan_status = self.get_loan(desired_loan_amount=marriage_expense-total_balance)
+                #     if  get_loan_status is None:
+                #         print('You cannot afford the marriage expense. You have reached the maximum loan amount.')
+                pass
 
     def handle_child_born(self, person, baby_count = None):
         # retrieve the last history of the person and:
         person_last_history = person.history_df.iloc[-1].copy()
         spouse_id = person_last_history['spouse_name_id']
+        ### if there is no spouse, then skip the function
+        if spouse_id is None:
+            print("debugging handle_child_born - spouse is None")
+            return "Cannot have a child - No spouse"
+        elif spouse_id not in self.people_obj_dict:
+            print("debugging handle_child_born - spouse not in city")
+            return "Cannot have a child - Spouse not in city"
+        elif spouse_id in self.deceased_people:
+            print("debugging handle_child_born - spouse is deceased")
+            return "Cannot have a child - Spouse is deceased"
+
         spouse = self.people_obj_dict[spouse_id]
         spouse_last_history = spouse.history_df.iloc[-1].copy()
 
@@ -284,10 +342,10 @@ class City():
         ### age of the mother
         if person_last_history["gender"] == "Female":
             age_mother = person_last_history["age"]
-            existing_children_count = len(person_last_history["children"])
+            existing_children_count = len(person_last_history["children_name_id"])
         elif spouse_last_history["gender"] == "Female":
             age_mother = spouse_last_history["age"]
-            existing_children_count = len(spouse_last_history["children"])
+            existing_children_count = len(spouse_last_history["children_name_id"])
         else:
             age_mother = None
         
@@ -305,6 +363,7 @@ class City():
 
         ### rewrite base_prob to be a function of the age of the mother and will decrease with age
         base_prob = 0.65
+        #print("check here")
         decreasing_prob = -0.11306*np.exp((age_mother-10)/25) - EXISTING_CHILDREN_PROB_DICT[existing_children_count]
 
         total_prob = base_prob + decreasing_prob
@@ -320,7 +379,7 @@ class City():
                                         p=np.array(list(BABY_TWINS_MODE.values())))
         
         for _ in range(baby_count):
-            baby = Person_Life(age_range='Baby', age = 0, current_year=self.current_year,
+            baby = Person_Life(age_range='Baby', current_year=self.current_year,
                                       last_name=person_last_history['last_name']+" "+spouse_last_history['last_name'],
                                       parent_name_id_A = person_last_history["unique_name_id"], 
                                       parent_name_id_B= person_last_history["unique_name_id"])
@@ -331,13 +390,13 @@ class City():
             ### add baby to city
             self.people_obj_dict[baby.unique_name_id] = baby
              
-            
-
         ### Add Event to the history of the person and the spouse
         if baby_count == 1:
+            print("debugging handle_child_born - 1 child born")
             person_last_history["event"] += "1 Child Born"
             spouse_last_history["event"] += "1 Child Born"
         else:
+            print("debugging handle_child_born - 1 child born")
             person_last_history["event"] += f"{baby_count} Children Born"
             spouse_last_history["event"] += f"{baby_count} Children Born"
 
