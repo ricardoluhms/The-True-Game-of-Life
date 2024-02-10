@@ -3,6 +3,7 @@
 import os
 import sys
 import tqdm
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 ### remove Future Warning from pandas
@@ -23,6 +24,8 @@ city = City("Test City",population=1, current_year=2000, mode='default')
 #%%
 ### age up the city 100 years
 for i in range(50):
+    print("### Ageing up the city ###", city.current_year)
+
     city.age_up()
     ### average
 
@@ -30,3 +33,5 @@ for i in range(50):
 #     city.age_up()
 #     ### average
 #%%
+city.history.to_csv('test_city_marriage_issues7.csv')
+# %%

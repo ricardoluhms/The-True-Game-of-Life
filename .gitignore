@@ -7,3 +7,10 @@ test_person_life_functions.py
 *.db
 *.db-shm
 *.db-wal
+test_files/test_city_marriage_issues.csv
+test_files/test_city_marriage_issues2.csv
+test_files/test_city_marriage_issues3.csv
+test_files/test_city_marriage_issues4.csv
+test_files/test_city_marriage_issues5.csv
+test_files/test_city_marriage_issues6.csv
+test_files/test_city_marriage_issues7.csv

@@ -16,6 +16,11 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
  
 import random
 from datetime import date
+### import timestamp
+from time import time
+### create a timestamp value
+#timestamp = date.today().strftime("%Y-%m-%d")
+
 
 class Person_Functions():
 
@@ -87,6 +92,8 @@ class Person_Functions():
         self.children = children
         self.spender_prof = spender_prof
         self.event = "Created"
+        ### timestamp with seconds
+        self.time_stamp = round(time(),3)#.strftime("%Y-%m-%d %H:%M:%S")
         self.spouse_name_id = spouse_name_id
         self.has_a_car = has_a_car
         self.parent_name_id_A = parent_name_id_A
@@ -185,7 +192,7 @@ class Person_Functions():
                                           new_history_df["year"].astype(str) + "_" +\
                                           new_history_df["event"]
         new_history_df["death"] = death
-
+        new_history_df["time_stamp"] = round(time(),3)#.strftime("%Y-%m-%d %H:%M:%S")
         #print("Old History", len(self.history_df))
         self.history_df = pd.concat([self.history_df, new_history_df], ignore_index=True)
         #print("New History", len(self.history_df))
@@ -466,7 +473,6 @@ class Person_Life(Person_Functions):
     def __init__(self, gender:str =None, first_name:str = None, last_name:str = None, 
                  current_year:int = None, age_range: str = None, married: bool = False,
                  parent_name_id_A: str = None, parent_name_id_B: str = None, children_name_id:list = []):
-
         super().__init__(gender, first_name, last_name, current_year, age_range, career=None, income=None, 
                          loan=None, loan_term=None, balance=None, married=married, 
                          parent_name_id_A=parent_name_id_A, parent_name_id_B=parent_name_id_B,
