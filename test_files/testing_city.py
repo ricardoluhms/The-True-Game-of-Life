@@ -35,11 +35,11 @@ print(person.history_df['cause_of_death'])
 
 ### Task 6 -  future career issues - is everyone getting a career? Salary increase?
 
-### Functionality - How to handle loan payments?
+### Functionality - How to handle loan payments? (Done)
 
-### Functionality - Age up the city X years
+### Functionality - Age up the city X years (Done)
 
-### Functionality - Create a city from a csv
+### Functionality - Create a city from a csv (Done)
 
 
 
