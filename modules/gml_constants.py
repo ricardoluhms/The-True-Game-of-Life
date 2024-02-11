@@ -138,6 +138,10 @@ if True:
 ### Career Constants
 if True:
     SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75, 'In-Debt': 0.5, 'Depressed': 0.4}
+    SPENDER_PROFILE_DECREASE = {'Big Spender': 'Average', 'Average': 'Small Spender', 'Small Spender': 'In-Debt', 
+                                'In-Debt': 'Depressed',
+                                'Depressed': 'Depressed'}
+    
     SPENDER_PROFILE_SWITCH_PROB = 0.5
     ### special profile for those who are in debt
 
@@ -155,7 +159,7 @@ if True:
 
     INITIAL_INCOME_RANGES = {'Pocket Money': [500,500],
                             'Part Time': [10000, 5000],
-                            'Base': [30000, 5000],
+                            'Base': [35000, 5000],
                             'Medium': [60000, 10000],
                             'High': [100000, 20000],
                             'Very High': [200000, 40000],

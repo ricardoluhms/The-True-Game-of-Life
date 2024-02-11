@@ -4,12 +4,12 @@ import os
 import sys
 import tqdm
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from  modules.gml_constants import ( AGE_RANGES, 
-                            CAREERS_AND_MARRIAGE_PROBS,
+from  modules.gml_constants import ( CAREERS_AND_MARRIAGE_PROBS,
                             MIN_MARRIAGE_ALLOWED_AGE, 
                             SAME_GENDER_MARRIAGE_RATIO,
                             BABY_TWINS_MODE, 
                             EXISTING_CHILDREN_PROB_DICT,
+                            SPENDER_PROFILE_DECREASE,
                             MAX_DEBT_RATIO,
                             INTEREST_RATE_PER_TYPE)
 
@@ -103,18 +103,28 @@ class City():
                             spouse.spouse_name_id = person_obj.unique_name_id
                             spouse.married = True
                             spouse.just_married = True
+                            ### update the spouse history for the current and previous year
+
                             updated_spouse_history = spouse.history_df.iloc[-1].copy()
+                            updated_spouse_history_ly = spouse.history_df.iloc[-2].copy()
+
                             updated_spouse_history['spouse_name_id'] = person_obj.unique_name_id
+                            updated_spouse_history_ly['spouse_name_id'] = person_obj.unique_name_id
+
                             updated_spouse_history['married'] = True
-                            updated_spouse_history['just_married'] = True
+                            updated_spouse_history_ly['married'] = True
+                            updated_spouse_history['just_married'] = False
+                            updated_spouse_history_ly['just_married'] = True
                             spouse.history_df.iloc[-1] = updated_spouse_history
+                            spouse.history_df.iloc[-2] = updated_spouse_history_ly
 
                         ### append the spouse to the city history
                         self.history = pd.concat([self.history, spouse.history_df])
                         ### update the spouse object in the active people
                         self.people_obj_dict[spouse.unique_name_id] = spouse
                     
-                    #self.handle_child_born(person_obj)
+                    self.handle_child_born(person_obj)
+                    self.pay_loan(person_obj)
                     ### Placeholder for getting a loan for:
                     # - buying a house (loan reason)
                     # - buying a car (loan reason)
@@ -124,6 +134,7 @@ class City():
                     ### if the person is not deceased, update the person object in the active people
                     person_obj = self.update_person_constant(person_obj, person_obj.history_df.iloc[-1]) 
                     #print("debugging age_up - person_id", person_id, "age", person_obj.history_df.iloc[-1]['age'])
+
                     self.people_obj_dict[person_id] = person_obj
 
                     ### append the person history to the city history
@@ -184,7 +195,7 @@ class City():
         if person_last_history['age_range'] not in ["Baby", "Child", "Teenager"]:
             
             if person_last_history['career'] is None:
-                print("debugging handle_marriage - career is None", person_last_history['unique_name_id'], person_last_history['age'], person_last_history['year'])
+                #print("debugging handle_marriage - career is None", person_last_history['unique_name_id'], person_last_history['age'], person_last_history['year'])
                 return None
             ### check current employment status to retrieve the marriage probability
             career_crit_chance = CAREERS_AND_MARRIAGE_PROBS[person_last_history['career']] ### test for all careers later - to be developed
@@ -201,7 +212,7 @@ class City():
             can_marry_cri = age_cri and married_cri and prob_cri
 
             if can_marry_cri:
-                print("debugging handle_marriage - can marry", person_last_history['unique_name_id'], person_last_history['age'], person_last_history['career'], person_last_history['year'])
+                #print("debugging handle_marriage - can marry", person_last_history['unique_name_id'], person_last_history['age'], person_last_history['career'], person_last_history['year'])
                 # 1st - get the gender of the person to be married & check what will be gender of the spouse
                 person_gender =  person_last_history['gender']
                 if person_gender == "Male":
@@ -225,14 +236,19 @@ class City():
                 is_age_to_get_married = all_population['age'] >= MIN_MARRIAGE_ALLOWED_AGE
                 is_same_year = all_population['year'] == person_most_recent_year
                 marriage_criteria = is_married & is_not_person & is_age_range & is_gender & is_age_to_get_married & is_same_year
+
+                does_not_have_the_same_parentsA = all_population['parent_name_id_A'] != person_last_history['parent_name_id_A']
+                does_not_have_the_same_parentsB = all_population['parent_name_id_B'] != person_last_history['parent_name_id_B']
+                marriage_criteria = marriage_criteria & does_not_have_the_same_parentsA & does_not_have_the_same_parentsB
+
                 eligible_people_crit_within_city = marriage_criteria.sum() > 0
 
                 if eligible_people_crit_within_city:
-                    print("can marry - person exists in the city", marriage_criteria.sum())
+                    #print("can marry - person exists in the city", marriage_criteria.sum())
                     # retrieve the spouse candidate from the city
                     spouse_id = all_population[marriage_criteria].sample(1).iloc[0].copy()['unique_name_id'] ### select on from the list
-                    print("debugging marriage - spouse_id", spouse_id, type(spouse_id))
-                    print("debugging marriage - person_id", person_last_history['unique_name_id'], type(person_last_history['unique_name_id']))
+                    #print("debugging marriage - spouse_id", spouse_id, type(spouse_id))
+                    #print("debugging marriage - person_id", person_last_history['unique_name_id'], type(person_last_history['unique_name_id']))
 
                     #print("debugging marriage", spouse_id, type(spouse_id))
                     spouse = self.people_obj_dict[spouse_id]
@@ -244,8 +260,8 @@ class City():
                     if spouse_last_history['year'] != person_last_history['year']:
                         ### solve the issue
                         print('Solve the issue - Last history of the spouse candidate is not the same year as the person which means there is a problem with the current logic')
-                        print("debugging marriage - spouse_last_history['year']", spouse_last_history['year'], person_last_history['unique_name_id'])
-                        print("debugging marriage - person_last_history['year']", person_last_history['year'], person_last_history['unique_name_id'])
+                        #print("debugging marriage - spouse_last_history['year']", spouse_last_history['year'], person_last_history['unique_name_id'])
+                        #print("debugging marriage - person_last_history['year']", person_last_history['year'], person_last_history['unique_name_id'])
                         pass
 
                     ###Update the spouse and person values so they are married
@@ -288,7 +304,7 @@ class City():
                     # get a random age between the minimum age to get married and the maximum age to get married 
                     # get the age range based on the age
                     # create a new person with the age range and the current year
-                    print("can marry - person does not exist in the city - generate new person and marry")
+                    #print("can marry - person does not exist in the city - generate new person and marry")
                     
                     if person_age - 5 < MIN_MARRIAGE_ALLOWED_AGE:
                         spouse_min_age = MIN_MARRIAGE_ALLOWED_AGE
@@ -306,7 +322,7 @@ class City():
 
                     ### Stage 4 - generate the past events of the new spouse
                     spouse.generate_past_events()
-                    print("debugging marriage - new spouse created - spouse_id", spouse.unique_name_id, type(spouse.unique_name_id))
+                    #print("debugging marriage - new spouse created - spouse_id", spouse.unique_name_id, type(spouse.unique_name_id))
 
                     ### Stage 5 - update the history of the spouse
                     ### married to true will be applied to all the history of the person so it need to be removed from the history later
@@ -363,11 +379,15 @@ class City():
         spouse_id = person_last_history['spouse_name_id']
         ### if there is no spouse, then skip the function
         if spouse_id is None:
+            ### Adoption could be a future feature
             #print("debugging handle_child_born - spouse is None")
             return "Cannot have a child - No spouse"
+        
         elif spouse_id not in self.people_obj_dict:
             #print("debugging handle_child_born - spouse not in city")
+            ### child born but parent might have died - future feature
             return "Cannot have a child - Spouse not in city"
+        
         elif spouse_id in self.deceased_people:
             #print("debugging handle_child_born - spouse is deceased")
             return "Cannot have a child - Spouse is deceased"
@@ -425,23 +445,34 @@ class City():
             baby = Person_Life(age_range='Baby', current_year=self.current_year,
                                       last_name=person_last_history['last_name']+" "+spouse_last_history['last_name'],
                                       parent_name_id_A = person_last_history["unique_name_id"], 
-                                      parent_name_id_B= person_last_history["unique_name_id"])
+                                      parent_name_id_B= spouse_last_history["unique_name_id"])
             
             ### add the baby into the person and spouse children_name_id list
-            person_last_history["children_name_id"].append(baby.unique_name_id)
-            spouse_last_history["children_name_id"].append(baby.unique_name_id)
+            if baby.unique_name_id not in person_last_history["children_name_id"]:
+
+                person_last_history["children_name_id"].append(baby.unique_name_id)
+            if baby.unique_name_id not in spouse_last_history["children_name_id"]:
+                spouse_last_history["children_name_id"].append(baby.unique_name_id)
             ### add baby to city
             self.people_obj_dict[baby.unique_name_id] = baby
              
         ### Add Event to the history of the person and the spouse
         if baby_count == 1:
             #print("debugging handle_child_born - 1 child born")
-            person_last_history["event"] += "1 Child Born"
-            spouse_last_history["event"] += "1 Child Born"
+            person_last_history["event"] += " - 1 Child Born"
+            spouse_last_history["event"] += " - 1 Child Born"
         else:
             #print("debugging handle_child_born - 1 child born")
-            person_last_history["event"] += f"{baby_count} Children Born"
-            spouse_last_history["event"] += f"{baby_count} Children Born"
+            person_last_history["event"] += f" - {baby_count} Children Born"
+            spouse_last_history["event"] += f" - {baby_count} Children Born"
+        
+        ### update the history of the person and the spouse in the city
+        person.history_df.iloc[-1] = person_last_history
+        spouse.history_df.iloc[-1] = spouse_last_history
+
+        ### update the person and the spouse in the city
+        self.people_obj_dict[person.unique_name_id] = person
+        self.people_obj_dict[spouse.unique_name_id] = spouse
 
     def retrieve_loan_customer_data(self, person_id = None):
 
@@ -474,5 +505,79 @@ class City():
         family_loans_df = family_loans_df[family_loans_df['loan_status'] == 'active']
 
         return income_and_bal_df, family_loans_df
-    
+
+    def pay_loan(self, person_obj):
+            ### retrieve the person object
+            ###  check career and income
+            person_last_history = person_obj.history_df.iloc[-1].copy()
+            career = person_last_history['career']
+            if career in ['Pocket Money','Part Time']:
+                pass
+            
+            else:
+                balance = person_last_history['balance']
+
+                ### retrieve the loan data
+                loan = person_last_history['loan']
+                loan_term = person_last_history['loan_term']
+
+                c1 = loan is None
+                c2 = loan == 0
+                c3 = c1 or c2
+                c4 = not c3
+                #print("debugging pay_loan - loan and term", loan,loan_term, c1, c2, c3,c4)
+
+
+                if c4:
+                    #print("debugging pay_loan - loan and term", loan,loan_term)
+                    amount_to_pay = loan/loan_term
+                    print("amount_to_pay", amount_to_pay, loan, loan_term, 
+                          person_last_history['unique_name_id'], balance)
+
+                    
+                    if amount_to_pay > balance:
+                        ### add interest to the loan
+                        interest_rate = person_last_history['interest_rate']
+                        amount_to_pay += amount_to_pay*interest_rate
+
+                        ### update the loan amount
+                        amount_to_pay += amount_to_pay
+                        ### change spender profile
+                        print("spender_prof", person_last_history['spender_prof'])
+                        new_spender_prof = SPENDER_PROFILE_DECREASE[person_last_history['spender_prof']]
+                        person_last_history['spender_prof'] = new_spender_prof
+                        print("spender_prof new", person_last_history['spender_prof'])
+                        person_last_history["event"] = "Loan Payment Failed - Spender Profile Decreased"
+                        person_last_history['loan'] = amount_to_pay
+
+                        ### update object info
+                        person_obj.spender_prof = new_spender_prof
+                        person_obj.loan = amount_to_pay
+
+                    else:
+                        ### pay the loan
+                        balance -= amount_to_pay
+                        loan_term -= 1
+
+                        if loan_term == 0:
+                            ### remove the loan
+                            loan = 0
+                            interest_rate = 0
+                            person_last_history["event"] = "Loan Payment Complete"
+                        else:
+                            #print("debugging pay_loan - loan paid", loan,loan_term)
+                            person_last_history["event"] = "Loan Payment OK"
+                            loan = loan - amount_to_pay
+
+                        person_last_history['loan_term'] = loan_term
+                        #loan['loan_status'] = loan_status
+                        person_last_history['loan'] = loan
+                        person_last_history['balance'] = balance
+                    person_obj.history_df.iloc[-1] = person_last_history
+                    person_id = person_last_history['unique_name_id']
+                    self.people_obj_dict[person_id] = person_obj
+            #return person_last_history
+                
+
+
 # %%

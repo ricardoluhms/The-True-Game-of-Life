@@ -267,12 +267,13 @@ class Person_Functions():
         return temp_history
 
     @staticmethod
-    def handle_finished_studies(temp_history):
-      
+    def handle_finished_studies(temp_history):       
         ###TEMP SOLUTION, IF TEMP_HISOTRY HAS NO FUTURE CAREER DEFINE ONE OTHERWISE WE GET AN ERROR###
-        if temp_history['future_career'] == None:
+        if temp_history['future_career'] == None and temp_history['career'] in ["Pocket Money", "Part Time"]:
             temp_history['future_career'] = np.random.choice( list(FUTURE_CAREER_PAY_PROBS.keys()), 
                                          p=np.array(list(FUTURE_CAREER_PAY_PROBS.values())))
+        elif temp_history['future_career'] == None and temp_history['career'] not in ["Pocket Money", "Part Time"]:
+            return "Young Adult - Aged Up", temp_history
 
         event = "Young Adult - Finished Studies"
         temp_history['career'] = temp_history['future_career']
@@ -304,7 +305,9 @@ class Person_Functions():
         #print("Current Career After", temp_history['career'])
         base_income = INITIAL_INCOME_RANGES['Pocket Money'][0]
         std_deviation = INITIAL_INCOME_RANGES['Pocket Money'][1]
-        temp_history['income'] = np.round(np.random.normal(base_income, std_deviation), 2)
+
+        pocket_money = np.abs(np.round(np.random.normal(base_income, std_deviation), 2))
+        temp_history['income'] = pocket_money
         # print( INITIAL_INCOME_RANGES['Pocket Money'][0],
         #         INITIAL_INCOME_RANGES['Pocket Money'][1],
         #         np.round(np.random.normal(base_income, std_deviation), 2))
@@ -612,8 +615,9 @@ class Person_Life(Person_Functions):
                 ### Stage 4.2.1: Check if Completed Studies (if years to study is 0 then the person has completed studies)
                 if temp_history['years_to_study'] == 0:
                     #### set future career to career and get first income from non part time job
+                    #print("Years to study - before finishing", temp_history['years_to_study'], temp_history['career'])
                     event, temp_history = self.handle_finished_studies(temp_history)
-
+                    #print("Years to study - before finishing", temp_history['years_to_study'], temp_history['career'])
                     ### pay student loan
                     #temp_history = self.handle_pay_student_loan(temp_history) ### to be developed
 
@@ -636,6 +640,9 @@ class Person_Life(Person_Functions):
         
         ### Stage 5: If age range is adult, then age up the adult
         elif age_range == "Adult":
+            if temp_history['years_to_study'] == 0 and temp_history['career'] == "Part Time":
+                event, temp_history = self.handle_finished_studies(temp_history)
+
             temp_history = self.update_income_to_balance(temp_history)
             event = "Adult - Aged Up"
             #print("Adult - Aged Up")

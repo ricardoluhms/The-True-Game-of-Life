@@ -19,11 +19,11 @@ import tqdm
 # Create a city
 #%%
 
-city = City("Test City",population=1, current_year=2000, mode='default')
+city = City("Test City",population=4, current_year=2000, mode='default')
 #print(city.history)
 #%%
 ### age up the city 100 years
-for i in range(50):
+for i in range(100):
     print("### Ageing up the city ###", city.current_year)
 
     city.age_up()
@@ -33,5 +33,5 @@ for i in range(50):
 #     city.age_up()
 #     ### average
 #%%
-city.history.to_csv('test_city_marriage_issues7.csv')
+city.history.to_csv('test_city_loand_payment_spender_profile1.csv')
 # %%
