@@ -64,8 +64,13 @@ class City():
     def age_up(self):
         self.current_year += 1
 
+        print(len(self.people_obj_dict))
+        print(len(self.deceased_people))
+
         ### Had to be changed to .copy() since we can't change the size of the acutal dictionary while its looping (when adding spouse)
         for person_id in self.people_obj_dict.copy():
+
+            #dead_not_removed = temp_history["event"] == "This is a test event - this should be overwritten by the function"
             
             ### check if the person is deceased list
             if person_id not in self.deceased_people:
@@ -85,7 +90,7 @@ class City():
                     ### if the person is deceased, add the person to the deceased list and remove from the active people
                     self.deceased_people[person_id] = person_obj
                     del self.people_obj_dict[person_id]
-                    #print("debugging Death")
+                    print("debugging Death")
                     print("Death Status: ", death, "Person ID: ", person_id)
                     print("Event: ", person_obj.history_df.iloc[-1]['event'])
                     print("Age: ", person_obj.history_df.iloc[-1]['age'])
@@ -165,7 +170,7 @@ class City():
         for person_id in self.people_obj_dict.keys():
             person = self.people_obj_dict[person_id]
             if len(self.history) == 0:
-                print("debugging history retrieval")
+                #print("debugging history retrieval")
                 self.history = person.history_df
             else:
                 self.history = pd.concat([self.history, 
@@ -259,7 +264,7 @@ class City():
                     ### quick error check to see if the last history is the same year as the person - else solve the issue
                     if spouse_last_history['year'] != person_last_history['year']:
                         ### solve the issue
-                        print('Solve the issue - Last history of the spouse candidate is not the same year as the person which means there is a problem with the current logic')
+                        #print('Solve the issue - Last history of the spouse candidate is not the same year as the person which means there is a problem with the current logic')
                         #print("debugging marriage - spouse_last_history['year']", spouse_last_history['year'], person_last_history['unique_name_id'])
                         #print("debugging marriage - person_last_history['year']", person_last_history['year'], person_last_history['unique_name_id'])
                         pass
@@ -528,11 +533,11 @@ class City():
                 #print("debugging pay_loan - loan and term", loan,loan_term, c1, c2, c3,c4)
 
 
-                if c4:
+                if c4 and loan_term != 0:
                     #print("debugging pay_loan - loan and term", loan,loan_term)
                     amount_to_pay = loan/loan_term
-                    print("amount_to_pay", amount_to_pay, loan, loan_term, 
-                          person_last_history['unique_name_id'], balance)
+                    #print("amount_to_pay", amount_to_pay, loan, loan_term, 
+                          #person_last_history['unique_name_id'], balance)
 
                     
                     if amount_to_pay > balance:
@@ -543,10 +548,10 @@ class City():
                         ### update the loan amount
                         amount_to_pay += amount_to_pay
                         ### change spender profile
-                        print("spender_prof", person_last_history['spender_prof'])
+                        #print("spender_prof", person_last_history['spender_prof'])
                         new_spender_prof = SPENDER_PROFILE_DECREASE[person_last_history['spender_prof']]
                         person_last_history['spender_prof'] = new_spender_prof
-                        print("spender_prof new", person_last_history['spender_prof'])
+                        #print("spender_prof new", person_last_history['spender_prof'])
                         person_last_history["event"] = "Loan Payment Failed - Spender Profile Decreased"
                         person_last_history['loan'] = amount_to_pay
 
