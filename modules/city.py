@@ -78,8 +78,8 @@ class City():
                 #print("debugging age_up before - person_id", person_id, "age", person_obj.history_df.iloc[-1]['age'])
                 death = person_obj.age_up_one_year_any_life_stage(temp_history)
                 ### check age after 
-                #print("debugging age_up afeter - person_id", person_id, "age", person_obj.history_df.iloc[-1]['age'])
-
+                #print("debugging age_up after - person_id", person_id, "age", person_obj.history_df.iloc[-1]['age'])
+                
                 ### check if the person is deceased
                 if death or death is None:
                     ### if the person is deceased, add the person to the deceased list and remove from the active people
