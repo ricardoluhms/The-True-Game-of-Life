@@ -474,10 +474,10 @@ class Person_Functions():
 
 class Person_Life(Person_Functions):
     def __init__(self, gender:str =None, first_name:str = None, last_name:str = None, 
-                 current_year:int = None, age_range: str = None, married: bool = False,
-                 parent_name_id_A: str = None, parent_name_id_B: str = None, children_name_id:list = []):
-        super().__init__(gender, first_name, last_name, current_year, age_range, career=None, income=None, 
-                         loan=None, loan_term=None, balance=None, married=married, 
+                 current_year:int = None, age_range: str = None, career:str = None, married: bool = False,
+                 parent_name_id_A: str = None, parent_name_id_B: str = None, children_name_id:list = [], loan:int=None, loan_term:int = None, balance:int = None):
+        super().__init__(gender, first_name, last_name, current_year, age_range, career=career, income=None, 
+                         loan=loan, loan_term=loan_term, balance=balance, married=married, 
                          parent_name_id_A=parent_name_id_A, parent_name_id_B=parent_name_id_B,
                          children_name_id=children_name_id)
     ### there will be two main scenarios:

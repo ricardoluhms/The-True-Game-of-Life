@@ -538,6 +538,8 @@ class City():
                     if amount_to_pay > balance:
                         ### add interest to the loan
                         interest_rate = person_last_history['interest_rate']
+                        print(amount_to_pay)
+                        print(interest_rate)
                         amount_to_pay += amount_to_pay*interest_rate
 
                         ### update the loan amount
