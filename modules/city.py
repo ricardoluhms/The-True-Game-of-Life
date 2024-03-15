@@ -10,12 +10,15 @@ from  modules.gml_constants import ( CAREERS_AND_MARRIAGE_PROBS,
                             BABY_TWINS_MODE, 
                             EXISTING_CHILDREN_PROB_DICT,
                             SPENDER_PROFILE_DECREASE,
+                            BASE_BIRTH_PROB,
                             MAX_DEBT_RATIO,
                             INTEREST_RATE_PER_TYPE)
 
 from modules.person import Person_Life
 from modules.financial_institution import Financial_Institution
 from logging import getLogger
+### import time library for testing
+import time
 
 logger = getLogger(__name__)
 
@@ -52,6 +55,7 @@ class City():
         if finance_institution is None:
             finance_institution = Financial_Institution(bank_name=f"{name} Bank")
         self.financial_institution = finance_institution
+        self.time_record = [time.time()]
     
     @staticmethod
     def update_person_constant(person, person_history):
@@ -81,9 +85,12 @@ class City():
                 person_obj = self.people_obj_dict[person_id]
                 temp_history = person_obj.history_df.iloc[-1].copy()
                 ### Age up the person and check if the person is deceased
-
+                ### track time for testing
+                self.time_record.append(time.time())
                 death = person_obj.age_up_one_year_any_life_stage(temp_history)
-
+                self.time_record.append(time.time())
+                delta = round((self.time_record[-1] - self.time_record[-2]),4)
+                logger.info(f"### Age Up: {delta}s - {person_obj.history_df.iloc[-1]['age']} - {person_obj.history_df.iloc[-1]['year']}")
 
                 ### check if the person is deceased
                 if death or death is None:
@@ -99,7 +106,11 @@ class City():
                 else:
                     ### check current history, if there is a marriage, check person id is in the city history
                     ### Placeholder for marriage function
+                    self.time_record.append(time.time())
                     spouse = self.handle_marriage(person_obj)
+                    self.time_record.append(time.time())
+                    delta = round((self.time_record[-1] - self.time_record[-2]),4)
+                    logger.info(f"### Marriage Check: {delta}s - {person_obj.history_df.iloc[-1]['age']} - {person_obj.history_df.iloc[-1]['year']}")
                     if spouse is not None:
 
                         ### check if the spouse has the person as the spouse
@@ -371,6 +382,7 @@ class City():
             return None
 
     def handle_child_born(self, person, baby_count = None):
+        t_start = time.time()
         # retrieve the last history of the person and:
         person_last_history = person.history_df.iloc[-1].copy()
         spouse_id = person_last_history['spouse_name_id']
@@ -419,10 +431,9 @@ class City():
             return "Cannot have a child - Mother is not defined"
 
         ### rewrite base_prob to be a function of the age of the mother and will decrease with age
-        base_prob = 0.65
         decreasing_prob = -0.11306*np.exp((age_mother-10)/25) - EXISTING_CHILDREN_PROB_DICT[existing_children_count]
 
-        total_prob = base_prob + decreasing_prob
+        total_prob = BASE_BIRTH_PROB + decreasing_prob
         if total_prob <= 0:
             return "Cannot have a child - Age of the mother is too high"
 
@@ -468,6 +479,11 @@ class City():
         ### update the person and the spouse in the city
         self.people_obj_dict[person.unique_name_id] = person
         self.people_obj_dict[spouse.unique_name_id] = spouse
+        t_end =time.time()
+        delta = round((t_end - t_start),4)
+        logger.info(f"### Children Born - {baby_count} -\
+                    {person_last_history['unique_name_id']} -\
+                    {spouse_last_history['unique_name_id']} - {delta}s")
 
     def retrieve_loan_customer_data(self, person_id = None):
 
@@ -529,8 +545,9 @@ class City():
                         loan_term = 1
 
                     amount_to_pay = loan/loan_term
-                    logger.info(f"### Paying Loan - {amount_to_pay} - {loan} - {loan_term} -\
-                                {person_last_history['unique_name_id']} - {balance}")
+                    loan_text_p1 = f"A.M.T: {round(amount_to_pay,2)} - Loan: {round(loan,2)} - L.Term: {loan_term}"
+                    loan_text_p2 = f" Balance: {round(balance,2)} - PID: {person_last_history['unique_name_id']}"
+                    logger.info(f"### Paying Loan - {loan_text_p1} - {loan_text_p2}")
 
                     if amount_to_pay > balance:
                         ### add interest to the loan
