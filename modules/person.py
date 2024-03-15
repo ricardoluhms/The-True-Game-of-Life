@@ -14,6 +14,9 @@ from  modules.gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_N
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
  
+### add logging to the project
+from logging import getLogger
+
 import random
 from datetime import date
 ### import timestamp
@@ -21,6 +24,7 @@ from time import time
 ### create a timestamp value
 #timestamp = date.today().strftime("%Y-%m-%d")
 
+logger = getLogger(__name__)
 
 class Person_Functions():
 
@@ -193,9 +197,7 @@ class Person_Functions():
                                           new_history_df["event"]
         new_history_df["death"] = death
         new_history_df["time_stamp"] = round(time(),3)#.strftime("%Y-%m-%d %H:%M:%S")
-        #print("Old History", len(self.history_df))
         self.history_df = pd.concat([self.history_df, new_history_df], ignore_index=True)
-        #print("New History", len(self.history_df))
 
     @staticmethod
     def handle_part_time_job(temp_history, mode="Teenager"):
@@ -217,11 +219,10 @@ class Person_Functions():
         if interest_rate is None:
             interest_rate = random.uniform(STUDENT_LOAN_INTEREST_RATES[0], 
                                                 STUDENT_LOAN_INTEREST_RATES[1])
-        if loan_term is None:
+        if loan_term is None or loan_term == 0:
             loan_term = YEARS_OF_STUDY[future_career]+8
 
         # Subtract tuition from balance
-        #print(tuition_due,balance)
         balance -= tuition_due
 
         if balance > 0:
@@ -286,10 +287,8 @@ class Person_Functions():
 
     @staticmethod
     def update_income_to_balance(temp_history):
-        #print(type(temp_history['balance']), temp_history['age_range'], temp_history['age'])
         if type(temp_history['balance']) is str:
             pass
-            #print(temp_history['balance'])
         if temp_history['balance'] is None:
             temp_history['balance'] = 0
         income = temp_history['income']
@@ -299,18 +298,13 @@ class Person_Functions():
 
     @staticmethod
     def handle_pocket_money(temp_history):
-        #print("Testing Pocket Money")
-        #print("Current Career", temp_history['career'])
         temp_history['career'] = "Pocket Money"
-        #print("Current Career After", temp_history['career'])
         base_income = INITIAL_INCOME_RANGES['Pocket Money'][0]
         std_deviation = INITIAL_INCOME_RANGES['Pocket Money'][1]
 
         pocket_money = np.abs(np.round(np.random.normal(base_income, std_deviation), 2))
         temp_history['income'] = pocket_money
-        # print( INITIAL_INCOME_RANGES['Pocket Money'][0],
-        #         INITIAL_INCOME_RANGES['Pocket Money'][1],
-        #         np.round(np.random.normal(base_income, std_deviation), 2))
+
         return temp_history
     
     @staticmethod
@@ -319,14 +313,14 @@ class Person_Functions():
                                          p=np.array(list(SPENDER_PROFILE_PROBS.values())))
         return spender_profile
 
-    @staticmethod
-    def fetch_raise_constant_by_age(age):
-        for age_range in RAISE_DEVIATION_BY_AGE.keys():
-            if age in range(age_range[0], age_range[1]):
-                RAISE_DEVIATION = RAISE_DEVIATION_BY_AGE[age_range]
-                break
+    # @staticmethod
+    # def fetch_raise_constant_by_age(age):
+    #     for age_range in RAISE_DEVIATION_BY_AGE.keys():
+    #         if age in range(age_range[0], age_range[1]):
+    #             RAISE_DEVIATION = RAISE_DEVIATION_BY_AGE[age_range]
+    #             break
 
-        return RAISE_DEVIATION
+    #     return RAISE_DEVIATION
 
     @staticmethod
     def get_a_raise(current_salary, career_path):
@@ -335,7 +329,6 @@ class Person_Functions():
         raise_prob = RAISE_DICT[career_path]["chance"]
         raise_event = np.random.uniform(0,1)
 
-        #print(career_path, raise_prob, raise_event, f"Raise? {raise_event <= raise_prob}")
         if raise_event <= raise_prob:
 
             hike_range = RAISE_DICT[career_path]["hike_range"]
@@ -359,7 +352,7 @@ class Person_Functions():
         else:
             gender_val = gender
 
-        pred_lin = DEATH_PROB_MODEL_COEF['lin_reg']['age']*age +\
+        pred_lin = DEATH_PROB_MODEL_COEF['lin_reg']['age']*age*0.75 +\
                 DEATH_PROB_MODEL_COEF['lin_reg']['gender']*gender_val +\
                 DEATH_PROB_MODEL_COEF['lin_reg']['intercept']
 
@@ -381,9 +374,10 @@ class Person_Functions():
             output_b = pred_log2_final
 
         if age > 55:
-            return 1 - output_b
+            return 1 - output_b - 0.2
+
         else:
-            return 1 - output_a
+            return 1 - output_a - 0.08
 
     @staticmethod
     def calculate_death_chance_crit_ill(age):
@@ -494,28 +488,36 @@ class Person_Life(Person_Functions):
         ### add cause of death
         ### add probability of death based on age
 
-            #This will probably be triggered by other functions maybe we have a percent chance on ageup() to trigger death based on factors like age, health 
-            # and a complete random chance of like car accident or something
-
+        #This will probably be triggered by other functions maybe we have a percent chance on ageup() to trigger death based on factors like age, health 
+        # and a complete random chance of like car accident or something
 
         death = False
         age_death = self.calculate_death_chance(age,gender)
         ci_death = self.calculate_death_chance_crit_ill(age)
-        if np.random.random() <= age_death:
-            event = "Death - Old Age"
-            
-        
-        if age <= 1 and np.random.random() <= 0.0045:
+        random_prob_unexpect = np.random.random()
+        random_prob_severe_acc = np.random.random()
+        random_prob_ci = np.random.random()
+        random_prob_curvature = np.random.random()
+        if age <= 1 and random_prob_unexpect <= 0.0045:
             event = "Death - Unexpected Infant Death"
             death = True
-        
-        elif np.random.random() <= 0.0001:
+            logger.info(f"### Death - Unexpected Infant Death: prob_th:{0.0045} >= prob:{round(random_prob_unexpect,4)} - age{age}")
+
+        elif random_prob_severe_acc <= 0.0001:
             event = "Death - Severe Accident"
             death = True
+            logger.info(f"### Death - Severe Accident: prob_th:{0.0001} >= prob:{round(random_prob_severe_acc,4)} - age{age}")
         
-        elif np.random.random() <= ci_death:
+
+        elif random_prob_ci <= ci_death:
             event = "Death - Critical Illness"
             death = True
+            logger.info(f"### Death - Critical Illness: prob_th:{round(ci_death,2)} >= prob:{round(random_prob_ci,2)} - age{age}")
+        
+        elif random_prob_curvature <= age_death:
+            event = "Death - Age Curvature"
+            death = True
+            logger.info(f"### Old Age Death Event: prob_th:{round(age_death,2)} >= prob:{round(random_prob_curvature,2)} - age{age}")
         
         else:
             event = ""
@@ -547,7 +549,8 @@ class Person_Life(Person_Functions):
         event = "This is a test event - this should be overwritten by the function"
         death = temp_history["death"]
         if death:
-            return print("Dead - Cannot Age Up")
+            logger.info(f"### Death Event: {temp_history['event']}")
+            return None
 
         temp_history['year'] += 1
         temp_history['age'] += 1
@@ -558,7 +561,6 @@ class Person_Life(Person_Functions):
         if age_range == "Baby":
             ### Stage 2.2: If age range is baby, then update the event
             event = "Baby - Aged Up"
-            #print("Baby - Aged Up")
 
         ### Stage 2.2: If age range is child, then age up the child
         elif age_range == "Child":
@@ -582,7 +584,6 @@ class Person_Life(Person_Functions):
                     temp_history['balance'] = 0
                 else:
                     temp_history = self.update_income_to_balance(temp_history)
-            #print("Children - Aged Up")
         
         ### Stage 3: If age range is teenager, then age up the teenager
         elif age_range == "Teenager":
@@ -596,7 +597,6 @@ class Person_Life(Person_Functions):
                 event, temp_history = self.handle_part_time_job(temp_history, mode="Teenager")
             ### Stage 3.3: If teenager is on pocket money or part time job, then update the balance 
             temp_history = self.update_income_to_balance(temp_history)
-            #print("Teenager - Aged Up")
         
         ### Stage 4: If age range is young adult, then age up the young adult
         elif age_range == "Young Adult":
@@ -615,11 +615,7 @@ class Person_Life(Person_Functions):
                 ### Stage 4.2.1: Check if Completed Studies (if years to study is 0 then the person has completed studies)
                 if temp_history['years_to_study'] == 0:
                     #### set future career to career and get first income from non part time job
-                    #print("Years to study - before finishing", temp_history['years_to_study'], temp_history['career'])
                     event, temp_history = self.handle_finished_studies(temp_history)
-                    #print("Years to study - before finishing", temp_history['years_to_study'], temp_history['career'])
-                    ### pay student loan
-                    #temp_history = self.handle_pay_student_loan(temp_history) ### to be developed
 
                 ### did not complete studies yet
                 ### Stage 4.2.2: If the person did not complete studies yet, then update the years of study, get a part time job and check if they will get a loan
@@ -636,7 +632,6 @@ class Person_Life(Person_Functions):
                 temp_history = self.update_income_to_balance(temp_history)
             if temp_history['event'] == "Created":
                 event = ""
-            #print("Young Adult - Aged Up")  
         
         ### Stage 5: If age range is adult, then age up the adult
         elif age_range == "Adult":
@@ -645,12 +640,11 @@ class Person_Life(Person_Functions):
 
             temp_history = self.update_income_to_balance(temp_history)
             event = "Adult - Aged Up"
-            #print("Adult - Aged Up")
             
         elif age_range == "Elder":
             temp_history = self.update_income_to_balance(temp_history)
             event = "Elder - Aged Up"
-            #print("Elder - Aged Up")
+
         if age_range in ["Young Adult", "Adult", "Elder"]:
             ### check if event variable exists
             if event is None:
@@ -660,11 +654,13 @@ class Person_Life(Person_Functions):
             else:
                 temp_history['income'], raise_event = self.get_a_raise(temp_history['income'], temp_history['career'])
                 event = event + " - " + raise_event
-            #print("Raise Event", raise_event)
+
         ### Stage X: Check if the person will die
         death_event, death = self.death_check(temp_history['age'], temp_history["gender"])
+
         if death:
-            event = death_event                                
+            event = death_event
+            logger.info(f"### Death Event: {event}")                               
   
         self.update_history(new_history = temp_history, event=event, death=death)
         self.update_values(temp_history)

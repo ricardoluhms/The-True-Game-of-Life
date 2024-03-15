@@ -2,38 +2,48 @@
 ### set system path
 import os
 import sys
-import tqdm
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 ### remove Future Warning from pandas
-import os
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
 from modules.city import City # , 
 import pandas as pd
-import tqdm
+### Add logging to the project
+import logging
+from tqdm import tqdm
+
+### Start Parameters
+population = 10
+current_year = 1950
+mode = 'default'
+### include hh mm ss in the file name
+today = pd.Timestamp("today").strftime("%Y_%m_%d_%H_%M")
+years = 100
+file_name = f'test_city_{population}_init_pop_{years}_years_{current_year}_start_year_{today}'
+csv_file = f'data/{file_name}.csv'
+log_file = f'code_logs/{file_name}.log'
+
+logging.basicConfig(level=logging.INFO, 
+                    format="%(asctime)s:%(levelname)s:%(message)s",
+                    datefmt='%I:%M:%S %p',
+                    handlers=[logging.FileHandler(log_file, 
+                                                  encoding='utf-8')])
 
 # Create a city
-#%%
-
-city = City("Test City",population=1000, current_year=1950, mode='default')
+city = City("Test City",population=population, current_year=1950, mode='default')
 #print(city.history)
-#%%
-### age up the city 100 years
-for i in range(100):
-    print("### Ageing up the city ###", city.current_year)
-    city.age_up()
-    ### average
 
-# for i in tqdm.tqdm(range(300)):
-#     city.age_up()
-#     ### average
-#%%
-city.history.to_csv('test_city_1000_init_pop_100_years_1950_start_year_2024_02_11.csv')
+### age up the city 100 years
+### 200 minutes to run 100 years 
+for i in tqdm(range(years)):
+    city.age_up()
+
+### rewrite the save to use current date as file name
+city.history.to_csv(csv_file, index=False)
+
 # %%
+
+# create a dump file to remove older population entries
 
 ### Task 1 - Test the death within the city:
 ### are they dying and being removed from the city?

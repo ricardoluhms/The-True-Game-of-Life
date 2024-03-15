@@ -29,3 +29,6 @@ test_files/test_city_loand_payment_spender_profile7.csv
 test_files/test_city_1000_init_pop_100_years_1950_start_year_2024_02_11.csv
 test_files/test_city_1000_init_pop_100_years_1950_start_year_2024_02_11.zip
 coelho/*
+*.log
+*.csv
+test_files/funny test.csv

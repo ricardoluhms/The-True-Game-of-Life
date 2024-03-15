@@ -134,7 +134,7 @@ if True:
     BABY_TWINS_MODE = {1:0.949, 2:0.04, 3:0.01, 4:0.001}
 
     EXISTING_CHILDREN_PROB_DICT = {0: 0.0, 1: 0.1, 2: 0.15, 3: 0.25, 4: 0.35, 5: 0.4, 6: 0.5, 7: 0.5, 8: 0.5, 9: 0.5}
-
+    
 ### Career Constants
 if True:
     SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75, 'In-Debt': 0.5, 'Depressed': 0.4}
