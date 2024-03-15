@@ -13,15 +13,15 @@ import logging
 from tqdm import tqdm
 
 ### Start Parameters
-population = 1000
+population = 10
 current_year = 1950
 mode = 'default'
 ### include hh mm ss in the file name
 today = pd.Timestamp("today").strftime("%Y_%m_%d_%H_%M")
 years = 100
 file_name = f'test_city_{population}_init_pop_{years}_years_{current_year}_start_year_{today}'
-csv_file = f'{file_name}.csv'
-log_file = f'{file_name}.log'
+csv_file = f'data/{file_name}.csv'
+log_file = f'code_logs/{file_name}.log'
 
 logging.basicConfig(level=logging.INFO, 
                     format="%(asctime)s:%(levelname)s:%(message)s",
@@ -30,14 +30,14 @@ logging.basicConfig(level=logging.INFO,
                                                   encoding='utf-8')])
 
 # Create a city
-city = City("Test City",population=10, current_year=1950, mode='default')
+city = City("Test City",population=population, current_year=1950, mode='default')
 #print(city.history)
 
 ### age up the city 100 years
 ### 200 minutes to run 100 years 
-for i in tqdm(range(100)):
+for i in tqdm(range(years)):
     city.age_up()
-#%%
+
 ### rewrite the save to use current date as file name
 city.history.to_csv(csv_file, index=False)
 
