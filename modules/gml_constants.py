@@ -133,7 +133,8 @@ if True:
 
     BABY_TWINS_MODE = {1:0.949, 2:0.04, 3:0.01, 4:0.001}
     BASE_BIRTH_PROB = 0.70
-    EXISTING_CHILDREN_PROB_DICT = {0: 0.0, 1: 0.1, 2: 0.15, 3: 0.25, 4: 0.35, 5: 0.4, 6: 0.5, 7: 0.5, 8: 0.5, 9: 0.5}
+    EXISTING_CHILDREN_PROB_DICT = {0: 0.0, 1: 0.1, 2: 0.15, 3: 0.25, 4: 0.35, 
+                                   5: 0.4, 6: 0.5, 7: 0.5, 8: 0.5, 9: 0.5,10: 0.6}
     
 ### Career Constants
 if True:

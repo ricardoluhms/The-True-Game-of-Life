@@ -96,6 +96,7 @@ class City():
                 if death or death is None:
                     ### if the person is deceased, add the person to the deceased list and remove from the active people
                     self.deceased_people[person_id] = person_obj
+
                     del self.people_obj_dict[person_id]
                     logger.info(f"  Death Status: {death} -\n\
                                     Person ID: {person_id} -\n\
@@ -152,10 +153,10 @@ class City():
 
                     self.people_obj_dict[person_id] = person_obj
 
-                    ### append the person history to the city history
-                    self.history = pd.concat([self.history, person_obj.history_df])
-                    ### drop duplicates
-                    self.history = self.history.drop_duplicates(subset=['unique_name_id', 'year','event'], keep='last')
+                ### append the person history to the city history
+                self.history = pd.concat([self.history, person_obj.history_df])
+                ### drop duplicates
+                self.history = self.history.drop_duplicates(subset=['unique_name_id', 'year','event'], keep='last')
                     
     def generate_starting_pop(self, population:int = None, age_range:str = 'Young Adult'):
         # make a even distribution of gender
@@ -431,7 +432,12 @@ class City():
             return "Cannot have a child - Mother is not defined"
 
         ### rewrite base_prob to be a function of the age of the mother and will decrease with age
-        decreasing_prob = -0.11306*np.exp((age_mother-10)/25) - EXISTING_CHILDREN_PROB_DICT[existing_children_count]
+        try:
+            decreasing_prob_existin_children = EXISTING_CHILDREN_PROB_DICT[existing_children_count]
+        except:
+            decreasing_prob_existin_children = max(EXISTING_CHILDREN_PROB_DICT.values())+0.1
+        decreasing_prob = -0.11306*np.exp((age_mother-10)/25) -\
+                             decreasing_prob_existin_children
 
         total_prob = BASE_BIRTH_PROB + decreasing_prob
         if total_prob <= 0:
