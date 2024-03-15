@@ -352,7 +352,7 @@ class Person_Functions():
         else:
             gender_val = gender
 
-        pred_lin = DEATH_PROB_MODEL_COEF['lin_reg']['age']*age +\
+        pred_lin = DEATH_PROB_MODEL_COEF['lin_reg']['age']*age*0.75 +\
                 DEATH_PROB_MODEL_COEF['lin_reg']['gender']*gender_val +\
                 DEATH_PROB_MODEL_COEF['lin_reg']['intercept']
 
@@ -374,9 +374,10 @@ class Person_Functions():
             output_b = pred_log2_final
 
         if age > 55:
-            return 1 - output_b
+            return 1 - output_b - 0.2
+
         else:
-            return 1 - output_a
+            return 1 - output_a - 0.08
 
     @staticmethod
     def calculate_death_chance_crit_ill(age):
@@ -487,27 +488,39 @@ class Person_Life(Person_Functions):
         ### add cause of death
         ### add probability of death based on age
 
-            #This will probably be triggered by other functions maybe we have a percent chance on ageup() to trigger death based on factors like age, health 
-            # and a complete random chance of like car accident or something
+        #This will probably be triggered by other functions maybe we have a percent chance on ageup() to trigger death based on factors like age, health 
+        # and a complete random chance of like car accident or something
 
-        death = True
+        death = False
         age_death = self.calculate_death_chance(age,gender)
         ci_death = self.calculate_death_chance_crit_ill(age)
-        if np.random.random() <= age_death:
-            event = "Death - Old Age"
-        
-        if age <= 1 and np.random.random() <= 0.0045:
+        random_prob_unexpect = np.random.random()
+        random_prob_severe_acc = np.random.random()
+        random_prob_ci = np.random.random()
+        random_prob_curvature = np.random.random()
+        if age <= 1 and random_prob_unexpect <= 0.0045:
             event = "Death - Unexpected Infant Death"
-        
-        elif np.random.random() <= 0.0001:
+            death = True
+            logger.info(f"### Death - Unexpected Infant Death: prob_th:{0.0045} >= prob:{round(random_prob_unexpect,4)} - age{age}")
+
+        elif random_prob_severe_acc <= 0.0001:
             event = "Death - Severe Accident"
+            death = True
+            logger.info(f"### Death - Severe Accident: prob_th:{0.0001} >= prob:{round(random_prob_severe_acc,4)} - age{age}")
         
-        elif np.random.random() <= ci_death:
+
+        elif random_prob_ci <= ci_death:
             event = "Death - Critical Illness"
+            death = True
+            logger.info(f"### Death - Critical Illness: prob_th:{round(ci_death,2)} >= prob:{round(random_prob_ci,2)} - age{age}")
+        
+        elif random_prob_curvature <= age_death:
+            event = "Death - Age Curvature"
+            death = True
+            logger.info(f"### Old Age Death Event: prob_th:{round(age_death,2)} >= prob:{round(random_prob_curvature,2)} - age{age}")
         
         else:
             event = ""
-            death = False
         
         return event, death
 
@@ -646,7 +659,8 @@ class Person_Life(Person_Functions):
         death_event, death = self.death_check(temp_history['age'], temp_history["gender"])
 
         if death:
-            event = death_event                                
+            event = death_event
+            logger.info(f"### Death Event: {event}")                               
   
         self.update_history(new_history = temp_history, event=event, death=death)
         self.update_values(temp_history)
