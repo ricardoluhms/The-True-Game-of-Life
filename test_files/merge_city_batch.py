@@ -13,43 +13,25 @@ import logging
 from tqdm import tqdm
 
 ### Start Parameters
-batch_size = 500
-population = 40000
-current_year = 1950
-today = pd.Timestamp("today").strftime("%Y_%m_%d") ### this will not include H and M to make merge  easier
+file_name_batch= "test_city_40000_init_pop_100_years_1950_start_year_2024_03_15_batch"
+data_batch_folder = "data\\batch"
+### check batch folder and count the number of files that start with the file_name_batch
+folder = os.path.join(os.path.dirname(__file__), '..', 'test_files', data_batch_folder)
+files = os.listdir(folder)
+batch_files = [file for file in files if file.startswith(file_name_batch)]
 
-
-
-years = 100
-num_batches = population // batch_size
-
-file_names = []
-for i in range(num_batches):
-    file_name = f'test_city_{population}_init_pop_{years}_years_{current_year}_start_year_{today}_batch_{i}'
-    csv_file = f'data/batch/{file_name}.csv'
-    log_file = f'code_logs/batch/{file_name}.log'
-
-    logging.basicConfig(level=logging.INFO, 
-                        format="%(asctime)s:%(levelname)s:%(message)s",
-                        datefmt='%I:%M:%S %p',
-                        handlers=[logging.FileHandler(log_file, 
-                                                    encoding='utf-8')])
-    city = City("Test City",population=batch_size, current_year=1950, mode='default')
-    city.history.to_csv(csv_file, index=False)
-    file_names.append(csv_file)
-
-### read data from test_files
-import pandas as pd
-
-folder = os.path.dirname(__file__)
-root_folder = os.path.abspath(os.path.join(folder, os.pardir))
-
+#%%
 df_list = []
-for i in range(num_batches):
-    file_name_csv = f'test_city_{population}_init_pop_{years}_years_{current_year}_start_year_{today}_batch_{i}'
-    csv_file = f'data/batch/{file_name}.csv'
-    file_names = os.path.join(root_folder,'test_files',csv_file)
-    data = pd.read_csv(file_names,low_memory=False)
+for file_name_csv in batch_files:
+    file_path = f'{folder}\\{file_name_csv}'
+    data = pd.read_csv(file_path,low_memory=False)
     df_list.append(data)
 
 data = pd.concat(df_list, axis=0, ignore_index=True)
+#%%
+### save the merged file
+merged_file = f'{file_name_batch}_merged.csv'
+merged_file_path = f'{folder}\\{merged_file}'
+data.to_csv(merged_file_path, index=False)
+
+# %%

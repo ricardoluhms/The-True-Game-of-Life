@@ -38,18 +38,4 @@ for i in range(num_batches):
     city.history.to_csv(csv_file, index=False)
     file_names.append(csv_file)
 
-### read data from test_files
-import pandas as pd
-
-folder = os.path.dirname(__file__)
-root_folder = os.path.abspath(os.path.join(folder, os.pardir))
-
-df_list = []
-for i in range(num_batches):
-    file_name_csv = f'test_city_{population}_init_pop_{years}_years_{current_year}_start_year_{today}_batch_{i}'
-    csv_file = f'data/batch/{file_name}.csv'
-    file_names = os.path.join(root_folder,'test_files',csv_file)
-    data = pd.read_csv(file_names,low_memory=False)
-    df_list.append(data)
-
-data = pd.concat(df_list, axis=0, ignore_index=True)
+# %%
