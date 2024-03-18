@@ -14,7 +14,7 @@ from  modules.gml_constants import ( CAREERS_AND_MARRIAGE_PROBS,
                             MAX_DEBT_RATIO,
                             INTEREST_RATE_PER_TYPE)
 
-from modules.person import Person_Life
+from modules.person import Person_Life, create_person_from_dataframe
 from modules.financial_institution import Financial_Institution
 from logging import getLogger
 ### import time library for testing
@@ -25,8 +25,8 @@ logger = getLogger(__name__)
 class City():
   
     ### create a city with a name and a population of young adults 
-
-    def __init__(self, name:str, population:int, current_year:int = 1950, mode:str = 'default', finance_institution = None):
+    def __init__(self, name:str, population:int, current_year:int = 1950, 
+                 mode:str = 'default', finance_institution = None, data = None):
 
         ### explain what City class does and the inputs, outputs and attributes
         """ City class is used to create a city with a name and a population of young adults.
@@ -44,6 +44,7 @@ class City():
         self.history = pd.DataFrame()
         self.financial_institution = finance_institution
         self.deceased_people = {}
+
         if mode == 'default':
             ###For generating random 
             self.people_obj_dict = self.generate_starting_pop(population=population, age_range='Young Adult')
@@ -51,6 +52,20 @@ class City():
         elif mode == 'testing':
             ###For generating specific people
             self.people_obj_dict = {}
+        elif mode == 'from_file' and data is not None:
+            ###For ingesting a population from a file 
+            # use recreate_city_from_file(data, city_name = name)
+            pack = recreate_city_from_file(data, city_name = name)
+            self.population = pack[0]
+            self.current_year = pack[1]
+            self.history = pack[2]
+            self.people_obj_dict = pack[3]
+            self.deceased_people = pack[4]
+
+        elif mode == 'from_file' and data is None:
+            raise ValueError("Mode is 'from_file' but no data was provided")
+        else:
+            raise ValueError("Mode is not valid")
         ### explain what City class does and the inputs, outputs and attributes
         if finance_institution is None:
             finance_institution = Financial_Institution(bank_name=f"{name} Bank")
@@ -600,7 +615,32 @@ class City():
                     person_id = person_last_history['unique_name_id']
                     self.people_obj_dict[person_id] = person_obj
             #return person_last_history
-                
+
+def recreate_city_from_file(data, city_name = "Test City"):
+    ### retrieve the current year from the data
+    current_year = data['year'].max()
+    ### retrieve the population from the data
+    year_crit = data['year'] == current_year
+    is_alive = ~data['event'].str.lower().str.contains('death')
+    population = len(data[year_crit & is_alive])
+    history = data.copy()
+    
+    ### recreate people_obj_dict
+    alive_people_id = history[is_alive]['unique_name_id'].unique()
+    people_obj_dict = {person_id: create_person_from_dataframe(person_df = data[data["unique_name_id"] == person_id])\
+                       for person_id in alive_people_id} ### only alive people
+   
+
+    ### get deceased people and each person unique id is the key and the value is None
+    deceased_people_id = history[~is_alive]['unique_name_id'].unique()
+    deceased_people = {person_id: create_person_from_dataframe(person_df = data[data["unique_name_id"] == person_id])\
+                       for person_id in deceased_people_id}
+    
+    return population, current_year, history, people_obj_dict, deceased_people, city_name
+    
+    
+    
+            
 
 
 # %%
