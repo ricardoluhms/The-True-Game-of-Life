@@ -39,7 +39,8 @@ class Person_Functions():
                       spouse_name_id: str = None,
                       years_of_study: int = None,
                       years_to_study: int = None,
-                      has_a_car: bool = False):
+                      has_a_car: bool = False,
+                      history_df = None):
         
         """
         Initialize a new person with various attributes.
@@ -108,7 +109,10 @@ class Person_Functions():
 
         # Initialize the history DataFrame
         key_and_values = self.get_values()
-        self.history_df = pd.DataFrame(key_and_values.values(), index=key_and_values.keys()).T
+        if history_df is not None:
+            self.history_df = history_df
+        else:
+            self.history_df = pd.DataFrame(key_and_values.values(), index=key_and_values.keys()).T
 
     def get_values(self):
         """Return the current attributes of the person as a dictionary."""
@@ -313,15 +317,6 @@ class Person_Functions():
                                          p=np.array(list(SPENDER_PROFILE_PROBS.values())))
         return spender_profile
 
-    # @staticmethod
-    # def fetch_raise_constant_by_age(age):
-    #     for age_range in RAISE_DEVIATION_BY_AGE.keys():
-    #         if age in range(age_range[0], age_range[1]):
-    #             RAISE_DEVIATION = RAISE_DEVIATION_BY_AGE[age_range]
-    #             break
-
-    #     return RAISE_DEVIATION
-
     @staticmethod
     def get_a_raise(current_salary, career_path):
 
@@ -467,13 +462,24 @@ class Person_Functions():
       
 
 class Person_Life(Person_Functions):
-    def __init__(self, gender:str =None, first_name:str = None, last_name:str = None, 
-                 current_year:int = None, age_range: str = None, married: bool = False,
-                 parent_name_id_A: str = None, parent_name_id_B: str = None, children_name_id:list = []):
-        super().__init__(gender, first_name, last_name, current_year, age_range, career=None, income=None, 
-                         loan=None, loan_term=None, balance=None, married=married, 
-                         parent_name_id_A=parent_name_id_A, parent_name_id_B=parent_name_id_B,
-                         children_name_id=children_name_id)
+    def __init__(self, gender:str = None, first_name:str = None, last_name:str = None, 
+                 current_year:int = None, age_range: str = None, age: int = None, 
+                 career: str = None, future_career: str = None, income: float = None,
+                loan: float = None, loan_term: int = None, balance: float = None,
+                married: bool = False, parent_name_id_A: str = None, parent_name_id_B: str = None,
+                spouse_name_id: str = None, years_of_study: int = None, years_to_study: int = None,
+                has_a_car: bool = False, death: bool = False, children_name_id:list = []):
+        
+        ### call the parent class to initialize the person attributes
+        super().__init__( gender = gender, first_name = first_name, last_name = last_name,
+                        current_year = current_year, age_range = age_range, age = age, 
+                        career = career, future_career = future_career, income = income,
+                        loan = loan, loan_term = loan_term, balance = balance,married = married, 
+                        parent_name_id_A = parent_name_id_A, parent_name_id_B = parent_name_id_B,
+                        spouse_name_id = spouse_name_id, years_of_study = years_of_study, 
+                        years_to_study = years_to_study,
+                        has_a_car = has_a_car, death = death, children_name_id = children_name_id)
+
     ### there will be two main scenarios:
     # - the person is a recent born from a couple and just ages up
     # - the person was randomly generated and has a random age and we would need to know previous events from the past and then age up
@@ -483,7 +489,7 @@ class Person_Life(Person_Functions):
     ### if a person is created straight ahead as an teenager then we need to create child and baby classes and update their history
     ### if a person is created straight ahead as an child then we need to create baby classes and update their history
     ### if a person is created straight ahead as an baby then we need to create baby classes and update their history
-        
+
     def death_check(self, age, gender):
         ### add cause of death
         ### add probability of death based on age
@@ -665,3 +671,39 @@ class Person_Life(Person_Functions):
         self.update_history(new_history = temp_history, event=event, death=death)
         self.update_values(temp_history)
         return death
+    
+def create_person_from_dataframe(person_df):
+    """Create a person from a DataFrame."""
+
+    ### extract the person attributes from the dataframe
+    history_df = person_df.copy()
+    ### get max year
+    max_year = history_df['year'].max()
+    ### filter the dataframe to get the attributes of the person in the max year
+    person_attributes = history_df[history_df['year'] == max_year].iloc[0]
+
+    person = Person_Life(gender = person_attributes["gender"],
+                        first_name = person_attributes["first_name"],
+                        last_name = person_attributes["last_name"],
+                        current_year = max_year,
+                        age_range = person_attributes["age_range"],
+                        age = person_attributes["age"],
+                        career = person_attributes["career"],
+                        future_career = person_attributes["future_career"],
+                        income = person_attributes["income"],
+                        loan = person_attributes["loan"],
+                        loan_term = person_attributes["loan_term"],
+                        balance = person_attributes["balance"],
+                        married = person_attributes["married"],
+                        parent_name_id_A = person_attributes["parent_name_id_A"],
+                        parent_name_id_B = person_attributes["parent_name_id_B"],
+                        spouse_name_id = person_attributes["spouse_name_id"],
+                        years_of_study = person_attributes["years_of_study"],
+                        years_to_study = person_attributes["years_to_study"],
+                        has_a_car = person_attributes["has_a_car"],
+                        death = person_attributes["death"],
+                        children_name_id = person_attributes["children_name_id"],
+                        history_df = history_df)
+    return person
+        
+    
