@@ -11,12 +11,16 @@ from  modules.gml_constants import ( CAREERS_AND_MARRIAGE_PROBS,
                             EXISTING_CHILDREN_PROB_DICT,
                             SPENDER_PROFILE_DECREASE,
                             BASE_BIRTH_PROB,
+                            AGE_RANGE_DF,
                             MAX_DEBT_RATIO,
                             INTEREST_RATE_PER_TYPE)
+
+
 
 from modules.person import Person_Life, create_person_from_dataframe
 from modules.financial_institution import Financial_Institution
 from logging import getLogger
+from ast import literal_eval
 ### import time library for testing
 import time
 
@@ -25,7 +29,7 @@ logger = getLogger(__name__)
 class City():
   
     ### create a city with a name and a population of young adults 
-    def __init__(self, name:str, population:int, current_year:int = 1950, 
+    def __init__(self, name:str, population:int = None, current_year:int = 1950, 
                  mode:str = 'default', finance_institution = None, data = None):
 
         ### explain what City class does and the inputs, outputs and attributes
@@ -39,6 +43,8 @@ class City():
         """
         self.event = "Created"
         self.city_name = name
+        if population is None:
+            population = 1
         self.population = population
         self.current_year = current_year
         self.history = pd.DataFrame()
@@ -617,6 +623,7 @@ class City():
             #return person_last_history
 
 def recreate_city_from_file(data, city_name = "Test City"):
+    logger.info(f"### Recreating the city {city_name} from the file")
     ### retrieve the current year from the data
     current_year = data['year'].max()
     ### retrieve the population from the data
@@ -624,17 +631,22 @@ def recreate_city_from_file(data, city_name = "Test City"):
     is_alive = ~data['event'].str.lower().str.contains('death')
     population = len(data[year_crit & is_alive])
     history = data.copy()
+    data["children_name_id"] = data["children_name_id"].apply(literal_eval)
     
     ### recreate people_obj_dict
     alive_people_id = history[is_alive]['unique_name_id'].unique()
-    people_obj_dict = {person_id: create_person_from_dataframe(person_df = data[data["unique_name_id"] == person_id])\
-                       for person_id in alive_people_id} ### only alive people
-   
+    logger.info(f"### Number of people that are alive in the city {len(alive_people_id)}")
+    ### include tqdm
+    people_obj_dict = {}
+    for person_id in tqdm.tqdm(alive_people_id):
+        person_obj = create_person_from_dataframe(person_df = data[data["unique_name_id"] == person_id])
+        people_obj_dict[person_id] = person_obj
 
-    ### get deceased people and each person unique id is the key and the value is None
     deceased_people_id = history[~is_alive]['unique_name_id'].unique()
-    deceased_people = {person_id: create_person_from_dataframe(person_df = data[data["unique_name_id"] == person_id])\
-                       for person_id in deceased_people_id}
+    logger.info(f"### Number of people that already died in the city {len(deceased_people_id)}")
+    deceased_people ={}
+    for person_id in history[~is_alive]['unique_name_id'].unique():
+        deceased_people[person_id] = create_person_from_dataframe(person_df = data[data["unique_name_id"] == person_id])
     
     return population, current_year, history, people_obj_dict, deceased_people, city_name
     
