@@ -32,3 +32,4 @@ coelho/*
 *.log
 *.csv
 test_files/funny test.csv
+dashboards/exploration dashboard.pbix
