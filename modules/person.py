@@ -7,7 +7,9 @@ from  modules.gml_constants import (MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_N
                             YEARS_OF_STUDY, TUITION, SPENDER_PROFILE,
                             INITIAL_INCOME_RANGES,
                             FUTURE_CAREER_PAY_PROBS,STUDENT_LOAN_INTEREST_RATES,
-                            RAISE_DICT, DEATH_PROB_MODEL_COEF,CRIT_ILL_DEATH_PROB_MODEL_COEF)
+                            RAISE_DICT, DEATH_PROB_MODEL_COEF,
+                            DEATH_PROB_MODEL_COEF_NEW,
+                            CRIT_ILL_DEATH_PROB_MODEL_COEF)
                             # CAR_FINANCING_OPTION_PROBS,CAR_MAX_DEBT_RATIO,
                             # CAR_DOWNPAYMENT_CONSTANT,CAR_SELF_FINANCING_CONSTANT)
 ### ignore future warnings
@@ -256,7 +258,7 @@ class Person_Functions():
     
     @staticmethod
     def update_years_of_study(temp_history):
-        if temp_history['years_of_study'] == None:
+        if temp_history['years_of_study'] == None or str(temp_history['years_of_study']) == "nan":
             temp_history['years_of_study'] = 0
         temp_history['years_of_study'] += 1
         temp_history['years_to_study'] -= 1
@@ -274,10 +276,11 @@ class Person_Functions():
     @staticmethod
     def handle_finished_studies(temp_history):       
         ###TEMP SOLUTION, IF TEMP_HISOTRY HAS NO FUTURE CAREER DEFINE ONE OTHERWISE WE GET AN ERROR###
-        if temp_history['future_career'] == None and temp_history['career'] in ["Pocket Money", "Part Time"]:
+        nan_or_none = temp_history['future_career'] == None or str(temp_history['future_career']) == "nan"
+        if nan_or_none and temp_history['career'] in ["Pocket Money", "Part Time"]:
             temp_history['future_career'] = np.random.choice( list(FUTURE_CAREER_PAY_PROBS.keys()), 
                                          p=np.array(list(FUTURE_CAREER_PAY_PROBS.values())))
-        elif temp_history['future_career'] == None and temp_history['career'] not in ["Pocket Money", "Part Time"]:
+        elif nan_or_none and temp_history['career'] not in ["Pocket Money", "Part Time"]:
             return "Young Adult - Aged Up", temp_history
 
         event = "Young Adult - Finished Studies"
@@ -366,13 +369,58 @@ class Person_Functions():
         if pred_log2_final > 1:
             output_b = 1
         else:
-            output_b = pred_log2_final
+            output_b = pred_log2_final - 0.4
 
         if age > 55:
-            return 1 - output_b - 0.2
+            if output_a < output_b:
+                return 1 - output_a
+            return 1 - output_b
+        elif age > 80:
+            output_c = 1 - output_b - output_b*(age-80)*1.1/100
+            if output_c < 0:
+                return 0
+            return output_c
 
         else:
-            return 1 - output_a - 0.08
+
+            return 1 - output_a
+
+    @staticmethod 
+    def calculate_death_chance_v2(age,gender):
+        ### the model predicts the probability of living and returns the probability of dying
+        if gender == "Male":
+            gender_val =  0
+        elif gender == "Female":
+            gender_val = 2
+
+        ### pred_poly values ranges from 1 100
+
+        pred_poly = DEATH_PROB_MODEL_COEF_NEW['age^1']*age +\
+                   DEATH_PROB_MODEL_COEF_NEW['age^2']*age**2 +\
+                   DEATH_PROB_MODEL_COEF_NEW['age^3']*age**3 +\
+                   DEATH_PROB_MODEL_COEF_NEW['age^4']*age**4 +\
+                   DEATH_PROB_MODEL_COEF_NEW['age^5']*age**5 +\
+                   DEATH_PROB_MODEL_COEF_NEW['gender^1']*gender_val +\
+                   DEATH_PROB_MODEL_COEF_NEW['gender^2']*gender_val**2 +\
+                   DEATH_PROB_MODEL_COEF_NEW['gender^3']*gender_val**3 +\
+                   DEATH_PROB_MODEL_COEF_NEW['gender^4']*gender_val**4 +\
+                   DEATH_PROB_MODEL_COEF_NEW['gender^5']*gender_val**5 +\
+                   DEATH_PROB_MODEL_COEF_NEW['intercept']
+        
+        if pred_poly > 100:
+            death_prob = 1
+
+        elif age > 100:
+            death_prob = 0
+        else:
+            death_prob = 1- pred_poly/100
+
+        return death_prob
+        
+
+        
+    
+
 
     @staticmethod
     def calculate_death_chance_crit_ill(age):
@@ -381,16 +429,17 @@ class Person_Functions():
                 CRIT_ILL_DEATH_PROB_MODEL_COEF['age_cub']*age**3 +\
                 CRIT_ILL_DEATH_PROB_MODEL_COEF['age_qd']*age**4 +\
                 CRIT_ILL_DEATH_PROB_MODEL_COEF['intercept']
-        if age <20:
-            prob = 0
-        elif age >=20 and age < 40:
-            prob = np.abs(prob)/5
+        # if age <20:
+        #     prob = 0
+        # elif age >=20 and age < 40:
+        #     prob = np.abs(prob)
 
-        elif age >=40 and age < 55:
-            prob = np.abs(prob)/3
+        # elif age >=40 and age < 55:
+        #     prob = np.abs(prob)/3
 
-        elif age >=55 and age < 60:
-            prob = np.abs(prob)
+        # elif age >=55 and age < 60:
+        #     prob = np.abs(prob)
+        prob = np.abs(prob)
 
         return prob
 
@@ -468,7 +517,8 @@ class Person_Life(Person_Functions):
                 loan: float = None, loan_term: int = None, balance: float = None,
                 married: bool = False, parent_name_id_A: str = None, parent_name_id_B: str = None,
                 spouse_name_id: str = None, years_of_study: int = None, years_to_study: int = None,
-                has_a_car: bool = False, death: bool = False, children_name_id:list = []):
+                has_a_car: bool = False, death: bool = False, children_name_id:list = [],
+                history_df = None):
         
         ### call the parent class to initialize the person attributes
         super().__init__( gender = gender, first_name = first_name, last_name = last_name,
@@ -478,7 +528,8 @@ class Person_Life(Person_Functions):
                         parent_name_id_A = parent_name_id_A, parent_name_id_B = parent_name_id_B,
                         spouse_name_id = spouse_name_id, years_of_study = years_of_study, 
                         years_to_study = years_to_study,
-                        has_a_car = has_a_car, death = death, children_name_id = children_name_id)
+                        has_a_car = has_a_car, death = death, children_name_id = children_name_id,
+                        history_df = history_df)
 
     ### there will be two main scenarios:
     # - the person is a recent born from a couple and just ages up
@@ -498,7 +549,7 @@ class Person_Life(Person_Functions):
         # and a complete random chance of like car accident or something
 
         death = False
-        age_death = self.calculate_death_chance(age,gender)
+        age_death = self.calculate_death_chance_v2(age,gender)
         ci_death = self.calculate_death_chance_crit_ill(age)
         random_prob_unexpect = np.random.random()
         random_prob_severe_acc = np.random.random()
@@ -625,14 +676,15 @@ class Person_Life(Person_Functions):
 
                 ### did not complete studies yet
                 ### Stage 4.2.2: If the person did not complete studies yet, then update the years of study, get a part time job and check if they will get a loan
-                elif temp_history['years_to_study'] == None:
+                
+                elif temp_history['years_to_study'] == None or str(temp_history['years_to_study']) == "nan":
                     pass
                 else:
                     temp_history = self.update_years_of_study(temp_history)
                     event, temp_history = self.handle_part_time_job(temp_history, mode = "Teenager")
                     temp_history = self.handle_get_student_loan(temp_history)
             #event  =self.get_a_car(temp_history,car_prob)
-            if temp_history['balance'] == None:
+            if temp_history['balance'] == None or str(temp_history['balance']) == "nan":
                 pass
             else:
                 temp_history = self.update_income_to_balance(temp_history)
