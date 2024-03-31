@@ -13,6 +13,7 @@ import warnings
 import matplotlib.pyplot as plt
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
+import tqdm
 
 # file_path = "C:/Users/ricar/Documents/GitHub/TGoL/test_files/data/batch/test_city_40000_init_pop_100_years_1950_start_year_2024_03_15_batch_merged.csv"
 # data = pd.read_csv(file_path,low_memory=False)
@@ -37,12 +38,13 @@ def remove_dead_people(df):
         is_dead_mask = df2['event'].str.contains("Death")
         death_count = is_dead_mask.sum()
         if death_count > 0:
-            print("Dead people", is_dead_mask.sum())
+            #print("Dead people", is_dead_mask.sum())
+            pass
         df2 = df2[~is_dead_mask]
         dfd = df2[is_dead_mask]
     except:
         if len(df2) == 0:
-            print("No people in dataframe")
+            #print("No people in dataframe")
             dfd = pd.DataFrame()
         dfd = pd.DataFrame()
     return df2, dfd
@@ -70,8 +72,11 @@ def generate_past_events(df):
     """
     df_past = df.copy()
     ### drop columns that are not needed
-    to_drop = ['first_name', 'last_name', 'full_name']
-    df_past.drop(columns=to_drop, inplace=True)
+    try:
+        to_drop = ['first_name', 'last_name', 'full_name']
+        df_past.drop(columns=to_drop, inplace=True)
+    except:
+        pass
 
     ### calculate year of birth
     df_past["year"] = df_past["year"] - df_past["age"]
@@ -84,29 +89,52 @@ def generate_past_events(df):
     ### birth_year
     dfs = []
     #print(df_past["year"].unique())
+    print("Birth Year - df")
+    df_test = time_function(check_merge_duplication_columns, df_past)
     for birth_year in df_past["year"].unique():
         dfs_temp = []
         ### count how many age up events to generate
         age_up_count = max_year - birth_year
-        #print(age_up_count)
+        print(age_up_count)
         for i in range(age_up_count):
             if i == 0:
                 df_temp = df_past[df_past["year"] == birth_year].copy()
             else:
                 df_temp = dfs_temp[-1].copy()
+            print(f"Year: {birth_year + i + 1}")
             df_temp = complete_year_age_up_pipeline(df_temp)
+            df_test = time_function(check_merge_duplication_columns, df_temp)
             dfs_temp.append(df_temp)
             dfs.append(df_temp)
     df_past2 = pd.concat(dfs)
+    print("Checking merge duplication columns after age up events")
+    df_test = check_merge_duplication_columns(df_past2)
     df_past_final = pd.concat([df_past, df_past2])
+    print("Checking merge duplication columns after concatenation")
+    b = check_merge_duplication_columns(df_past_final)
     return df_past_final
+
+def check_merge_duplication_columns(df):
+    print("Checking merge duplication columns")
+    df2 = df.copy()
+    ### if columns ends with _x or _y, then remove them
+    for col in df2.columns: 
+        if col.endswith("_x") or col.endswith("_y"):
+            print(col)
+            df2.drop(columns=col, inplace=True)
+    return df2
 
 def calculate_death_df(df):
     df2 = df.copy()
+    ### remove people who has age nan
+    #df2 = df2[(~df2['age'].isna()) | (df2['age'].str() != "nan")]
     ### remove dead people
-
-    df2['age_death_thresh'] = df2.apply(
-            lambda x: Person_Life.calculate_death_chance_v2(x['age'], x['gender']), axis=1)
+    try:
+        df2['age_death_thresh'] = df2.apply(
+                lambda x: Person_Life.calculate_death_chance_v2(x['age'], x['gender']), axis=1)
+    except:
+        print(f"{len(df2)} people in dataframe")
+        return df2
     ### generate random number to compare with death threshold
     df2["age_death_prob"] = np.random.rand(len(df2))
     ### use calculate_death_chance_crit_ill
@@ -159,6 +187,9 @@ def handle_pocket_money(df):
 
     return df2
 
+def generate_spouses():
+    pass
+
 def generate_init_df(population, year, age_range):
     """
     Generate initial population dataframe
@@ -175,14 +206,17 @@ def generate_init_df(population, year, age_range):
     df["gender"] = np.random.choice(list(GENDER_PROBS.keys()),
                                     population,
                                     p=np.array(list(GENDER_PROBS.values())))
-    
+
+    return df
+
+def generate_names_and_initial_data(df,population):
     ### count Males and get index
     gd = df['gender'] == "Male"
     ### generate unique male names using numpy
     df.loc[gd, "first_name"] = np.random.choice(MALE_FIRST_NAMES,gd.sum())
-    print("male names",gd.sum())              
+    #print("male names",gd.sum())              
     df.loc[~gd, "first_name"] = np.random.choice(FEMALE_FIRST_NAMES,len(gd) - gd.sum())
-    print("female names",len(gd) - gd.sum())
+    #print("female names",len(gd) - gd.sum())
     df["last_name"] = np.random.choice(LAST_NAMES, population)
     df["event"] = "Created"
     df["full_name"] = df["first_name"] + " " + df["last_name"]
@@ -202,28 +236,35 @@ def generate_init_df(population, year, age_range):
     df['income'] = 0
     df['balance'] = 0
     df['spender_prof'] = None
-
+    df['partner_type'] = None
     return df
 
 def generate_fut_career(df):
     ### use Person_Life and define_study_and_fut_career
     df2 = df.copy()
 
-    ### remove people that are not old enough to work
-    age_crit = df2["age"].astype(int) < AGE_RANGES["Young Adult"][0]
+    ### select people who are young adults with no career
+    age_crit = df2["age"].astype(int) == AGE_RANGES["Young Adult"][0]
 
     ### remove people who are already working
-    working_crit = df2["career"].isin(CAREERS_AND_MARRIAGE_PROBS.keys())
+    valid_careers = ['Base', 'Medium', 'High', 'Very High']
+    #working_crit = df2["career"].isin(CAREERS_AND_MARRIAGE_PROBS.keys())
+    working_crit = df2["career"].isin(valid_careers)
+    combined_crit = age_crit & ~working_crit
+    valid_pop = combined_crit.sum()
 
-    combined_crit = ~age_crit & ~working_crit
-    if combined_crit.sum() == 0:
+
+    rest_pop = (~combined_crit).sum()
+    if valid_pop == 0:
         return df2
-
+    else:
+        print(f"Valid population for future career: {valid_pop}")
+        pass
+    
     df2 = df2[combined_crit]
     df_rest = df2[~combined_crit]
 
-    alive_pop = len(df2)
-    future_career = np.random.choice( list(FUTURE_CAREER_PAY_PROBS.keys()), alive_pop,
+    future_career = np.random.choice( list(FUTURE_CAREER_PAY_PROBS.keys()), valid_pop,
                                         p=np.array(list(FUTURE_CAREER_PAY_PROBS.values())))
     df2["future_career"] = future_career
     df2["career"] = None
@@ -233,6 +274,9 @@ def generate_fut_career(df):
                                  columns=["future_career", "years_of_study"]),
                                  on="future_career", how="left")
     ### append dead people and rest of the population
+    if rest_pop > 0:
+        df2 = pd.concat([df2, df_rest])
+
     df2 = pd.concat([df2, df_rest])
     return df2
 
@@ -290,12 +334,24 @@ def update_account_balance(df):
     return df2
 
 def complete_year_age_up_pipeline(df):
+    
+    ### check if df is empty
+    # if len(df) == 0:
+    #     print("Dataframe is empty")
+    #     return df
+    mask = df['year'] == df["year"].max()
+    if mask.sum() == 0:
+        print("No people in that year")
+        return df
+    #print(len(df), mask.sum())
 
-    df2 = df[df['year'] == df["year"].max()].copy()
+    df2 = df[mask].copy()
     ### remove dead people
     df2, dfd = remove_dead_people(df2)
 
     df2 = age_up_df(df2)
+    ### check if age is a number and not nan
+    #print(df2['age'].isna().sum())
     df2 = calculate_death_df(df2)
     df2 = handle_pocket_money(df2)
     #df2 = handle_spender_profile(df2)
@@ -304,6 +360,10 @@ def complete_year_age_up_pipeline(df):
     df2 = generate_fut_career(df2)
     df2 = update_years_of_study(df2)
     df2 = handle_finished_studies(df2)
+
+    df2 = define_partner_type(df2)
+    df2 = handle_marriage(df2)
+
     df2 = update_account_balance(df2)
 
     ### append dead people
@@ -313,11 +373,12 @@ def complete_year_age_up_pipeline(df):
 
 def complete_city(years, age_range="Young Adult", population=40000, start_year=1950):
     df = time_function(generate_init_df, population, start_year, age_range)
+    df = time_function(generate_names_and_initial_data, df, population)
     df_past = time_function(generate_past_events, df)
     df2 = df_past.copy()
     dfs = []
-    for _ in range(years):
-        df2 = time_function(complete_year_age_up_pipeline, df2)
+    for _ in tqdm.tqdm(range(years)):
+        df2 = complete_year_age_up_pipeline(df2) 
         dfs.append(df2)
 
     dfs_p1 = pd.concat(dfs)
@@ -356,6 +417,22 @@ def population_histogram(df):
     plt.plot(df3["year"], df3["count"])
     plt.show()
 
+def define_partner_type(df):
+    df2 = df.copy()
+    ### age must be greater than marriage age
+    age_crit = df2["age"] >= MIN_MARRIAGE_ALLOWED_AGE
+    partner_type_crit = (df2["partner_type"] == None) | (df2["partner_type"].astype(str) == "nan")
+    combined_crit = age_crit & partner_type_crit
+    if combined_crit.sum() == 0:
+        return df2
+    df_other = df2[~combined_crit]
+    ### use np.random.choice to select partner type
+    df2["partner_type"] = np.random.choice(SEXUAL_ORIENTATION_RATES.keys(), 
+                                            combined_crit.sum(),
+                                            p=np.array(list(SEXUAL_ORIENTATION_RATES.values())))
+    df2 = pd.concat([df2, df_other])
+    return df2
+
 def death_count_by_age(df):
     df2 = df.copy()
     df2["death_count"] = np.where(df2["event"].str.contains("Death"), 1, 0)
@@ -383,70 +460,287 @@ if not os.path.exists("C:/Users/ricar/Documents/GitHub/TGoL/test_files/data/new_
 df3.to_csv("C:/Users/ricar/Documents/GitHub/TGoL/test_files/data/new_pipeline/complete_city_test.csv", index=False)
 
 #%%
+
 population_histogram(df3)
 
-death_count_by_age(df3)
+#death_count_by_age(df3)
 # %%
 ### handle marriage
 
-def generate_marriage(df):
+def check_candidate_spouse(eligible_df, will_marry_id):
+    ### get partner type, gender, age, year, unique_name_id
+    candidate = eligible_df[eligible_df["unique_name_id"] == will_marry_id].copy()
+    partner_type = candidate["partner_type"].iloc[0]
+    gender = candidate['gender'].iloc[0]
+    age = candidate['age'].iloc[0]
+    year = candidate['year'].iloc[0]
+    parent_name_id_A = candidate['parent_name_id_A'].iloc[0]
+    parent_name_id_B = candidate['parent_name_id_B'].iloc[0]
+
+    ### criteria for spouse
+    age_crit = (eligible_df["age"] >= age - 5) & (eligible_df["age"] <= age + 5)
+    year_crit = eligible_df["year"] == year
+    parent_critA = eligible_df["parent_name_id_A"] != parent_name_id_A
+    parent_critB = eligible_df["parent_name_id_B"] != parent_name_id_B
+    orient_crit = eligible_df["partner_type"] == partner_type
+
+    ### specific criteria for spouse
+    if partner_type == "Heterosexual" :
+        if gender == "Male":
+            spouse_gender = 'Female'
+            spouse_gender_crit = eligible_df["gender"] == spouse_gender
+        else:
+            spouse_gender = 'Male'
+            spouse_gender_crit = eligible_df["gender"] == "Male"
+        
+    elif partner_type == "Gay/Lesbian":
+        spouse_gender = gender
+        spouse_gender_crit = eligible_df["gender"] == gender
+
+    else:
+        spouse_gender = gender
+        spouse_gender_crit = (eligible_df["gender"] == gender) | (eligible_df["gender"] != gender)
+
+    spouse_crit = orient_crit & spouse_gender_crit & age_crit & year_crit & parent_critA & parent_critB
+
+    if spouse_crit.sum() > 0:
+        id_spouse = eligible_df[spouse_crit].sample(1)["unique_name_id"].iloc[0]
+        specs = None
+    else:
+        id_spouse = None
+        specs = {"will_marry_id":will_marry_id,
+                 "partner_type":partner_type,
+                 "gender":spouse_gender,
+                 "age":np.random.randint(age - 5, age + 5),
+                 'year':year} 
+    return id_spouse, specs
+
+def create_spouse_from_specs(to_create_spouse_specs):
+    ### to_create_spouse_specs is a list of dictionaries
+    #### where specs = {"will_marry_id":will_marry_id,
+    #  "partner_type":partner_type,
+    #  "gender":spouse_gender,
+    #  "age":np.random.randint(age - 5, age + 5),
+    #  'year':year}
+    ### transform the list of dictionaries into a dataframe
+    df = pd.DataFrame(to_create_spouse_specs)
+    
+
+
+def handle_marriage_new(df):
     df2 = df.copy()
-    ### remove dead people
-    df2, dfd = remove_dead_people(df2)
+    ### remove people who are already married or are not old enough ["Baby", "Child", "Teenager"]
+    age_crit = df2["age"] >= MIN_MARRIAGE_ALLOWED_AGE
+    married_crit = df2["marriage_status"] == False
+    can_marry_crit = age_crit & married_crit
+    if can_marry_crit.sum() == 0:
+        return df2
 
-    ### remove people who are already married or ["Baby", "Child", "Teenager"]
-    age_crit = df2["age_range"].isin(["Baby", "Child", "Teenager"])
-    married_crit = df2["marriage_status"] == True
-    df2 = df2[~age_crit & ~married_crit]
-
-
-
+    df2 = df2[can_marry_crit]
+    df_rest = df2[~can_marry_crit]
     ### create marriage dataframe
-#%%
-import pandas as pd
-import numpy as np
-from modules.gml_constants import *
-def calculate_death_chance_2(age,gender):
-    if gender == "Male":
-        gender_val =  0
-    elif gender == "Female":
-        gender_val = 1
+
+    df2["marriage_thresh"] = df2.apply(lambda x: CAREERS_AND_MARRIAGE_PROBS[x["career"]], 
+                                     axis=1)
+    df2["marriage_prob"] = np.random.rand(can_marry_crit.sum())
+    will_marry_status = np.where(df2["marriage_prob"] < df2["marriage_thresh"], True, False)
+    will_marry_df = df2[will_marry_status]
+    to_create_spouse_specs = []
+    for will_marry_id in will_marry_df["unique_name_id"]:
+        id_spouse, specs = check_candidate_spouse(df2, will_marry_id)
+        if id_spouse is not None:
+            df2.loc[df2["unique_name_id"] == will_marry_id, "marriage_status"] = True
+            df2.loc[df2["unique_name_id"] == will_marry_id, "spouse_name_id"] = id_spouse
+            df2.loc[df2["unique_name_id"] == id_spouse, "marriage_status"] = True
+            df2.loc[df2["unique_name_id"] == id_spouse, "spouse_name_id"] = will_marry_id
+        else:
+            to_create_spouse.append(specs)
+            print(f"No spouse candidate for {specs['will_marry_id']}")
+
+
+
+
+
+
+
+
+
+
+
+def handle_marriage(self, person):
+    # retrieve the last history of the person and:
+    person_last_history = person.history_df.iloc[-1].copy()
+    if person_last_history['age_range'] not in ["Baby", "Child", "Teenager"]:
+        
+        if person_last_history['career'] is None:
+            return None
+        ### check current employment status to retrieve the marriage probability
+        career_crit_chance = CAREERS_AND_MARRIAGE_PROBS[person_last_history['career']] ### test for all careers later - to be developed
+        
+        ### check if the person is old enough to get married and is not married
+        age_cri = person_last_history["age"] >= MIN_MARRIAGE_ALLOWED_AGE
+        married_cri = person_last_history["married"] == False
+        prob_cri = np.random.random() < career_crit_chance
+
+        ### FOR TESTING MARRIAGE
+        prob_cri = True
+
+        ### Based on the career of the person, check if the person will get married
+        can_marry_cri = age_cri and married_cri and prob_cri
+
+        if can_marry_cri:
+            # 1st - get the gender of the person to be married & check what will be gender of the spouse
+            person_gender =  person_last_history['gender']
+            if person_gender == "Male":
+                spouse_gender = 'Female' if np.random.random() < (1 - SAME_GENDER_MARRIAGE_RATIO) else 'Male'
+            else:
+                spouse_gender = 'Male' if np.random.random() < (1 - SAME_GENDER_MARRIAGE_RATIO) else 'Female'
+            # 2nd - check if exist spouse candidate in the city:`
+            person_age = person_last_history['age']
+            person_most_recent_year = person_last_history['year']
+            all_population = self.history.copy()
+            # - is not married and; 
+            # - is not the person itself in the city and;
+            # - is within +- 5 years of the person age and;
+            # - has the gender defined for the spouse and;
+            # - has the age to get married
+            # - must be the information on the same year as the person
+            is_married = all_population['married'] == False
+            is_not_person = all_population['unique_name_id'] != person_last_history['unique_name_id']
+            is_age_range = (all_population['age'] >= person_age - 5) & (all_population['age'] <= person_age + 5)
+            is_gender = all_population['gender'] == spouse_gender
+            is_age_to_get_married = all_population['age'] >= MIN_MARRIAGE_ALLOWED_AGE
+            is_same_year = all_population['year'] == person_most_recent_year
+            marriage_criteria = is_married & is_not_person & is_age_range & is_gender & is_age_to_get_married & is_same_year
+
+            does_not_have_the_same_parentsA = all_population['parent_name_id_A'] != person_last_history['parent_name_id_A']
+            does_not_have_the_same_parentsB = all_population['parent_name_id_B'] != person_last_history['parent_name_id_B']
+            marriage_criteria = marriage_criteria & does_not_have_the_same_parentsA & does_not_have_the_same_parentsB
+
+            eligible_people_crit_within_city = marriage_criteria.sum() > 0
+
+            if eligible_people_crit_within_city:
+                # retrieve the spouse candidate from the city
+                spouse_id = all_population[marriage_criteria].sample(1).iloc[0].copy()['unique_name_id'] ### select on from the list
+
+                spouse = self.people_obj_dict[spouse_id]
+                spouse_last_history = spouse.history_df.iloc[-1].copy()
+                #Retrieve the person history
+                person_last_history = person.history_df.iloc[-1].copy()
+
+                ### quick error check to see if the last history is the same year as the person - else solve the issue
+                if spouse_last_history['year'] != person_last_history['year']:
+                    logger.debug(f"Solve the issue \n\
+                                    - Last history of the spouse candidate -\
+                                    is not the same year as the person which means there is a problem with the current logic -\n\
+                                    {spouse_last_history['year']} -\n\
+                                    {person_last_history['year']} -\n\
+                                    {person_last_history['unique_name_id']}")
+                    pass
+
+                ###Update the spouse and person values so they are married
+
+                # - change the married status to True
+                spouse_last_history['married'] = True
+                # - change the just_married status to True
+                spouse_last_history['just_married'] = True
+                # - change the spouse_name_id to the person unique_name_id
+                spouse_last_history['spouse_name_id'] = person_last_history['unique_name_id']
+                # the person last history:
+
+                # - change the spouse_name_id to the spouse unique_name_id
+                last_index = person.history_df.index[-1]
+                person.history_df.loc[last_index, 'spouse_name_id'] = spouse_last_history['unique_name_id']
+
+
+                # update the history of the person and the spouse candidate
+                
+                person_last_history['married'] = True
+                person_last_history['just_married'] = True
+                person_last_history['spouse_name_id'] = spouse_last_history['unique_name_id']
+
+                ###Update the actual dataframes
+                person.history_df.iloc[-1] = person_last_history
+                spouse.history_df.iloc[-1] = spouse_last_history
+
+                # update the object status
+                person.married = True
+                person.just_married = True
+                self.people_obj_dict[spouse.unique_name_id] = spouse
+                
+                #person.update_history(new_history=person_last_history) 
+                #### FUTURE ISSUES TO SOLVE:
+                # - IF THE PERSON CURRENT YEAR WAS NOT UPDATED YET SO THE PERSON WILL NOT BE A CANIDATE FOR MARRIAGE
+                # - UPDATE HISTORY ISSUE - A SPOUSE CANDIDATE HAS THE CURRENT HISTORY APPENDED TO THE PERSON HISTORY AND CITY HISTORY BUT THEY SHOULD BE UPDATED IN BOTH
+
+            else:
+                # if there is no spouse candidate, then create a new person and get married
+                # get a random age between the minimum age to get married and the maximum age to get married 
+                # get the age range based on the age
+                # create a new person with the age range and the current year
+
+                if person_age - 5 < MIN_MARRIAGE_ALLOWED_AGE:
+                    spouse_min_age = MIN_MARRIAGE_ALLOWED_AGE
+                else:
+                    spouse_min_age = person_age - 5
+                
+                ### Stage 1 - select the age of the spouse
+                spouse_age = np.random.randint(spouse_min_age, person_age + 5)
+
+                ### Stage 2 - get age range based on the age
+                spouse_age_range = Person_Life.update_age_range(spouse_age) ### TO BE DEVELOPED - SKIP AGE RANGE TO REPLACE WITH THE AGE WHEN CREATING A NEW PERSON
+
+                ### Stage 3 - create a new person with the age range and the current year
+                spouse = Person_Life(gender= spouse_gender, age_range= spouse_age_range, current_year= person_most_recent_year, married = True)
+
+                ### Stage 4 - generate the past events of the new spouse
+                spouse.generate_past_events()
+
+                ### Stage 5 - update the history of the spouse
+                ### married to true will be applied to all the history of the person so it need to be removed from the history later
+                spouse_all_history = spouse.history_df.copy()
+                criteria_arange = spouse_all_history["age_range"] == spouse_age_range
+                criteria_age = spouse_all_history["age"] == spouse_age
+                criteria_year = spouse_all_history["year"] == person_most_recent_year
+
+                marriage_status_crit = criteria_arange & criteria_age & criteria_year
+
+
+                spouse_all_history.loc[~marriage_status_crit,"married"] = False
+                spouse_all_history.loc[marriage_status_crit,"just_married"] = True
+                spouse_all_history.loc[marriage_status_crit,"married"] = True
+                spouse_all_history.loc[marriage_status_crit,"spouse_name_id"] = person_last_history['unique_name_id']
+                spouse.history_df = spouse_all_history
+
+
+                ###Grabs the histories we need
+                spouse_last_history = spouse.history_df.iloc[-1].copy()
+                person_last_history = person.history_df.iloc[-1].copy()
+
+                ###Updates everything for the person getting married to the spouse
+                person_last_history['married'] = True
+                person_last_history["just_married"] = True
+                person_last_history["spouse_name_id"] = spouse.unique_name_id
+                person.history_df.iloc[-1] = person_last_history
+
+                ###Updates the values of the acutal object
+                person.married = True
+                person.just_married = True
+                self.people_obj_dict[spouse.unique_name_id] = spouse
+                ### append the spouse to the city history
+                self.history = pd.concat([self.history, spouse.history_df])
+
+            ### TO BE DEVELOPED ###
+            # # check if the person has enough money to get married    
+            # _, marriage_expense = self.calculate_marriage_cost() ### to be developed
+            # total_balance = person_last_history['balance'] + spouse_last_history['balance']
+            # ### if the person does not have enough money, then check both person and spouse candidate can get a loan
+            # if total_balance < marriage_expense:
+            #     get_loan_status = self.get_loan(desired_loan_amount=marriage_expense-total_balance)
+            #     if  get_loan_status is None:
+            #         print('You cannot afford the marriage expense. You have reached the maximum loan amount.')
+            return spouse
+        else:
+            return None
     else:
-        gender_val = gender
-
-    pred_lin = 1 - DEATH_PROB_MODEL_COEF['lin_reg']['age']*age*0.75 +\
-            DEATH_PROB_MODEL_COEF['lin_reg']['gender']*gender_val +\
-            DEATH_PROB_MODEL_COEF['lin_reg']['intercept']+0.2/100
-
-    pred_log2 = DEATH_PROB_MODEL_COEF['lin_reg_log']['age']*age +\
-                DEATH_PROB_MODEL_COEF['lin_reg_log']['gender']*gender_val +\
-                DEATH_PROB_MODEL_COEF['lin_reg_log']['lin_pred']*pred_lin +\
-                DEATH_PROB_MODEL_COEF['lin_reg']['intercept']
-
-    pred_log2_final = 1 - np.power(2,pred_log2)
-
-
-    if age > 55:
-        output = 1-pred_log2_final
-    else:
-        output = 1-pred_lin
-
-    return 1-pred_lin, 1-pred_log2_final, output
-
-### create a table with age and gender combinations
-age_df = pd.DataFrame(np.arange(0,101), columns=["age"])
-age_df_a = age_df.copy()
-age_df_a["gender"] = 'Male'
-age_df_b = age_df.copy()
-age_df_b["gender"] = 'Female'
-age_df_c = pd.concat([age_df_a, age_df_b])
-age_df_c["pack"] = age_df_c.apply(
-    lambda x: calculate_death_chance_2(x["age"],x['gender']), axis=1)
-
-age_df_c['deatch_chance_lin_reg'] = age_df_c["pack"].astype(str).str.split(",", expand=True)[0].str.replace("(","")
-age_df_c['deatch_chance_lin_reg_log'] = age_df_c["pack"].astype(str).str.split(",", expand=True)[1]
-age_df_c['deatch_chance_final'] = age_df_c["pack"].astype(str).str.split(",", expand=True)[2].str.replace(")","")
-age_df_c
-age_df_c.to_csv("C:/Users/ricar/Documents/GitHub/TGoL/test_files/data/new_pipeline/death_chance.csv", index=False)
-
-    # %%
+        return None
