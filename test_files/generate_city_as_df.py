@@ -56,7 +56,11 @@ def age_up_df(df):
     df2['year'] = df2['year'] + 1
     ### drop old age_range column
     try:
-        df2.drop(columns=['age_range','age_event'], inplace=True)
+        df2.drop(columns=['age_range'], inplace=True)
+    except:
+        pass
+    try:
+        df2.drop(columns=['age_event'], inplace=True)
     except:
         pass
 
@@ -95,7 +99,7 @@ def generate_past_events(df):
         dfs_temp = []
         ### count how many age up events to generate
         age_up_count = max_year - birth_year
-        print(age_up_count)
+        #print(age_up_count)
         for i in range(age_up_count):
             if i == 0:
                 df_temp = df_past[df_past["year"] == birth_year].copy()
@@ -103,15 +107,13 @@ def generate_past_events(df):
                 df_temp = dfs_temp[-1].copy()
             print(f"Year: {birth_year + i + 1}")
             df_temp = complete_year_age_up_pipeline(df_temp)
-            df_test = time_function(check_merge_duplication_columns, df_temp)
+
             dfs_temp.append(df_temp)
             dfs.append(df_temp)
     df_past2 = pd.concat(dfs)
-    print("Checking merge duplication columns after age up events")
-    df_test = check_merge_duplication_columns(df_past2)
+
     df_past_final = pd.concat([df_past, df_past2])
-    print("Checking merge duplication columns after concatenation")
-    b = check_merge_duplication_columns(df_past_final)
+
     return df_past_final
 
 def check_merge_duplication_columns(df):
@@ -123,6 +125,19 @@ def check_merge_duplication_columns(df):
             print(col)
             df2.drop(columns=col, inplace=True)
     return df2
+
+def check_merge_duplication_columns_error_message(df):
+    print("Checking merge duplication columns")
+    df2 = df.copy()
+    ### if columns ends with _x or _y, then remove them
+    cols = []
+    for col in df2.columns: 
+        if col.endswith("_x") or col.endswith("_y"):
+            cols.append(col)
+    if len(cols) == 0:
+        return ""
+    else:
+        return f"Columns to remove: {cols}"
 
 def calculate_death_df(df):
     df2 = df.copy()
@@ -347,29 +362,43 @@ def complete_year_age_up_pipeline(df):
 
     df2 = df[mask].copy()
     ### remove dead people
+    
     df2, dfd = remove_dead_people(df2)
 
-    df2 = age_up_df(df2)
+    df2 = check_function_for_duplication(age_up_df, df2)
     ### check if age is a number and not nan
     #print(df2['age'].isna().sum())
-    df2 = calculate_death_df(df2)
-    df2 = handle_pocket_money(df2)
+    df2 = check_function_for_duplication(calculate_death_df, df2)
+    df2 = check_function_for_duplication(handle_pocket_money, df2)
     #df2 = handle_spender_profile(df2)
     ### remove newly dead people
     #df2, dfd2 = remove_dead_people(df2)
-    df2 = generate_fut_career(df2)
-    df2 = update_years_of_study(df2)
-    df2 = handle_finished_studies(df2)
+    df2 = check_function_for_duplication(generate_fut_career, df2)
+    df2 = check_function_for_duplication(update_years_of_study, df2)
+    df2 = check_function_for_duplication(handle_finished_studies, df2)
+    df2 = check_function_for_duplication(define_partner_type, df2)
+    #df2 = check_function_for_duplication(handle_marriage_new, df2)
 
-    df2 = define_partner_type(df2)
-    df2 = handle_marriage(df2)
+    df2 = check_function_for_duplication(update_account_balance, df2)
 
-    df2 = update_account_balance(df2)
 
     ### append dead people
+    print("before merge deduplication check")
+    df_test = time_function(check_merge_duplication_columns, df2)
+    print("before merge deduplication check")
     df2 = pd.concat([df2, dfd])
 
     return df2
+
+### create a function that checks if another function will duplicate columns
+def check_function_for_duplication(func, *args):
+    df = func(*args)
+    #df2 = check_merge_duplication_columns(df)
+    error = check_merge_duplication_columns_error_message(df)
+    ### print function name
+    if error != "":
+        print(func.__name__, error)
+    return df
 
 def complete_city(years, age_range="Young Adult", population=40000, start_year=1950):
     df = time_function(generate_init_df, population, start_year, age_range)
