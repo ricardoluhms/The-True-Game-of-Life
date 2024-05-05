@@ -181,17 +181,17 @@ if True:
 
 ### Marriage and Family Constants
 if True:
-    CAREERS_AND_MARRIAGE_PROBS = {"Student with Part Time Job": 0.08,
-                                "Student with Pocket Money": 0.005,
-                                'Pocket Money': 0.001,
-                                'Part Time': 0.002,
-                                'Base': 0.2,
-                                'Medium': 0.3,
-                                'High': 0.4,
-                                'Very High': 0.3}
+    CAREERS_AND_MARRIAGE_PROBS = { 'Pocket Money': 0.001,
+                                    'Part Time': 0.002,
+                                    'Base': 0.2,
+                                    'Medium': 0.3,
+                                    'High': 0.4,
+                                    'Very High': 0.3}
 
     MIN_MARRIAGE_ALLOWED_AGE = 16 ### Canada
-    SAME_GENDER_MARRIAGE_RATIO = 0.25
+    SAME_GENDER_MARRIAGE_RATIO = 0.03
+    ### https://www.statista.com/statistics/1381955/population-lgb-canada-province/
+    SEXUAL_ORIENTATION_RATES ={"Heterosexual": 0.967,"Gay/Lesbian":0.015,"Bisexual": 0.018}
     AVG_MARRIAGE_COST_PER_GUEST = 34000 / 100
 
     BABY_TWINS_MODE = {1:0.949, 2:0.04, 3:0.01, 4:0.001}
@@ -256,14 +256,14 @@ INFANT_DEATH_AGE = 1
 
 ### predict chances of being alive at a certain age (function calculated from the data)
 DEATH_PROB_MODEL_COEF = {'lin_reg': {'age': -0.0007784946236559146,
-  'gender': 0.006999999999999982,
-  'constant': 0.0,
-  'intercept': 1.0103333333333333},
- 'lin_reg_log': {'age': -0.023768641037244638,
-  'gender': 0.17413385791511007,
-  'lin_pred': 0.0012374407646648699,
-  'log_age': 0.11574413613333305,
-  'intercept': 0.1693725311462318}}
+                                    'gender': 0.006999999999999982,
+                                    'constant': 0.0,
+                                    'intercept': 1.0103333333333333},
+                        'lin_reg_log': {'age': -0.023768641037244638,
+                                        'gender': 0.17413385791511007,
+                                        'lin_pred': 0.0012374407646648699,
+                                        'log_age': 0.11574413613333305,
+                                        'intercept': 0.1693725311462318}}
 
 ### predict chances of being alive at a certain age (function calculated from the data)
 DEATH_PROB_MODEL_COEF_NEW = {'age^1': 0.5350243566594453,
