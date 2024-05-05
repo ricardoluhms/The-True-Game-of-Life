@@ -387,14 +387,14 @@ class Person_Functions():
 
     @staticmethod 
     def calculate_death_chance_v2(age,gender):
+        #print(age)
         ### the model predicts the probability of living and returns the probability of dying
         if gender == "Male":
-            gender_val =  0
+            gender_val =  1.2
         elif gender == "Female":
             gender_val = 2
 
-        ### pred_poly values ranges from 1 100
-
+        ### pred_poly values ranges from 1 100 - a value of 100 means will live, 0 means will die 
         pred_poly = DEATH_PROB_MODEL_COEF_NEW['age^1']*age +\
                    DEATH_PROB_MODEL_COEF_NEW['age^2']*age**2 +\
                    DEATH_PROB_MODEL_COEF_NEW['age^3']*age**3 +\
@@ -408,19 +408,14 @@ class Person_Functions():
                    DEATH_PROB_MODEL_COEF_NEW['intercept']
         
         if pred_poly > 100:
-            death_prob = 1
+            death_prob = 0.000001
 
         elif age > 100:
-            death_prob = 0
+            death_prob = 0.999999
         else:
-            death_prob = 1- pred_poly/100
+            death_prob = 1- pred_poly/100 #
 
         return death_prob
-        
-
-        
-    
-
 
     @staticmethod
     def calculate_death_chance_crit_ill(age):
@@ -555,10 +550,10 @@ class Person_Life(Person_Functions):
         random_prob_severe_acc = np.random.random()
         random_prob_ci = np.random.random()
         random_prob_curvature = np.random.random()
-        if age <= 1 and random_prob_unexpect <= 0.0045:
+        if age <= 1 and random_prob_unexpect <= 0.0040:
             event = "Death - Unexpected Infant Death"
             death = True
-            logger.info(f"### Death - Unexpected Infant Death: prob_th:{0.0045} >= prob:{round(random_prob_unexpect,4)} - age{age}")
+            logger.info(f"### Death - Unexpected Infant Death: prob_th:{0.0040} >= prob:{round(random_prob_unexpect,4)} - age{age}")
 
         elif random_prob_severe_acc <= 0.0001:
             event = "Death - Severe Accident"
