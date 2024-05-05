@@ -181,7 +181,8 @@ if True:
 
 ### Marriage and Family Constants
 if True:
-    CAREERS_AND_MARRIAGE_PROBS = { 'Pocket Money': 0.001,
+    CAREERS_AND_MARRIAGE_PROBS = {  "No Career": 0.1,
+                                    'Pocket Money': 0.001,
                                     'Part Time': 0.002,
                                     'Base': 0.2,
                                     'Medium': 0.3,

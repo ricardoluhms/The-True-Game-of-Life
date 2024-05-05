@@ -123,7 +123,7 @@ def generate_names_and_initial_data(df,population):
     df.drop(columns=["temp_id"], inplace=True)
     ### add marriage status
     df["marriage_status"] = False
-    df["career"] = None
+    df["career"] = "No Career"
     df['years_of_study'] = None
     df['years_to_study'] = None
     df['future_career'] = None
@@ -131,9 +131,13 @@ def generate_names_and_initial_data(df,population):
     df['balance'] = 0
     df['spender_prof'] = None
     df['partner_type'] = None
+    df['parent_name_id_A'] = np.random.choice(MALE_FIRST_NAMES,population)
+    df['parent_name_id_A'] += " " + df["last_name"]
+    df['parent_name_id_B'] = np.random.choice(FEMALE_FIRST_NAMES,population)
+    df['parent_name_id_B'] += " " + df["last_name"]
     return df
 
-def generate_past_events(df):
+def generate_past_events(df, debug_print=False):
     """
     Generate past events for initial population
     """
@@ -165,6 +169,8 @@ def generate_past_events(df):
             if i == 0:
                 df_temp = df_past[df_past["year"] == birth_year].copy()
             else:
+                if debug_print:
+                    print(f"Past Events:  Year: {birth_year} Age: {i} Population: {len(df_temp)}")
                 df_temp = dfs_temp[-1].copy()
 
             df_temp = generate_complete_year_age_up_pipeline(df_temp)
@@ -177,13 +183,12 @@ def generate_past_events(df):
 
     return df_past_final
 
-def generate_complete_year_age_up_pipeline(df):
+def generate_complete_year_age_up_pipeline(df, debug_print=False):
     
     mask = df['year'] == df["year"].max()
     if mask.sum() == 0:
-        #print("No people in that year")
+
         return df
-    #print(len(df), mask.sum())
 
     df2 = df[mask].copy()
     ### remove dead people
@@ -203,7 +208,7 @@ def generate_complete_year_age_up_pipeline(df):
     df2 = check_function_for_duplication(handle_finished_studies, df2)
     df2 = check_function_for_duplication(handle_part_time, df2)
     df2 = check_function_for_duplication(define_partner_type, df2)
-    df2 = check_function_for_duplication(handle_marriage_new, df2)
+    #df2 = check_function_for_duplication(handle_marriage_new, df2)
 
     df2 = check_function_for_duplication(update_account_balance, df2)
 
@@ -211,13 +216,19 @@ def generate_complete_year_age_up_pipeline(df):
 
     return df2
 
-def generate_complete_city(years, age_range="Young Adult", population=40000, start_year=1950):
+def generate_complete_city(years, age_range="Young Adult", population=40000, start_year=1950, debug_print=False):
+    ### Print the start year
     df = time_function(generate_init_df, population, start_year, age_range)
     df = time_function(generate_names_and_initial_data, df, population)
-    df_past = time_function(generate_past_events, df)
+    ### generate past events
+    print("\n ####   Generating past events ####\n")
+    df_past = time_function(generate_past_events, df, debug_print)
     df2 = df_past.copy()
     dfs = []
-    for _ in tqdm.tqdm(range(years)):
+    for year in tqdm.tqdm(range(years)):
+        ### generate new year
+        if debug_print:
+            print(f"\n####   Generating year: {year} ####\n")
         df2 = generate_complete_year_age_up_pipeline(df2) 
         dfs.append(df2)
 
@@ -352,6 +363,13 @@ def handle_part_time(df):
     df2 = pd.concat([df2, df_rest])
     return df2
 
+def check_career_and_study(df):
+    cols = [ "years_to_study", "career", "future_career"]
+    print(f"Population {len(df)}")
+    check = df[cols].fillna("None").reset_index().groupby(cols).count().reset_index()
+    print(f"{check}")
+    print("\n","-"*50,"\n")
+
 def handle_fut_career(df):
     ### use Person_Life and define_study_and_fut_career
     df2 = df.copy()
@@ -371,7 +389,7 @@ def handle_fut_career(df):
     if valid_pop == 0:
         return df2
     else:
-        #print(f"Valid population for future career: {valid_pop}")
+        print(f"Valid population for future career: {valid_pop}")
         pass
     
     df2 = df2[combined_crit]
@@ -380,7 +398,6 @@ def handle_fut_career(df):
     future_career = np.random.choice( list(FUTURE_CAREER_PAY_PROBS.keys()), valid_pop,
                                         p=np.array(list(FUTURE_CAREER_PAY_PROBS.values())))
     df2["future_career"] = future_career
-    df2["career"] = None
     df2['years_of_study'] = 0
     ### use  YEARS_OF_STUDY[future_career] as a merge operation where YEarS_OF_STUDY is a dict
     df2 = df2.merge(pd.DataFrame(list(YEARS_OF_STUDY.items()), 
@@ -405,7 +422,7 @@ def update_years_of_study(df):
         print("years_to_study not in columns")
         return df2
 
-    study_crit = df2["years_to_study"] > 0
+    study_crit = df2["years_to_study"] >= 0
     if study_crit.sum() == 0:
         return df2
     else: 
@@ -414,28 +431,39 @@ def update_years_of_study(df):
 
     return df2
 
-def handle_finished_studies(df):
+def handle_finished_studies(df, debug_print=False):
     df2 = df.copy()
-    ### check if future_career is None or nan
-    nan_or_none = ~(df2['future_career'] == None) | (df2['future_career'].astype(str) == "nan")
-    ### years of study is 0
+
+    
     years_of_study_crit = df2['years_to_study'] == 0
-    ### check if career is Pocket Money or Part Time
-    pocket_or_part = df2['career'].isin(["Pocket Money", "Part Time"])
-    combined_crit = nan_or_none & pocket_or_part & years_of_study_crit
+    ### has career that is not none or Pocket Money or Part Time
+    has_car_crit = df2['career'].isin(['Base', 'Medium', 'High', 'Very High'])
+    combined_crit = years_of_study_crit & has_car_crit
     if combined_crit.sum() == 0:
         return df2
     else:
         print(f"Finished studies: {combined_crit.sum()}")
         pass
+
     df2.loc[combined_crit, 'career'] = df2.loc[combined_crit, 'future_career']
     df2.loc[~combined_crit, 'future_career'] = None
     df_first_income = df2[combined_crit]
     df_rest = df2[~combined_crit]
-    ### generate new income - use apply and lambda
-    df_first_income["income"] = df_first_income.apply(
-        lambda x: abs(np.random.normal(FUTURE_CAREER_PAY_PROBS[x["career"]][0],
-                                        FUTURE_CAREER_PAY_PROBS[x["career"]][1])))
+    ### use INITIAL_INCOME_RANGES to get the first value from the dict and the career column from the df2 to get initial income
+    if debug_print:
+        pass
+    check_career_and_study(df2)
+
+
+    base_val  = df_first_income["career"].apply(lambda x: INITIAL_INCOME_RANGES[x][0]).values
+    std_val = df_first_income["career"].apply(lambda x: INITIAL_INCOME_RANGES[x][1]).values
+
+    random_inc_values = np.random.normal( base_val,
+                                         std_val,
+                                         len(df_first_income))
+                                                                 
+    random_inc_values = np.abs(np.round(random_inc_values,2))
+    df_first_income["income"] = random_inc_values
     
     ### Add Finished Studies to event string
     df_first_income["event"] = df_first_income["event"] + " - Finished Studies"
@@ -463,15 +491,16 @@ def define_partner_type(df):
     df2 = df.copy()
     ### age must be greater than marriage age
     age_crit = df2["age"] >= MIN_MARRIAGE_ALLOWED_AGE
-    partner_type_crit = (df2["partner_type"] == None) | (df2["partner_type"].astype(str) == "nan")
+    partner_type_crit = (df2["partner_type"].isna()) | (df2["partner_type"].astype(str) == "nan")
     combined_crit = age_crit & partner_type_crit
     if combined_crit.sum() == 0:
         return df2
     df_other = df2[~combined_crit]
     ### use np.random.choice to select partner type
-    df2["partner_type"] = np.random.choice(SEXUAL_ORIENTATION_RATES.keys(), 
-                                            combined_crit.sum(),
-                                            p=np.array(list(SEXUAL_ORIENTATION_RATES.values())))
+    df2["partner_type"] = np.random.choice(list(SEXUAL_ORIENTATION_RATES.keys()), 
+                                        combined_crit.sum(),
+                                         p=np.array(list(SEXUAL_ORIENTATION_RATES.values())))
+    
     df2 = pd.concat([df2, df_other])
     return df2
 
@@ -735,6 +764,9 @@ def handle_marriage_new(df):
     df2["marriage_prob"] = np.random.rand(can_marry_crit.sum())
     will_marry_status = np.where(df2["marriage_prob"] < df2["marriage_thresh"], True, False)
     will_marry_df = df2[will_marry_status]
+
+
+
     to_create_spouse_specs = []
     for will_marry_id in will_marry_df["unique_name_id"]:
         id_spouse, specs = check_candidate_spouse(df2, will_marry_id)
@@ -744,10 +776,11 @@ def handle_marriage_new(df):
             df2.loc[df2["unique_name_id"] == id_spouse, "marriage_status"] = True
             df2.loc[df2["unique_name_id"] == id_spouse, "spouse_name_id"] = will_marry_id
         else:
-            to_create_spouse.append(specs)
+            to_create_spouse_specs.append(specs)
             print(f"No spouse candidate for {specs['will_marry_id']}")
+    df2 = pd.concat([df2, df_rest])
 
-
+    return df2
 ### Plotting Functions
 
 def population_histogram(df):
