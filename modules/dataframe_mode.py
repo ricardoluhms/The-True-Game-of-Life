@@ -39,8 +39,22 @@ def check_merge_duplication_columns_error_message(df):
         return ""
     else:
         print("Checking merge duplication columns")
+        print(df2.head())
         return f"Columns to remove: {cols}"
-    
+
+def solve_merge_duplication_columns(df,cols):
+    ### assume that the columns are in the format column_x and column_y
+    ### _x seems to be the original column and _y seems to be the new column
+    ### drop the _x column and rename the _y column to the original column
+    df2 = df.copy()
+    for col in cols:
+        if col.endswith("_x"):
+            original_col = col.replace("_x", "")
+            print(f"Original column: {original_col}")
+            df[original_col] = df2[original_col + "_y"]
+            df2.drop(columns=[original_col+"_x", original_col+"_y"], inplace=True)
+    return df2
+
 def check_function_for_duplication(func, *args):
     df = func(*args)
     #df2 = check_merge_duplication_columns(df)
@@ -48,6 +62,9 @@ def check_function_for_duplication(func, *args):
     ### print function name
     if error != "":
         print(func.__name__, error)
+        cols = error.split(": ")[1].replace("[","").replace("]","").replace("'","").split(", ")
+        df = solve_merge_duplication_columns(df, cols)
+
     return df
 
 ### use assert to raise an error if the condition is not met
@@ -108,6 +125,7 @@ def generate_names_and_initial_data(df,population):
     df["marriage_status"] = False
     df["career"] = None
     df['years_of_study'] = None
+    df['years_to_study'] = None
     df['future_career'] = None
     df['income'] = 0
     df['balance'] = 0
@@ -183,8 +201,9 @@ def generate_complete_year_age_up_pipeline(df):
     df2 = check_function_for_duplication(handle_fut_career, df2)
     df2 = check_function_for_duplication(update_years_of_study, df2)
     df2 = check_function_for_duplication(handle_finished_studies, df2)
+    df2 = check_function_for_duplication(handle_part_time, df2)
     df2 = check_function_for_duplication(define_partner_type, df2)
-    #df2 = check_function_for_duplication(handle_marriage_new, df2)
+    df2 = check_function_for_duplication(handle_marriage_new, df2)
 
     df2 = check_function_for_duplication(update_account_balance, df2)
 
@@ -310,6 +329,29 @@ def handle_pocket_money(df):
 
     return df2
 
+def handle_part_time(df):
+    df2 = df.copy()
+    career_crit = df2["career"] == "Pocket Money"
+    age_crit = df2["age"] >= PART_TIME_JOB_MIN_AGE
+    combined_crit = career_crit & age_crit
+    if combined_crit.sum() == 0:
+        return df2
+    
+    df_rest = df2[~combined_crit]
+    df2 = df2[combined_crit]
+
+    ### generate probability for part time job given combined_crit.sum() population
+    part_time_job_prob = np.random.rand(combined_crit.sum())
+    part_time_job_crit = part_time_job_prob > PART_TIME_JOB_PROB
+    df2["career"] = np.where(part_time_job_crit, "Part Time", "Pocket Money")
+    ### generate income for part time job
+    base_income = INITIAL_INCOME_RANGES['Part Time'][0]
+    std_deviation = INITIAL_INCOME_RANGES['Part Time'][1]
+    part_time_income = np.abs(np.round(np.random.normal(base_income, std_deviation, combined_crit.sum()),2))
+    df2["income"] = np.where(part_time_job_crit, part_time_income, df2["income"])
+    df2 = pd.concat([df2, df_rest])
+    return df2
+
 def handle_fut_career(df):
     ### use Person_Life and define_study_and_fut_career
     df2 = df.copy()
@@ -344,6 +386,10 @@ def handle_fut_career(df):
     df2 = df2.merge(pd.DataFrame(list(YEARS_OF_STUDY.items()), 
                                  columns=["future_career", "years_to_study"]),
                                  on="future_career", how="left")
+    ### drop years_to_study_x and rename years_to_study_y to years_to_study
+    df2.drop(columns=["years_to_study_x"], inplace=True)
+    df2.rename(columns={"years_to_study_y":"years_to_study"}, inplace=True)
+
     ### append dead people and rest of the population
     if rest_pop > 0:
         df2 = pd.concat([df2, df_rest])
@@ -352,29 +398,36 @@ def handle_fut_career(df):
 
 def update_years_of_study(df):
     df2 = df.copy()
-    ### get people who are studying
-    study_crit = df2["years_of_study"] > 0
+    
+
+    ### check if years_to_study exists else print error message
+    if "years_to_study" not in df2.columns:
+        print("years_to_study not in columns")
+        return df2
+
+    study_crit = df2["years_to_study"] > 0
     if study_crit.sum() == 0:
         return df2
     else: 
-        try:
-            df2.loc[study_crit, "years_of_study"] -= 1
-            df2.loc[~study_crit, "years_of_study"] += 1
-        except:
-            print("No eligible people in dataframe")
+        df2.loc[study_crit, "years_to_study"] -= 1
+        df2.loc[study_crit, "years_of_study"] += 1
+
     return df2
 
 def handle_finished_studies(df):
     df2 = df.copy()
     ### check if future_career is None or nan
-    nan_or_none = (df2['future_career'] == None) | (df2['future_career'].astype(str) == "nan")
+    nan_or_none = ~(df2['future_career'] == None) | (df2['future_career'].astype(str) == "nan")
     ### years of study is 0
-    years_of_study_crit = df2['years_of_study'] == 0
+    years_of_study_crit = df2['years_to_study'] == 0
     ### check if career is Pocket Money or Part Time
     pocket_or_part = df2['career'].isin(["Pocket Money", "Part Time"])
     combined_crit = nan_or_none & pocket_or_part & years_of_study_crit
     if combined_crit.sum() == 0:
         return df2
+    else:
+        print(f"Finished studies: {combined_crit.sum()}")
+        pass
     df2.loc[combined_crit, 'career'] = df2.loc[combined_crit, 'future_career']
     df2.loc[~combined_crit, 'future_career'] = None
     df_first_income = df2[combined_crit]
@@ -602,7 +655,6 @@ def handle_marriage(self, person):
             return None
     else:
         return None
-
 
 # %%
 ### handle marriage
