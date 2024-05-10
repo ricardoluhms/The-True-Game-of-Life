@@ -278,7 +278,7 @@ def get_marriage_pairs(df: pd.DataFrame) -> pd.DataFrame:
     return to_marry_df_non_dups
 
 # %%
-if True:
+if False:
     age_array = create_age_matrix(will_marry_df)
     parent_array = create_parent_matrix(will_marry_df)
     het_array = create_het_matrix(will_marry_df)
