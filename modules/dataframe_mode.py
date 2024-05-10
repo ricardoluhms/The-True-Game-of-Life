@@ -133,6 +133,8 @@ def generate_names_and_initial_data(df,population):
     df['spender_prof'] = None
     df['partner_type'] = None
     df['spouse_name_id'] = None
+    df["marriage_thresh"] = 0
+    df["marriage_prob"] = 0
     df['parent_name_id_A'] = np.random.choice(MALE_FIRST_NAMES,population)
     df['parent_name_id_A'] += " " + df["last_name"]
     df['parent_name_id_B'] = np.random.choice(FEMALE_FIRST_NAMES,population)
