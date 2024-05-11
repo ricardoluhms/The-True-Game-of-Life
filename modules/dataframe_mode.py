@@ -7,6 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import pandas as pd
 import numpy as np
 from modules.marriage import get_marriage_pairs
+from modules.born import children_born
 from modules.city import City
 from modules.person import Person_Life
 from modules.gml_constants import *
@@ -135,6 +136,7 @@ def generate_names_and_initial_data(df,population):
     df['spouse_name_id'] = None
     df["marriage_thresh"] = 0
     df["marriage_prob"] = 0
+    df["existing_children_count"] = 0
     df['parent_name_id_A'] = np.random.choice(MALE_FIRST_NAMES,population)
     df['parent_name_id_A'] += " " + df["last_name"]
     df['parent_name_id_B'] = np.random.choice(FEMALE_FIRST_NAMES,population)
@@ -204,6 +206,7 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False):
     df2 = check_function_for_duplication(define_partner_type, df2)
     df2 = check_function_for_duplication(handle_marriage_array, df2)
     df2 = check_function_for_duplication(update_account_balance, df2)
+    df2 = check_function_for_duplication(children_born, df2)
     df2 = pd.concat([df2, dfd])
 
     return df2
@@ -230,7 +233,6 @@ def generate_complete_city(years, age_range="Young Adult", population=40000, sta
     return dfs_final
 
 ### Event Functions
-
 def age_up_df(df):
     df2 = df.copy()
 
