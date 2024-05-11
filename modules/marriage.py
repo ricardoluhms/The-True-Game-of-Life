@@ -274,6 +274,7 @@ def get_marriage_pairs(df: pd.DataFrame) -> pd.DataFrame:
                              gay_les_array, bi_array)
     
     to_marry_df_non_dups = non_dups_marriage_pairs(to_marry)
+    print("Marriage Pairs: ", to_marry_df_non_dups.shape[0])
 
     return to_marry_df_non_dups
 
