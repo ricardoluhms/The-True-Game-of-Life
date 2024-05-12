@@ -5,6 +5,9 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from  modules.gml_constants import ( BABY_TWINS_MODE, EXISTING_CHILDREN_PROB_DICT, BASE_BIRTH_PROB,
                                      GENDER_PROBS, MALE_FIRST_NAMES, FEMALE_FIRST_NAMES)
+### ignore warnings 
+import warnings
+warnings.filterwarnings("ignore")
 
 def children_born(df):
 
@@ -20,16 +23,27 @@ def children_born(df):
     has_spouse_cri = df["spouse_name_id"].notnull()
     is_candidate = married_cri & age_cri & has_spouse_cri & female_cri
 
-    df_candidates = df[is_candidate]
-    df_non_candidates = df[~is_candidate]
+    # if has_spouse_cri.sum() == 0:
+    #     print("Child Born Cand: ", is_candidate.sum(),
+    #           "Has Spouse Crit", has_spouse_cri.sum())
+
+    df_candidates = df[is_candidate].copy()
+    df_non_candidates = df[~is_candidate].copy()
+
+    if is_candidate.sum() == 0:
+        return df
 
     ### calculate the probability of having a child - use current children count and EXISTING_CHILDREN_PROB_DICT
     ### existing_children_count > 1 -> base_prob = EXISTING_CHILDREN_PROB_DICT[existing_children_count]
     ### existing_children_count = 0 -> base_prob = max(EXISTING_CHILDREN_PROB_DICT.values())+0.1
     
-    existing_children_prob = np.where(df["existing_children_count"] > 0, 
-                        EXISTING_CHILDREN_PROB_DICT[df["existing_children_count"]],
-                        max(EXISTING_CHILDREN_PROB_DICT.values())+0.1)
+    # existing_children_prob = np.where(df["existing_children_count"] > 0, 
+    #                     EXISTING_CHILDREN_PROB_DICT[df["existing_children_count"]],
+    #                     max(EXISTING_CHILDREN_PROB_DICT.values())+0.1)
+    
+    ### rewrite the existing_children_prob using apply
+    existing_children_prob = df_candidates["existing_children_count"].\
+                                apply(lambda x: EXISTING_CHILDREN_PROB_DICT[x])
     
     ### calculate the decreasing probability of having a child
 
@@ -61,7 +75,7 @@ def children_born(df):
                                        size=len(df_with_new_children),
                                         p=np.array(list(BABY_TWINS_MODE.values())))
     ### if baby_count 
-    df_with_new_children["baby_count"] += temp_baby_count
+    df_with_new_children["existing_children_count"] += temp_baby_count
 
     ### get the person and the spouse from the dataframe
     df_babies = df_with_new_children.copy()[["unique_name_id", "spouse_name_id"]]
