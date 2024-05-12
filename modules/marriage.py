@@ -3,47 +3,6 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
-
-person_1 = pd.DataFrame({
-    "unique_name_id": [1],
-    "age": [15],
-    "gender":["Male"],
-    "partner_type": ["Heterosexual"],
-    "parent_name_id_A": ["John Doe"],
-    "parent_name_id_B": ["Jane Doe"],
-    'will_marry': [False]
-})
-heterosexual = pd.DataFrame({
-    "unique_name_id": [2, 3, 4],
-    "age": [21, 22, 50],
-    "gender":["Male","Female","Male"],
-    "partner_type": ["Heterosexual","Heterosexual","Heterosexual"],
-    "parent_name_id_A": ["Peter Doe", "Zero Doe", "Many Doe"],
-    "parent_name_id_B": ["Lana Doe", "Lisa Doe", "Linda Doe"],
-    'will_marry': [True, True, True]
-})
-gay_lessbian = pd.DataFrame({
-    "unique_name_id": [5, 6, 7, 8, 9],
-    "age":[24, 25, 30, 31, 51],
-    "gender":["Female","Female","Male","Male","Male"],
-    "partner_type": ["Gay/Lesbian","Gay/Lesbian","Gay/Lesbian","Gay/Lesbian","Gay/Lesbian"],
-    "parent_name_id_A": ["Peter Doe", "Zero Doe", "Many Doe", "Peter Doe", "Zero Doe"],
-    "parent_name_id_B": ["Lana Doe", "Lisa Doe", "Linda Doe", "Lana Doe", "Lisa Doe"],
-    'will_marry': [True, True, True, True, True]
-})
-bisexual = pd.DataFrame({
-    "unique_name_id": [10, 11, 12, 13, 14],
-    "age":[36, 37, 41, 42, 55],
-    "gender":["Female","Male","Male","Male","Male"],
-    "partner_type": ["Bisexual","Bisexual","Bisexual","Bisexual","Bisexual"],
-    "parent_name_id_A": ["Peter Doe", "Zero Doe", "Many Doe", "Doug Doe", "Dino Doe"],
-    "parent_name_id_B": ["Lana Doe", "Lisa Doe", "Linda Doe", "Linn Doe", "Lass Doe"],
-    'will_marry': [True, True, True, True, True]
-})
-
-## combine all dataframes
-will_marry_df = pd.concat([person_1, heterosexual, gay_lessbian, bisexual], ignore_index=True)
-
 #%%
 ### Create a generic function to create the matrix dataframes
 
@@ -274,12 +233,62 @@ def get_marriage_pairs(df: pd.DataFrame) -> pd.DataFrame:
                              gay_les_array, bi_array)
     
     to_marry_df_non_dups = non_dups_marriage_pairs(to_marry)
-    print("Marriage Pairs: ", to_marry_df_non_dups.shape[0])
 
+    dfindex = df["unique_name_id"].reset_index(drop=True).reset_index()
+    to_marry_df_non_dups = to_marry_df_non_dups.\
+                            merge(dfindex, left_on='unique_id_1', right_on='index', how='left').\
+                            drop(columns=['index', 'unique_id_1']).\
+                            rename(columns={'unique_name_id': 'unique_id_1'})
+    to_marry_df_non_dups = to_marry_df_non_dups.\
+                            merge(dfindex, left_on='unique_id_2', right_on='index', how='left').\
+                            drop(columns=['index', 'unique_id_2']).\
+                            rename(columns={'unique_name_id': 'unique_id_2'})
+    
     return to_marry_df_non_dups
 
 # %%
-if False:
+testing = False
+if testing:
+    person_1 = pd.DataFrame({
+        "unique_name_id": [1],
+        "age": [15],
+        "gender":["Male"],
+        "partner_type": ["Heterosexual"],
+        "parent_name_id_A": ["John Doe"],
+        "parent_name_id_B": ["Jane Doe"],
+        'will_marry': [False]
+    })
+    heterosexual = pd.DataFrame({
+        "unique_name_id": [2, 3, 4],
+        "age": [21, 22, 50],
+        "gender":["Male","Female","Male"],
+        "partner_type": ["Heterosexual","Heterosexual","Heterosexual"],
+        "parent_name_id_A": ["Peter Doe", "Zero Doe", "Many Doe"],
+        "parent_name_id_B": ["Lana Doe", "Lisa Doe", "Linda Doe"],
+        'will_marry': [True, True, True]
+    })
+    gay_lessbian = pd.DataFrame({
+        "unique_name_id": [5, 6, 7, 8, 9],
+        "age":[24, 25, 30, 31, 51],
+        "gender":["Female","Female","Male","Male","Male"],
+        "partner_type": ["Gay/Lesbian","Gay/Lesbian","Gay/Lesbian","Gay/Lesbian","Gay/Lesbian"],
+        "parent_name_id_A": ["Peter Doe", "Zero Doe", "Many Doe", "Peter Doe", "Zero Doe"],
+        "parent_name_id_B": ["Lana Doe", "Lisa Doe", "Linda Doe", "Lana Doe", "Lisa Doe"],
+        'will_marry': [True, True, True, True, True]
+    })
+    bisexual = pd.DataFrame({
+        "unique_name_id": [10, 11, 12, 13, 14],
+        "age":[36, 37, 41, 42, 55],
+        "gender":["Female","Male","Male","Male","Male"],
+        "partner_type": ["Bisexual","Bisexual","Bisexual","Bisexual","Bisexual"],
+        "parent_name_id_A": ["Peter Doe", "Zero Doe", "Many Doe", "Doug Doe", "Dino Doe"],
+        "parent_name_id_B": ["Lana Doe", "Lisa Doe", "Linda Doe", "Linn Doe", "Lass Doe"],
+        'will_marry': [True, True, True, True, True]
+    })
+
+    ## combine all dataframes
+    will_marry_df = pd.concat([person_1, heterosexual, gay_lessbian, bisexual], ignore_index=True)
+
     age_array = create_age_matrix(will_marry_df)
     parent_array = create_parent_matrix(will_marry_df)
     het_array = create_het_matrix(will_marry_df)
