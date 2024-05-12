@@ -196,10 +196,15 @@ if True:
     AVG_MARRIAGE_COST_PER_GUEST = 34000 / 100
 
     BABY_TWINS_MODE = {1:0.949, 2:0.04, 3:0.01, 4:0.001}
-    BASE_BIRTH_PROB = 0.1
-    EXISTING_CHILDREN_PROB_DICT = {0: 0.0, 1: 0.1, 2: 0.15, 3: 0.25, 4: 0.35, 
-                                   5: 0.4, 6: 0.5, 7: 0.5, 8: 0.5, 9: 0.5,10: 0.6}
-    
+
+
+    BIRTH_PROB_CURVES_CST = {"Base Birth Prob": 1,
+                            "Age Exp Constant - B4": 0.16870885579735,
+                            "Age Multiplier - AC4": 227.38,
+                            "Childeren Base Constant - AA4": 19.1162997997614,
+                            "Children to Age Multiplier - AD4": 2.4594,
+                            "Correction Factor - AB4": 9.5878751707644}
+
 ### Career Constants
 if True:
     SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75, 'In-Debt': 0.5, 'Depressed': 0.4}
