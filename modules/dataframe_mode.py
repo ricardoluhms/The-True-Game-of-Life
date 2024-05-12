@@ -179,7 +179,7 @@ def generate_past_events(df, debug_print=False):
                     print(f"Past Events:  Year: {birth_year} Age: {i} Population: {len(df_temp)}")
                 df_temp = dfs_temp[-1].copy()
 
-            df_temp = generate_complete_year_age_up_pipeline(df_temp)
+            df_temp = generate_complete_year_age_up_pipeline(df_temp, basic_mode=False)
 
             dfs_temp.append(df_temp)
             dfs.append(df_temp)
@@ -189,7 +189,7 @@ def generate_past_events(df, debug_print=False):
 
     return df_past_final
 
-def generate_complete_year_age_up_pipeline(df, debug_print=False):
+def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=False):
     
     mask = df['year'] == df["year"].max()
     if mask.sum() == 0:
@@ -204,9 +204,10 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False):
     df2 = check_function_for_duplication(handle_finished_studies, df2)
     df2 = check_function_for_duplication(handle_part_time, df2)
     df2 = check_function_for_duplication(define_partner_type, df2)
-    df2 = check_function_for_duplication(handle_marriage_array, df2)
+    if basic_mode:
+        df2 = check_function_for_duplication(handle_marriage_array, df2)
+        df2 = check_function_for_duplication(children_born, df2)
     df2 = check_function_for_duplication(update_account_balance, df2)
-    df2 = check_function_for_duplication(children_born, df2)
     df2 = pd.concat([df2, dfd])
 
     return df2
@@ -224,7 +225,7 @@ def generate_complete_city(years, age_range="Young Adult", population=40000, sta
         ### generate new year
         if debug_print:
             print(f"\n####   Generating year: {year} ####\n")
-        df2 = generate_complete_year_age_up_pipeline(df2) 
+        df2 = generate_complete_year_age_up_pipeline(df2, basic_mode=True)
         dfs.append(df2)
 
     dfs_p1 = pd.concat(dfs)
@@ -512,10 +513,10 @@ def handle_marriage_array(df):
 
     ### add 
     df_can["marriage_thresh"] = df_can.apply(lambda x: CAREERS_AND_MARRIAGE_PROBS[x["career"]], axis=1)
-    df2["marriage_prob"] = np.random.rand(can_marry_crit.sum())
-    will_marry_status = np.where(df2["marriage_prob"] < df2["marriage_thresh"], True, False)
-    will_marry_df = df2[will_marry_status]
-    will_not_marry_df = df2[~will_marry_status]
+    df_can["marriage_prob"] = np.random.rand(can_marry_crit.sum())
+    will_marry_status = np.where(df_can["marriage_prob"] < df_can["marriage_thresh"], True, False)
+    will_marry_df = df_can[will_marry_status]
+    will_not_marry_df = df_can[~will_marry_status]
 
     pairs = get_marriage_pairs(will_marry_df)
     
