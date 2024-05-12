@@ -337,7 +337,7 @@ def handle_pocket_money(df):
     if age_crit.sum() == 0:
         return df2
     
-    print(f"Pocket Money: {age_crit.sum()} vs {(~age_crit).sum()}")
+    #print(f"Pocket Money: {age_crit.sum()} vs {(~age_crit).sum()}")
     df2 = df2[age_crit].copy()  
     df_rest = df[~age_crit].copy()
 
@@ -351,9 +351,9 @@ def handle_pocket_money(df):
     df2["spender_prof"] = np.random.choice( list(SPENDER_PROFILE_PROBS.keys()), 
                                             len(df2),
                                             p = np.array(list(SPENDER_PROFILE_PROBS.values())))
-    print(f"Pocket Money Before: {len(df2)}")
+    #print(f"Pocket Money Before: {len(df2)}")
     df2 = pd.concat([df2, df_rest])
-    print(f"Pocket Money After: {len(df2)}")
+    #print(f"Pocket Money After: {len(df2)}")
 
     return df2
 
