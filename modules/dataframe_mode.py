@@ -192,23 +192,40 @@ def generate_past_events(df, debug_print=False):
 def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=False):
     
     mask = df['year'] == df["year"].max()
+    df_length = {"Total": len(df)}
     if mask.sum() == 0:
         return df
     df2 = df[mask].copy()
+    df_length["year_lenght"] = len(df2)
     df2, dfd = remove_dead_people(df2)
+    df_length["non_dead_people"] = len(df2)
     df2 = check_function_for_duplication(age_up_df, df2)
+    df_length["age_up"] = len(df2)
     df2 = check_function_for_duplication(calculate_death_df, df2)
+    df_length["death_calc"] = len(df2)
     df2 = check_function_for_duplication(handle_pocket_money, df2)
+    df_length["pocket_money"] = len(df2)
     df2 = check_function_for_duplication(handle_fut_career, df2)
+    df_length["fut_career"] = len(df2)
     df2 = check_function_for_duplication(update_years_of_study, df2)
+    df_length["years_of_study"] = len(df2)
     df2 = check_function_for_duplication(handle_finished_studies, df2)
+    df_length["finished_studies"] = len(df2)
     df2 = check_function_for_duplication(handle_part_time, df2)
+    df_length["part_time"] = len(df2)
     df2 = check_function_for_duplication(define_partner_type, df2)
+    df_length["partner_type"] = len(df2)
     if basic_mode:
         df2 = check_function_for_duplication(handle_marriage_array, df2)
+        df_length["marriage"] = len(df2)
         df2 = check_function_for_duplication(children_born, df2)
+        df_length["children_born"] = len(df2)
     df2 = check_function_for_duplication(update_account_balance, df2)
+    df_length["account_balance"] = len(df2)
     df2 = pd.concat([df2, dfd])
+    df_length["combined"] = len(df2)
+    if basic_mode and debug_print:
+        print(f"Year: {df2['year'].max()} Lengths:\n {df_length}")
 
     return df2
 
@@ -294,6 +311,7 @@ def calculate_death_df(df):
     ### replace event with death status
     df2.loc[df2['death_status'] != "", "event"] = df2.loc[df2['death_status'] != "", "death_status"]
 
+    # print("Death Input", len(df), "Death Output", len(df2))
     return df2
 
 def remove_dead_people(df):
@@ -318,8 +336,10 @@ def handle_pocket_money(df):
     age_crit = df2["age"] == POCKET_MONEY_AGE
     if age_crit.sum() == 0:
         return df2
-    df2 = df2[age_crit]
-    df_rest = df2[~age_crit]
+    
+    print(f"Pocket Money: {age_crit.sum()} vs {(~age_crit).sum()}")
+    df2 = df2[age_crit].copy()  
+    df_rest = df[~age_crit].copy()
 
     df2["career"] = "Pocket Money"
     base_income = INITIAL_INCOME_RANGES['Pocket Money'][0]
@@ -331,7 +351,9 @@ def handle_pocket_money(df):
     df2["spender_prof"] = np.random.choice( list(SPENDER_PROFILE_PROBS.keys()), 
                                             len(df2),
                                             p = np.array(list(SPENDER_PROFILE_PROBS.values())))
+    print(f"Pocket Money Before: {len(df2)}")
     df2 = pd.concat([df2, df_rest])
+    print(f"Pocket Money After: {len(df2)}")
 
     return df2
 
@@ -384,7 +406,7 @@ def handle_fut_career(df):
     if valid_pop == 0:
         return df2
     else:
-        print(f"Valid population for future career: {valid_pop}")
+        #print(f"Valid population for future career: {valid_pop}")
         pass
     
     df2 = df2[combined_crit]
