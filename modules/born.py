@@ -3,8 +3,10 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
-from  modules.gml_constants import ( BABY_TWINS_MODE, EXISTING_CHILDREN_PROB_DICT, BASE_BIRTH_PROB,
+import numpy as np
+from  modules.gml_constants import ( BABY_TWINS_MODE, BIRTH_PROB_CURVES_CST,
                                      GENDER_PROBS, MALE_FIRST_NAMES, FEMALE_FIRST_NAMES)
+                                     
 ### ignore warnings 
 import warnings
 warnings.filterwarnings("ignore")
@@ -22,51 +24,33 @@ def children_born(df):
     age_cri = df["age"] >= 16
     has_spouse_cri = df["spouse_name_id"].notnull()
     is_candidate = married_cri & age_cri & has_spouse_cri & female_cri
-
-    # if has_spouse_cri.sum() == 0:
-    #     print("Child Born Cand: ", is_candidate.sum(),
-    #           "Has Spouse Crit", has_spouse_cri.sum())
-
     df_candidates = df[is_candidate].copy()
     df_non_candidates = df[~is_candidate].copy()
+    #print("Candidates: ", is_candidate.sum(), "Non Candidates: ", (~is_candidate).sum())
 
+
+    #print((~is_candidate).sum(), is_candidate.sum())
     if is_candidate.sum() == 0:
         return df
-
-    ### calculate the probability of having a child - use current children count and EXISTING_CHILDREN_PROB_DICT
-    ### existing_children_count > 1 -> base_prob = EXISTING_CHILDREN_PROB_DICT[existing_children_count]
-    ### existing_children_count = 0 -> base_prob = max(EXISTING_CHILDREN_PROB_DICT.values())+0.1
     
-    # existing_children_prob = np.where(df["existing_children_count"] > 0, 
-    #                     EXISTING_CHILDREN_PROB_DICT[df["existing_children_count"]],
-    #                     max(EXISTING_CHILDREN_PROB_DICT.values())+0.1)
-    
-    ### rewrite the existing_children_prob using apply
-    existing_children_prob = df_candidates["existing_children_count"].\
-                                apply(lambda x: EXISTING_CHILDREN_PROB_DICT[x])
-    
-    ### calculate the decreasing probability of having a child
-
-    age_decreasing_prob = 0.11306*np.exp((df["age"]-10)/25)
-
-    total_prob = BASE_BIRTH_PROB  - age_decreasing_prob - existing_children_prob
-
+    ### use apply and lambda and birth_prob_curves
+    total_prob = df_candidates.apply(lambda x: birth_prob_curves(x["age"], 
+                                                                 x["existing_children_count"]), axis=1)
     df_candidates["total_prob"] = total_prob
 
     ### create a random number between 0 and 1
     df_candidates["children_prob"] = np.random.random(size=len(df_candidates))
 
     ### check if total_prob is not negative if it is then the person will not have a child 
-
+    
     ### total prob starts high and decreases with age and existing children, a low children_prob is better because it will be easier to have a child 
     #### if adults are young and have no children, and total_prob is high
     #### if adults are old and have children, and total_prob is low 
     crit = df_candidates["children_prob"] <= df_candidates["total_prob"]
-    crit_1 = total_prob <= 0
 
+    #print("Desc", df_candidates["total_prob"].describe(), crit.sum())
     ### non negative total_prob or children_prob <= total_prob
-    df_candidates["will_have_child"] = crit | ~crit_1
-
+    df_candidates["will_have_child"] = crit 
 
     df_with_new_children = df_candidates[df_candidates["will_have_child"]].copy()
     df_with_no_new_children = df_candidates[~df_candidates["will_have_child"]].copy()
@@ -106,7 +90,17 @@ def children_born(df):
 
     df_babies = generate_names_and_initial_data_babies(df_babies, current_year)
 
-    ### combine the babies with 
+    # if has_spouse_cri.sum() > 0:
+    #     print("Child Born Cand: ", is_candidate.sum(),
+    #           "Has Spouse Crit", has_spouse_cri.sum(),
+    #           "Babies: ", df_babies.shape[0])
+
+    ### combine the babies with
+    ### print len of df_non_candidates, df_with_no_new_children, df_with_new_children, df_babies
+    # print("Non Cand: ", df_non_candidates.shape[0],
+    #         "No New Children: ", df_with_no_new_children.shape[0],
+    #         "With New Children: ", df_with_new_children.shape[0],
+    #         "Babies: ", df_babies.shape[0])
     df2 = pd.concat([df_non_candidates, df_with_no_new_children, df_with_new_children, df_babies], ignore_index=True)
 
     return df2                       
@@ -156,3 +150,57 @@ def generate_names_and_initial_data_babies(df, current_year):
     df["existing_children_count"] = 0
 
     return df
+#%%
+def birth_prob_curves(age,existing_children_count):
+    ### curves constants
+    c_cst = BIRTH_PROB_CURVES_CST
+
+    age_divider = c_cst["Age Multiplier - AC4"]*c_cst["Age Exp Constant - B4"]
+    age_prob_subtraction = c_cst["Age Exp Constant - B4"]*np.exp((age-10)/age_divider)
+
+
+    pre_ln_mult = c_cst["Age Exp Constant - B4"]*\
+                    c_cst['Children to Age Multiplier - AD4']
+
+    #ok
+    non_zero_ext_children_mod = c_cst["Age Exp Constant - B4"]*\
+                                c_cst["Childeren Base Constant - AA4"]
+    
+    correction_factor = non_zero_ext_children_mod/c_cst["Correction Factor - AB4"]
+
+    exist_children_prob = pre_ln_mult*np.log(existing_children_count+\
+                                            non_zero_ext_children_mod)\
+                         - correction_factor
+    
+    # print("Age: ", age, "Existing Children: ", existing_children_count, 
+    #       "Age Prob: ", age_prob_subtraction,
+    #       "Exist Children Prob: ",  exist_children_prob,
+    #       non_zero_ext_children_mod, correction_factor)
+
+    prob = 1 - age_prob_subtraction - exist_children_prob
+    if prob < 0:
+        prob = 0.000000001
+
+    return prob
+
+#%% generate a table with the combinations of age and existing children count
+def generate_birth_prob_table():
+    age = np.arange(17, 75)
+    children = np.arange(0, 10)
+    df = pd.DataFrame()
+    for i in age:
+        for j in children:
+            temp = pd.DataFrame({"age": i, "existing_children_count": j}, index=[0])
+            df = pd.concat([df, temp], ignore_index=True)
+    df["total_prob"] = df.apply(lambda x: birth_prob_curves(x["age"], x["existing_children_count"]), axis=1)
+    return df
+
+#%%
+if False:
+    birth_table = generate_birth_prob_table()
+    pivot = birth_table.pivot("age", "existing_children_count", "total_prob")
+
+    plt.figure(figsize=(10, 10))
+    sns.heatmap(pivot, cmap="coolwarm", annot=True)
+    plt.show()
+# %%
