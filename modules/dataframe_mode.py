@@ -176,7 +176,8 @@ def generate_past_events(df, debug_print=False):
                 df_temp = df_past[df_past["year"] == birth_year].copy()
             else:
                 if debug_print:
-                    print(f"Past Events:  Year: {birth_year} Age: {i} Population: {len(df_temp)}")
+                    #print(f"Past Events:  Year: {birth_year} Age: {i} Population: {len(df_temp)}")
+                    pass
                 df_temp = dfs_temp[-1].copy()
 
             df_temp = generate_complete_year_age_up_pipeline(df_temp, basic_mode=False)
@@ -242,7 +243,7 @@ def generate_complete_city(years, age_range="Young Adult", population=40000, sta
         ### generate new year
         if debug_print:
             print(f"\n####   Generating year: {year} ####\n")
-        df2 = generate_complete_year_age_up_pipeline(df2, basic_mode=True)
+        df2 = generate_complete_year_age_up_pipeline(df2, basic_mode=True, debug_print=debug_print)
         dfs.append(df2)
 
     dfs_p1 = pd.concat(dfs)
@@ -338,8 +339,8 @@ def handle_pocket_money(df):
         return df2
     
     #print(f"Pocket Money: {age_crit.sum()} vs {(~age_crit).sum()}")
+    df_rest = df2[~age_crit].copy()
     df2 = df2[age_crit].copy()  
-    df_rest = df[~age_crit].copy()
 
     df2["career"] = "Pocket Money"
     base_income = INITIAL_INCOME_RANGES['Pocket Money'][0]
@@ -409,8 +410,8 @@ def handle_fut_career(df):
         #print(f"Valid population for future career: {valid_pop}")
         pass
     
-    df2 = df2[combined_crit]
     df_rest = df2[~combined_crit]
+    df2 = df2[combined_crit]
 
     future_career = np.random.choice( list(FUTURE_CAREER_PAY_PROBS.keys()), valid_pop,
                                         p=np.array(list(FUTURE_CAREER_PAY_PROBS.values())))
@@ -513,12 +514,14 @@ def define_partner_type(df):
     if combined_crit.sum() == 0:
         return df2
     df_other = df2[~combined_crit]
+    df_partner = df2[combined_crit]
+
     ### use np.random.choice to select partner type
-    df2["partner_type"] = np.random.choice(list(SEXUAL_ORIENTATION_RATES.keys()), 
+    df_partner["partner_type"] = np.random.choice(list(SEXUAL_ORIENTATION_RATES.keys()), 
                                         combined_crit.sum(),
                                          p=np.array(list(SEXUAL_ORIENTATION_RATES.values())))
     
-    df2 = pd.concat([df2, df_other])
+    df2 = pd.concat([df_partner, df_other])
     return df2
 
 ### handle marriage
