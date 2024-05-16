@@ -440,7 +440,7 @@ def update_years_of_study(df):
         print("years_to_study not in columns")
         return df2
 
-    study_crit = df2["years_to_study"] >= 0
+    study_crit = df2["years_to_study"] > 0
     if study_crit.sum() == 0:
         return df2
     else: 
@@ -452,11 +452,11 @@ def update_years_of_study(df):
 def handle_finished_studies(df, debug_print=False):
     df2 = df.copy()
 
-    
     years_of_study_crit = df2['years_to_study'] == 0
     ### has career that is not none or Pocket Money or Part Time
-    has_car_crit = df2['career'].isin(['Base', 'Medium', 'High', 'Very High'])
+    has_car_crit = df2['future_career'].isin(['Base', 'Medium', 'High', 'Very High'])
     combined_crit = years_of_study_crit & has_car_crit
+    #print(f"Years of Study: {years_of_study_crit.sum()} vs {has_car_crit.sum()} vs {combined_crit.sum()}")
     if combined_crit.sum() == 0:
         return df2
     else:
