@@ -242,7 +242,8 @@ def generate_complete_city(years, age_range="Young Adult", population=40000, sta
     for year in tqdm.tqdm(range(years)):
         ### generate new year
         if debug_print:
-            print(f"\n####   Generating year: {year} ####\n")
+            #print(f"\n####   Generating year: {year} ####\n")
+            pass
         df2 = generate_complete_year_age_up_pipeline(df2, basic_mode=True, debug_print=debug_print)
         dfs.append(df2)
 
@@ -397,12 +398,9 @@ def handle_fut_career(df):
 
     ### remove people who are already working
     valid_careers = ['Base', 'Medium', 'High', 'Very High']
-    #working_crit = df2["career"].isin(CAREERS_AND_MARRIAGE_PROBS.keys())
-    working_crit = df2["career"].isin(valid_careers)
-    combined_crit = age_crit & ~working_crit
+    future_is_none = ~df2['future_career'].isin(['Base', 'Medium', 'High', 'Very High'])
+    combined_crit = age_crit & future_is_none
     valid_pop = combined_crit.sum()
-
-
     rest_pop = (~combined_crit).sum()
     if valid_pop == 0:
         return df2
@@ -455,12 +453,14 @@ def handle_finished_studies(df, debug_print=False):
     years_of_study_crit = df2['years_to_study'] == 0
     ### has career that is not none or Pocket Money or Part Time
     has_car_crit = df2['future_career'].isin(['Base', 'Medium', 'High', 'Very High'])
-    combined_crit = years_of_study_crit & has_car_crit
+    not_working = ~df2['career'].isin(['Base', 'Medium', 'High', 'Very High'])
+
+    combined_crit = years_of_study_crit & has_car_crit & not_working
     #print(f"Years of Study: {years_of_study_crit.sum()} vs {has_car_crit.sum()} vs {combined_crit.sum()}")
     if combined_crit.sum() == 0:
         return df2
     else:
-        print(f"Finished studies: {combined_crit.sum()}")
+        #print(f"Finished studies: {combined_crit.sum()}")
         pass
 
     df2.loc[combined_crit, 'career'] = df2.loc[combined_crit, 'future_career']
@@ -470,7 +470,7 @@ def handle_finished_studies(df, debug_print=False):
     ### use INITIAL_INCOME_RANGES to get the first value from the dict and the career column from the df2 to get initial income
     if debug_print:
         pass
-    check_career_and_study(df2)
+    #check_career_and_study(df2)
 
 
     base_val  = df_first_income["career"].apply(lambda x: INITIAL_INCOME_RANGES[x][0]).values
@@ -524,7 +524,6 @@ def define_partner_type(df):
     df2 = pd.concat([df_partner, df_other])
     return df2
 
-### handle marriage
 def handle_marriage_array(df):
     df2 = df.copy()
     age_crit = df2["age"] >= MIN_MARRIAGE_ALLOWED_AGE
@@ -571,6 +570,18 @@ def handle_marriage_array(df):
     return df2
 
 ### Plotting Functions
+
+### student loan
+
+### pay off student loan
+
+### get raise
+
+### retirement
+
+### life insurance
+
+### buy a house
 
 def population_histogram(df):
     df2 = df.copy()
