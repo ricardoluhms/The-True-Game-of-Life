@@ -1,36 +1,84 @@
+import pandas as pd
 ### Name Generation Constants
 if True:
-    MALE_FIRST_NAMES = ['Aaron', 'Adam', 'Alan', 'Albert', 'Alexander', 'Andrew', 'Anthony', 'Arthur', 'Austin', 'Benjamin', 'Billy',
-                        'Bobby', 'Bradley', 'Brandon', 'Brian', 'Bruce', 'Bryan', 'Carl', 'Charles', 'Christian', 'Christopher',
-                        'Daniel', 'David', 'Dennis', 'Donald', 'Douglas', 'Dylan', 'Edward', 'Eric', 'Ethan', 'Eugene', 'Frank', 'Gabriel',
-                        'Gary', 'George', 'Gerald', 'Gregory', 'Harold', 'Harry', 'Henry', 'Jack', 'Jacob', 'James', 'Jason', 'Jeffrey',
-                        'Jeremy', 'Jerry', 'Jesse', 'Joe', 'John', 'Johnny', 'Jonathan', 'Jordan', 'Jose', 'Joseph', 'Joshua', 'Juan', 'Justin',
-                        'Keith', 'Kenneth', 'Kevin', 'Kyle', 'Larry', 'Lawrence', 'Logan', 'Louis', 'Mark', 'Matthew', 'Michael', 
-                        'Nathan', 'Nicholas', 'Noah', 'Patrick', 'Paul', 'Peter', 'Philip', 'Ralph', 'Randy', 'Raymond', 'Richard', 'Robert',
-                        'Roger', 'Ronald', 'Roy', 'Russell', 'Ryan', 'Samuel', 'Scott', 'Sean', 'Stephen', 'Steven', 'Terry', 'Thomas', 'Timothy',
-                        'Tyler', 'Vincent', 'Walter', 'Wayne', 'William', 'Willie', 'Zachary']
+    MALE_FIRST_NAMES = ['Aaron', 'Abel', 'Abraham', 'Adam', 'Adan', 'Adolfo', 'Adrian', 'Agustin', 'Alan', 'Albert', 
+                        'Alberto', 'Alejandro', 'Alex', 'Alexander', 'Alfonso', 'Alfredo', 'Allan', 'Alonso', 'Alvaro',
+                        'Alvin', 'Amado', 'Amador', 'Ambrosio', 'Amos', 'Andres', 'Andrew', 'Angel', 'Anthony', 
+                        'Antonio', 'Armando', 'Arnold', 'Arthur', 'Arturo', 'Augustine', 'Augusto', 'Austin', 'Benito', 
+                        'Benjamin', 'Bernardo', 'Billy', 'Bobby', 'Bradley', 'Brandon', 'Brendan', 'Brian', 'Bruce', 
+                        'Bryan', 'Byron', 'Caleb', 'Calvin', 'Carl', 'Carlos', 'Carmelo', 'Cesar', 'Charles', 'Charlie',
+                        'Chris', 'Christian', 'Christopher', 'Clarence', 'Claudio', 'Clemente', 'Cody', 'Colin', 
+                        'Conrad', 'Cristian', 'Cristobal', 'Cruz', 'Damian', 'Damien', 'Daniel', 'Dante', 'Dario', 
+                        'Darren', 'David', 'Dean', 'Dennis', 'Derek', 'Diego', 'Domingo', 'Dominic', 'Donald', 
+                        'Donovan', 'Dorian', 'Douglas', 'Drew', 'Duane', 'Dustin', 'Dwayne', 'Dwight', 'Dylan', 
+                        'Edgar', 'Edison', 'Eduardo', 'Edward', 'Edwin', 'Efrain', 'Elias', 'Elijah', 'Emanuel', 
+                        'Emilio', 'Emmanuel', 'Enrique', 'Eric', 'Erick', 'Ernest', 'Ernesto', 'Esteban', 
+                        'Ethan', 'Eugene', 'Evan', 'Everett', 'Ezequiel', 'Ezra', 'Federico', 'Felipe', 'Felix', 
+                        'Fernando', 'Fidel', 'Francisco', 'Frank', 'Franklin', 'Freddie', 'Freddy', 'Frederick', 
+                        'Gabriel', 'Gael', 'Garry', 'Gary', 'Gavin', 'Genaro', 'Geoffrey', 'George', 'Gerald', 
+                        'Gerard', 'German', 'Gilbert', 'Gilberto', 'Giovanni', 'Gonzalo', 'Gordon', 'Gregorio', 
+                        'Gregory', 'Guadalupe', 'Guillermo', 'Gustavo', 'Harold', 'Harry', 'Hector', 'Henry', 
+                        'Herbert', 'Herman', 'Hernan', 'Hilario', 'Hiram', 'Homer', 'Horacio', 'Hugo', 'Ian', 
+                        'Ignacio', 'Irving', 'Isaac', 'Isaias', 'Isidro', 'Ismael', 'Jack', 'Jacob', 'James', 
+                        'Jason', 'Jeffrey', 'Jeremy', 'Jerry', 'Jesse', 'Joe', 'John', 'Johnny', 'Jonathan', 
+                        'Jordan', 'Jose', 'Joseph', 'Joshua', 'Juan', 'Justin', 'Keith', 'Kenneth', 'Kevin', 
+                        'Kyle', 'Larry', 'Lawrence', 'Logan', 'Louis', 'Mark', 'Matthew', 'Michael', 'Nathan', 
+                        'Nicholas', 'Noah', 'Patrick', 'Paul', 'Peter', 'Philip', 'Ralph', 'Randy', 'Raymond', 
+                        'Richard', 'Robert', 'Roger', 'Ronald', 'Roy', 'Russell', 'Ryan', 'Samuel', 'Scott', 
+                        'Sean', 'Stephen', 'Steven', 'Terry', 'Thomas', 'Timothy', 'Tyler', 'Vincent', 'Walter', 
+                        'Wayne', 'William', 'Willie', 'Zachary']
 
-    ### add list of 100 most common female names
+    FEMALE_FIRST_NAMES = ['Abigail', 'Adriana', 'Alejandra', 'Alexis', 'Alice', 'Alicia', 'Amanda', 
+                          'Amber', 'Amy', 'Ana', 'Andrea', 'Angela', 'Angelica', 'Ann', 'Anna', 
+                          'Antonia', 'Ashley', 'Aurora', 'Barbara', 'Beatriz', 'Betty', 'Beverly', 
+                          'Blanca', 'Brenda', 'Brittany', 'Carmen', 'Carol', 'Carolina', 'Carolyn', 
+                          'Catalina', 'Catherine', 'Cecilia', 'Cheryl', 'Christina', 'Christine', 
+                          'Clara', 'Claudia', 'Concepcion', 'Consuelo', 'Cristina', 'Cynthia', 
+                          'Danielle', 'Deborah', 'Debra', 'Denise', 'Diana', 'Diane', 'Dolores', 
+                          'Donna', 'Doris', 'Dorothy', 'Elena', 'Elisa', 'Elizabeth', 'Elsa', 'Emilia', 
+                          'Emily', 'Emma', 'Esperanza', 'Estela', 'Esther', 'Eva', 'Evelyn', 'Fernanda', 
+                          'Frances', 'Francisca', 'Gabriela', 'Gloria', 'Grace', 'Graciela', 'Guadalupe', 
+                          'Hannah', 'Heather', 'Helen', 'Hilda', 'Ines', 'Irene', 'Isabel', 'Isabela', 
+                          'Jacqueline', 'Jane', 'Janet', 'Janice', 'Jean', 'Jennifer', 'Jessica', 'Joan', 
+                          'Josefina', 'Joyce', 'Juana', 'Judith', 'Judy', 'Julia', 'Julie', 'Karen', 
+                          'Katherine', 'Kathleen', 'Kathryn', 'Kayla', 'Kelly', 'Kimberly', 'Laura', 
+                          'Lauren', 'Leticia', 'Lilia', 'Liliana', 'Linda', 'Lisa', 'Lorena', 'Lori', 
+                          'Lourdes', 'Lucia', 'Luisa', 'Luz', 'Madison', 'Magdalena', 'Manuela', 
+                          'Margaret', 'Margarita', 'Maria', 'Mariana', 'Maricela', 'Marie', 'Marilyn', 
+                          'Marisol', 'Marta', 'Martha', 'Mary', 'Megan', 'Melissa', 'Mercedes', 'Micaela', 
+                          'Michelle', 'Migdalia', 'Miguelina', 'Mireya', 'Monica', 'Nancy', 'Natalia', 
+                          'Natalie', 'Nicole', 'Norma', 'Olga', 'Olivia', 'Pamela', 'Patricia', 'Paula', 
+                          'Pilar', 'Rachel', 'Raquel', 'Rebeca', 'Rebecca', 'Reina', 'Rosa', 'Rosalia', 
+                          'Rosario', 'Rose', 'Ruth', 'Samantha', 'Sandra', 'Sara', 'Sarah', 'Sharon', 
+                          'Shirley', 'Silvia', 'Sofia', 'Soledad', 'Sonia', 'Sophia', 'Stephanie', 'Susan', 
+                          'Susana', 'Teresa', 'Theresa', 'Veronica', 'Victoria', 'Virginia', 'Yolanda', 
+                          'Yvette', 'Yvonne', 'Zoraida']
 
-    FEMALE_FIRST_NAMES = ['Abigail', 'Alexis', 'Alice', 'Amanda', 'Amber', 'Amy', 'Andrea', 'Angela', 'Ann', 'Anna', 'Ashley', 'Barbara', 'Betty',
-                    'Beverly', 'Brenda', 'Brittany', 'Carol', 'Carolyn', 'Catherine', 'Cheryl', 'Christina', 'Christine', 'Cynthia', 'Danielle',
-                    'Deborah', 'Debra', 'Denise', 'Diana', 'Diane', 'Donna', 'Doris', 'Dorothy', 'Elizabeth', 'Emily', 'Emma', 'Evelyn', 'Frances',
-                    'Gloria', 'Grace', 'Hannah', 'Heather', 'Helen', 'Jacqueline', 'Jane', 'Janet', 'Janice', 'Jean', 'Jennifer', 'Jessica', 'Joan',
-                    'Joyce', 'Judith', 'Judy', 'Julia', 'Julie', 'Karen', 'Katherine', 'Kathleen', 'Kathryn', 'Kayla', 'Kelly', 'Kimberly', 'Laura',
-                    'Lauren', 'Linda', 'Lisa', 'Lori', 'Madison', 'Margaret', 'Maria', 'Marie', 'Marilyn', 'Martha', 'Mary', 'Megan', 'Melissa', 'Michelle',
-                    'Nancy', 'Natalie', 'Nicole', 'Olivia', 'Pamela', 'Patricia', 'Rachel', 'Rebecca', 'Rose', 'Ruth', 'Samantha', 'Sandra', 'Sara',
-                    'Sarah', 'Sharon', 'Shirley', 'Sophia', 'Stephanie', 'Susan', 'Teresa', 'Theresa', 'Victoria', 'Virginia']
-
-    ### add list of 100 most common last names in alphabetical order
-
-    LAST_NAMES = ['Adams', 'Alexander', 'Allen', 'Anderson', 'Bailey', 'Baker', 'Barnes', 'Bell', 'Bennett', 'Brooks', 'Brown', 'Bryant', 'Butler',
-                    'Campbell', 'Carter', 'Clark', 'Coleman', 'Collins', 'Cook', 'Cooper', 'Cox', 'Davis', 'Diaz', 'Edwards', 'Evans', 'Flores', 'Foster',
-                    'Garcia', 'Gonzales', 'Gonzalez', 'Gray', 'Green', 'Griffin', 'Hall', 'Harris', 'Hayes', 'Henderson', 'Hernandez', 'Hill', 'Howard',
-                    'Hughes', 'Jackson', 'James', 'Jenkins', 'Johnson', 'Jones', 'Kelly', 'King', 'Lee', 'Lewis', 'Long', 'Lopez', 'Martin', 'Martinez',
-                    'Miller', 'Mitchell', 'Moore', 'Morgan', 'Morris', 'Murphy', 'Nelson', 'Parker', 'Patterson', 'Perez', 'Perry', 'Peterson', 'Phillips',
-                    'Powell', 'Price', 'Ramirez', 'Reed', 'Richardson', 'Rivera', 'Roberts', 'Robinson', 'Rodriguez', 'Rogers', 'Ross', 'Russell', 'Sanchez',
-                    'Sanders', 'Scott', 'Simmons', 'Smith', 'Stewart', 'Taylor', 'Thomas', 'Thompson', 'Torres', 'Turner', 'Walker', 'Ward', 'Washington',
-                    'Watson', 'White', 'Williams', 'Wilson', 'Wood', 'Wright', 'Young']
+    LAST_NAMES = ['Adams', 'Alexander', 'Allen', 'Alvarez', 'Anderson', 'Andrade', 'Arango', 'Arias', 
+                  'Arroyo', 'Avila', 'Bailey', 'Baker', 'Barnes', 'Becerra', 'Bell', 'Bennett', 
+                  'Bermudez', 'Bonilla', 'Brooks', 'Brown', 'Bryant', 'Bustamante', 'Butler', 
+                  'Cabrera', 'Calderon', 'Camacho', 'Campbell', 'Cardenas', 'Caro', 'Carrillo', 
+                  'Carter', 'Castillo', 'Castro', 'Cedillo', 'Cervantes', 'Chavez', 'Cisneros', 
+                  'Clark', 'Coleman', 'Collins', 'Contreras', 'Cook', 'Cooper', 'Cortes', 'Cox', 
+                  'Cruz', 'Davis', 'Delgado', 'Diaz', 'Duarte', 'Echeverri', 'Edwards', 'Estrada', 
+                  'Evans', 'Fernandez', 'Flores', 'Florez', 'Fonseca', 'Foster', 'Gallego', 'Garcia', 
+                  'Gomez', 'Gonzales', 'Gonzalez', 'Gray', 'Green', 'Griffin', 'Guerra', 'Guerrero', 
+                  'Gutierrez', 'Hall', 'Harris', 'Hayes', 'Henao', 'Henderson', 'Henriquez', 'Hernandez',
+                  'Herrera', 'Hill', 'Howard', 'Hughes', 'Hurtado', 'Jackson', 'James', 'Jenkins', 
+                  'Jimenez', 'Johnson', 'Jones', 'Kelly', 'King', 'Lee', 'Lewis', 'Long', 'Lopez', 
+                  'Marin', 'Marquez', 'Martin', 'Martinez', 'Medina', 'Mejia', 'Mendoza', 'Miller', 
+                  'Mitchell', 'Molina', 'Montes', 'Moore', 'Morales', 'Moreno', 'Morgan', 'Morris', 
+                  'Munoz', 'Murillo', 'Murphy', 'Navarro', 'Nelson', 'Ochoa', 'Orozco', 'Ortiz', 
+                  'Osorio', 'Palacios', 'Paredes', 'Parker', 'Patterson', 'Perez', 'Perry', 'Peterson', 
+                  'Phillips', 'Powell', 'Price', 'Ramirez', 'Ramos', 'Reed', 'Restrepo', 'Reyes', 
+                  'Richardson', 'Rios', 'Rivera', 'Roberts', 'Robinson', 'Robledo', 'Rodriguez', 
+                  'Rogers', 'Rojas', 'Roldan', 'Romero', 'Ross', 'Rubio', 'Ruiz', 'Russell', 'Salazar', 
+                  'Sanchez', 'Sanders', 'Sandoval', 'Santos', 'Scott', 'Serrano', 'Silva', 'Simmons', 
+                  'Smith', 'Soto', 'Stewart', 'Suarez', 'Taylor', 'Thomas', 'Thompson', 'Toro', 
+                  'Torres', 'Trujillo', 'Turner', 'Uribe', 'Valencia', 'Vallejo', 'Vargas', 'Vasquez', 
+                  'Velez', 'Vera', 'Vergara', 'Vidal', 'Villa', 'Walker', 'Ward', 'Washington', 
+                  'Watson', 'White', 'Williams', 'Wilson', 'Wood', 'Wright', 'Young', 'Zapata', 
+                  'Zimmerman', 'Zuniga']
 
 ### Student Constants
 if True:
@@ -53,7 +101,7 @@ if True:
                 'Teenager': [13, 17], 
                 'Young Adult': [18, 25], 
                 'Adult': [26, 65], 
-                'Elder': [66, 96]}
+                'Elder': [66, 120]}
 
     AGE_RANGE_PROB_DICT = {'Baby': 0.1,
                             'Child': 0.2,
@@ -62,8 +110,23 @@ if True:
                             'Adult': 0.2,
                             'Elder': 0.1}
 
-    GENDER_PROBS = {'Male': 0.5,
-                    'Female': 0.5}                   
+    GENDER_PROBS = {'Male': 0.45,
+                    'Female': 0.55}                   
+
+    ### create a dataframe with the age ranges and the probabilities of each age range
+    age_range = []
+    for a_range, value_list in AGE_RANGES.items():
+        for age_val in range(value_list[0], value_list[1] + 1):
+            if age_val == 0:
+                event = "Born"
+            elif age_val == 5:
+                event = "First Pocket Money"
+            else:
+                event = "Age Up"
+            age_event = a_range + " - " + event
+            age_range.append([a_range, age_val, age_event])
+
+    AGE_RANGE_DF = pd.DataFrame(age_range, columns = ['age_range', 'age','age_event'])
 
 ### Financial Constants
 if True:    
@@ -118,23 +181,30 @@ if True:
 
 ### Marriage and Family Constants
 if True:
-    CAREERS_AND_MARRIAGE_PROBS = {"Student with Part Time Job": 0.08,
-                                "Student with Pocket Money": 0.005,
-                                'Pocket Money': 0.001,
-                                'Part Time': 0.002,
-                                'Base': 0.2,
-                                'Medium': 0.3,
-                                'High': 0.4,
-                                'Very High': 0.3}
+    CAREERS_AND_MARRIAGE_PROBS = {  "No Career": 0.1,
+                                    'Pocket Money': 0.001,
+                                    'Part Time': 0.002,
+                                    'Base': 0.2,
+                                    'Medium': 0.3,
+                                    'High': 0.4,
+                                    'Very High': 0.3}
 
-    MIN_MARRIAGE_ALLOWED_AGE = 16 ### Canada
-    SAME_GENDER_MARRIAGE_RATIO = 0.25
+    MIN_MARRIAGE_ALLOWED_AGE = 18 ###
+    SAME_GENDER_MARRIAGE_RATIO = 0.03
+    ### https://www.statista.com/statistics/1381955/population-lgb-canada-province/
+    SEXUAL_ORIENTATION_RATES ={"Heterosexual": 0.967,"Gay/Lesbian":0.015,"Bisexual": 0.018}
     AVG_MARRIAGE_COST_PER_GUEST = 34000 / 100
 
     BABY_TWINS_MODE = {1:0.949, 2:0.04, 3:0.01, 4:0.001}
 
-    EXISTING_CHILDREN_PROB_DICT = {0: 0.0, 1: 0.1, 2: 0.15, 3: 0.25, 4: 0.35, 5: 0.4, 6: 0.5, 7: 0.5, 8: 0.5, 9: 0.5}
-    
+
+    BIRTH_PROB_CURVES_CST = {"Base Birth Prob": 1,
+                            "Age Exp Constant - B4": 0.16870885579735,
+                            "Age Multiplier - AC4": 227.38,
+                            "Childeren Base Constant - AA4": 19.1162997997614,
+                            "Children to Age Multiplier - AD4": 2.4594,
+                            "Correction Factor - AB4": 9.5878751707644}
+
 ### Career Constants
 if True:
     SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75, 'In-Debt': 0.5, 'Depressed': 0.4}
@@ -151,6 +221,7 @@ if True:
 
     PART_TIME_JOB_MIN_AGE = 16
     PART_TIME_JOB_PROB = 0.5
+    POCKET_MONEY_AGE = 5
 
     FUTURE_CAREER_PAY_PROBS = {'Base': 0.4,
                             'Medium': 0.4,
@@ -185,15 +256,33 @@ if True:
 ### Death Constants
 
 ### extracted from https://www150.statcan.gc.ca/t1/tbl1/en/cv.action?pid=1310013501 - Statistics Canada
+SEVERE_ACCIDENT_DEATH_PROB = 0.0001
+INFANT_DEATH_PROB = 0.0045
+INFANT_DEATH_AGE = 1
+
+### predict chances of being alive at a certain age (function calculated from the data)
 DEATH_PROB_MODEL_COEF = {'lin_reg': {'age': -0.0007784946236559146,
-  'gender': 0.006999999999999982,
-  'constant': 0.0,
-  'intercept': 1.0083333333333333},
- 'lin_reg_log': {'age': -0.023768641037244638,
-  'gender': 0.17413385791511007,
-  'lin_pred': 0.0012374407646648699,
-  'log_age': 0.11574413613333305,
-  'intercept': 0.1693725311462318}}
+                                    'gender': 0.006999999999999982,
+                                    'constant': 0.0,
+                                    'intercept': 1.0103333333333333},
+                        'lin_reg_log': {'age': -0.023768641037244638,
+                                        'gender': 0.17413385791511007,
+                                        'lin_pred': 0.0012374407646648699,
+                                        'log_age': 0.11574413613333305,
+                                        'intercept': 0.1693725311462318}}
+
+### predict chances of being alive at a certain age (function calculated from the data)
+DEATH_PROB_MODEL_COEF_NEW = {'age^1': 0.5350243566594453,
+                            'age^2': -0.09833100187477894,
+                            'age^3': 0.003413713570147637,
+                            'age^4': -4.4700634509943734e-05,
+                            'age^5': 1.8773503441702386e-07,
+                            'gender^1': 0.008583444963261737,
+                            'gender^2': 0.017166889926523522,
+                            'gender^3': 0.034333779853047044,
+                            'gender^4': 0.06866755970609409,
+                            'gender^5': 0.13733511941218818,
+                            'intercept': 108.11623127556327}
                                     
 ### extracted from https://www150.statcan.gc.ca/t1/tbl1/en/cv.action?pid=1310039201
 CRIT_ILL_DEATH_PROB_MODEL_COEF = {'age': 8.16935778e-05,
