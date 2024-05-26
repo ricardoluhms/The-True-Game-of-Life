@@ -184,10 +184,10 @@ if True:
     CAREERS_AND_MARRIAGE_PROBS = {  "No Career": 0.1,
                                     'Pocket Money': 0.001,
                                     'Part Time': 0.002,
-                                    'Base': 0.2,
-                                    'Medium': 0.3,
-                                    'High': 0.4,
-                                    'Very High': 0.3}
+                                    'Base': 0.15,
+                                    'Medium': 0.25,
+                                    'High': 0.3,
+                                    'Very High': 0.25}
 
     MIN_MARRIAGE_ALLOWED_AGE = 18 ###
     SAME_GENDER_MARRIAGE_RATIO = 0.03
@@ -197,13 +197,19 @@ if True:
 
     BABY_TWINS_MODE = {1:0.949, 2:0.04, 3:0.01, 4:0.001}
 
-
-    BIRTH_PROB_CURVES_CST = {"Base Birth Prob": 1,
-                            "Age Exp Constant - B4": 0.16870885579735,
-                            "Age Multiplier - AC4": 227.38,
-                            "Childeren Base Constant - AA4": 19.1162997997614,
-                            "Children to Age Multiplier - AD4": 2.4594,
-                            "Correction Factor - AB4": 9.5878751707644}
+    BIRTH_PROB_CURVES_CST = {"Base Birth Prob": 0.95,
+                        "Age Exp Constant -> A1": 0.196888965209072, ### the higher the value the lower the prob because it subtracts from the base prob
+                        "Age Sub Constant -> A2": 10, ### the higher the value the lower the prob  ## (age - A2) thus the higher the prob
+                        "Age Constant Divider -> C0": 171.989701, ### the higher the value the higher the prob because it divides the input before the exp
+                        "Age to Ext. Child. -> C1": 2, ### the higher the value the lower the prob because it multiplies the LN based on the number of children
+                        "Non Neg. Ext. Child. Mod. -> C2": 10, ### the higher the value the higher the prob because it adds to the LN based on the number of children
+                        "Correction Factor Mult -> C3": 45, ### the higher the value the lower the prob because it subtracts from the LN based on the number of children
+                        }
+    
+    BIRTH_PROB_CURVES_CST["Age Div Constant -> A3"] = BIRTH_PROB_CURVES_CST["Age Exp Constant -> A1"] * BIRTH_PROB_CURVES_CST["Age Constant Divider -> C0"]
+    BIRTH_PROB_CURVES_CST["Ext. Child Mult -> B1"] = BIRTH_PROB_CURVES_CST["Age Exp Constant -> A1"] * BIRTH_PROB_CURVES_CST["Age to Ext. Child. -> C1"]
+    BIRTH_PROB_CURVES_CST["Ext. Child CT -> B2"] = BIRTH_PROB_CURVES_CST["Age Exp Constant -> A1"] * BIRTH_PROB_CURVES_CST["Non Neg. Ext. Child. Mod. -> C2"]
+    BIRTH_PROB_CURVES_CST["Correction Factor -> B3"] = BIRTH_PROB_CURVES_CST["Ext. Child CT -> B2"] / BIRTH_PROB_CURVES_CST["Correction Factor Mult -> C3"]
 
 ### Career Constants
 if True:

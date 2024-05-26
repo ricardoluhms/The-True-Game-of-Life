@@ -89,18 +89,8 @@ def children_born(df):
     current_year = df["year"].max()
 
     df_babies = generate_names_and_initial_data_babies(df_babies, current_year)
+    print("New Babies: ", df_babies.shape[0])
 
-    # if has_spouse_cri.sum() > 0:
-    #     print("Child Born Cand: ", is_candidate.sum(),
-    #           "Has Spouse Crit", has_spouse_cri.sum(),
-    #           "Babies: ", df_babies.shape[0])
-
-    ### combine the babies with
-    ### print len of df_non_candidates, df_with_no_new_children, df_with_new_children, df_babies
-    # print("Non Cand: ", df_non_candidates.shape[0],
-    #         "No New Children: ", df_with_no_new_children.shape[0],
-    #         "With New Children: ", df_with_new_children.shape[0],
-    #         "Babies: ", df_babies.shape[0])
     df2 = pd.concat([df_non_candidates, df_with_no_new_children, df_with_new_children, df_babies], ignore_index=True)
 
     return df2                       
@@ -154,28 +144,20 @@ def generate_names_and_initial_data_babies(df, current_year):
 def birth_prob_curves(age,existing_children_count):
     ### curves constants
     c_cst = BIRTH_PROB_CURVES_CST
+    ### A1 * EXP ( (AGE -A2)/A3) = AGE PROB SUBTRACTION
+    ### B1 * LN(EXISTING CHILDREN COUNT+B2) - B3 = EXIST CHILDREN PROB
+    ### A3 = A1 * C0
+    ### B1 = A1*C1
+    ### B2 = A1 * C2
+    ### B3 = B2 / C3
 
-    age_divider = c_cst["Age Multiplier - AC4"]*c_cst["Age Exp Constant - B4"]
-    age_prob_subtraction = c_cst["Age Exp Constant - B4"]*np.exp((age-10)/age_divider)
+    age_prob_subtraction = c_cst["Age Exp Constant -> A1"]*\
+                            np.exp((age - c_cst["Age Sub Constant -> A2"])/\
+                            c_cst["Age Div Constant -> A3"])
 
-
-    pre_ln_mult = c_cst["Age Exp Constant - B4"]*\
-                    c_cst['Children to Age Multiplier - AD4']
-
-    #ok
-    non_zero_ext_children_mod = c_cst["Age Exp Constant - B4"]*\
-                                c_cst["Childeren Base Constant - AA4"]
-    
-    correction_factor = non_zero_ext_children_mod/c_cst["Correction Factor - AB4"]
-
-    exist_children_prob = pre_ln_mult*np.log(existing_children_count+\
-                                            non_zero_ext_children_mod)\
-                         - correction_factor
-    
-    # print("Age: ", age, "Existing Children: ", existing_children_count, 
-    #       "Age Prob: ", age_prob_subtraction,
-    #       "Exist Children Prob: ",  exist_children_prob,
-    #       non_zero_ext_children_mod, correction_factor)
+    exist_children_prob = c_cst["Ext. Child Mult -> B1"]*\
+                          np.log(existing_children_count + c_cst["Ext. Child CT -> B2"]) -\
+                          c_cst["Correction Factor -> B3"]
 
     prob = 1 - age_prob_subtraction - exist_children_prob
     if prob < 0:

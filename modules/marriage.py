@@ -206,21 +206,18 @@ def non_dups_marriage_pairs(to_marry: np.array) -> pd.DataFrame:
     to_marry_df_dups = to_marry_df[dups_mask]
 
     ### sort the values randomly
-    to_marry_df_dups = to_marry_df_dups.sample(frac=1).reset_index(drop=True)
+    to_marry_df_dupsA = to_marry_df_dups.sample(frac=1).reset_index(drop=True)
+    to_marry_df_dupsB = to_marry_df_dupsA.copy()
 
-    ### for loop in the dups 
-    ls_id = []
-    for idx in to_marry_df_dups.index:
-        unique_id_A = to_marry_df_dups.loc[idx, 'unique_id_1']
-        unique_id_B = to_marry_df_dups.loc[idx, 'unique_id_2']
+    ### swap the values
+    to_marry_df_dupsB['unique_id_1'] = to_marry_df_dupsA['unique_id_2']
+    to_marry_df_dupsB['unique_id_2'] = to_marry_df_dupsA['unique_id_1']
 
-        if unique_id_A not in ls_id and unique_id_B not in ls_id:
-            ls_id.append(unique_id_A)
-            ls_id.append(unique_id_B)
-            ### append to the non dups
-            to_marry_df_non_dups = pd.concat([to_marry_df_non_dups, to_marry_df_dups.loc[idx, :].to_frame().T], ignore_index=True)
+    ### combine the dataframes 
+    to_marry_df_cand = pd.concat([to_marry_df_dupsA, to_marry_df_dupsB,to_marry_df_non_dups], ignore_index=True)
+    to_marry_df_select = to_marry_df_cand.drop_duplicates("unique_id_1")
 
-    return to_marry_df_non_dups
+    return to_marry_df_select
 
 def get_marriage_pairs(df: pd.DataFrame) -> pd.DataFrame:
     age_array = create_age_matrix(df, plot=False)
