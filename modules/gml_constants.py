@@ -298,3 +298,25 @@ CRIT_ILL_DEATH_PROB_MODEL_COEF = {'age': 8.16935778e-05,
                                   'intercept':  -0.00024762657632679795}
 
 #### TO ADD INFLANTION RATE AND TAXES ON INCOME
+
+
+
+# Define the data in a Python dictionary
+expenditure_data = {
+    "Category": ["Housing", "Transportation", "Food", "Personal Insurance and Pensions", 
+                 "Healthcare", "Entertainment", "Other Expenditures", "Cash Contributions", 
+                 "Apparel and Services", "Education"],
+    "Single Person": [33.3, 16.8, 12.8, 12, 8, 4.7, 4.1, 3.8, 2.7, 1.8],
+    "Married Couple (No Kids)": [31, 15, 13, 11, 9, 5, 6, 3, 4, 3],
+    "Family of Four": [30, 15, 15, 10, 10, 5, 5, 3, 5, 2],
+    "Retired Couple": [27, 14, 13, 9, 15, 4, 6, 5, 3, 2],
+    "Low-Income Household": [40, 10, 20, 5, 5, 3, 5, 2, 5, 5]
+}
+
+# Create a pandas DataFrame
+df_expenditure = pd.DataFrame(expenditure_data)
+
+# import ace_tools as tools; tools.display_dataframe_to_user(name="Monthly Expenditure by Persona", dataframe=df_expenditure)
+
+# # Display the DataFrame
+# df_expenditure
