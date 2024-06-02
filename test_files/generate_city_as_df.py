@@ -7,7 +7,7 @@ from modules.dataframe_mode import *
 
 
 #%%40000
-df3 = time_function(generate_complete_city, 100, "Young Adult", 5000, 1950,True)
+df3 = time_function(generate_complete_city, 100, "Young Adult", 20000, 1950,True)
 #%% check if folder exists
 if not os.path.exists("C:/Users/ricar/Documents/GitHub/TGoL/test_files/data/new_pipeline"):
     os.makedirs("C:/Users/ricar/Documents/GitHub/TGoL/test_files/data/new_pipeline")
