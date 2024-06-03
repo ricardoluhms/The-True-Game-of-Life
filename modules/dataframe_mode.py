@@ -78,6 +78,8 @@ def generate_names_and_initial_data(df,population):
     df['parent_name_id_B'] = np.random.choice(FEMALE_FIRST_NAMES,population)
     df['parent_name_id_B'] += " " + df["last_name"]
     df = create_initial_expenditure_values(df)
+    df['loan'] = 0
+    df['default_count'] = 0
     return df
 
 def generate_past_events(df, debug_print=False):
@@ -146,6 +148,8 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
     df_length["pocket_money"] = len(df2)
     df2 = check_function_for_duplication( handle_fut_career, df2)
     df_length["fut_career"] = len(df2)
+    df2 = check_function_for_duplication(student_loan, df2)
+    df_length["student_loan"] = len(df2)
     df2 = check_function_for_duplication(update_years_of_study, df2)
     df_length["years_of_study"] = len(df2)
     df2 = check_function_for_duplication(handle_finished_studies, df2)
@@ -162,7 +166,6 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
         df_length["marriage"] = len(df2)
         df2 = check_function_for_duplication(children_born, df2)
         df_length["children_born"] = len(df2)
-
     df2 = check_function_for_duplication(update_expenditure_rates, df2)
     df_length["expenditure_rates"] = len(df2)
     df2 = check_function_for_duplication(handle_expenditure_value, df2)
@@ -170,6 +173,8 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
     df2 = check_function_for_duplication(update_account_balance_v2, df2)
     #df2 = check_function_for_duplication(update_account_balance, df2)
     df_length["account_balance"] = len(df2)
+    df2 = check_function_for_duplication(pay_loan, df2)
+    df_length["pay_loan"] = len(df2)
     df2 = pd.concat([df2, dfd])
     df_length["combined"] = len(df2)
     if basic_mode and debug_print:

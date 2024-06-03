@@ -3,9 +3,12 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
+import random
 import numpy as np
-from  modules.gml_constants import *
-
+try:
+    from  modules.gml_constants import *
+except :
+    from  gml_constants import *
 ### limitations: 
 # 01 - A couple will have always a proportional part of the income set to housing
 # This means that if their salary increases, the housing part will increase as well
@@ -55,7 +58,7 @@ def update_expenditure_rates(df):
 
     df2 = df2[non_non_crit].copy()
     ### use SPENDER_PROFILE to get the rate for each person plus a random value between 0 and 0.1
-    df2["spender_prof_rate"] = df2["spender_prof"].apply(lambda x: SPENDER_PROFILE[x] + np.random.uniform(-0.1, 0.1)).round(2)
+    df2["spender_prof_rate"] = df2["spender_prof"].apply(lambda x: SPENDER_PROFILE[x] + np.random.uniform(-0.05, 0.05)).round(2)
     ### merge the dataframe with EXPEND_MULTIPLIER_BY_EXPENDITURE_GROUP_DF
     df2 = df2.merge(EXPEND_MULTIPLIER_BY_EXPENDITURE_GROUP_DF, on="age_range", how="left")
     ### remove _x and rename _y columns
@@ -185,7 +188,172 @@ def get_a_raise(df):
     
     return updated_df
 
-def get_student_loan()
+def student_loan(df):
+    """Calculate and update loan details based on tuition fees."""
+    df2 = df.copy()
+    
+    ### eligibility for student loan
+    ### - person must not have a career but must have a future career
+    no_career_check = ~df2["career"].isin(list(INITIAL_INCOME_RANGES.keys())[2:-1])
+    future_career_check = df2["future_career"].isin(list(INITIAL_INCOME_RANGES.keys())[2:-1])
+    crit = no_career_check & future_career_check
+    if crit.sum() == 0:
+        return df2
+    could_get_loan = df2[crit].copy()
+    will_not_get_loan = df2[~crit].copy()
+
+    ### get the tuition due
+    could_get_loan["tuition_due"] = could_get_loan["future_career"].apply(lambda x: TUITION_FEES[x])
+
+    ### need a loan? if balance is less than tuition due, then need a loan
+    need_loan_crit = could_get_loan["tuition_due"] > could_get_loan["balance"]
+    need_loan = could_get_loan[need_loan_crit].copy()
+    no_need_loan = could_get_loan[~need_loan_crit].copy()
+
+    ### update the balance for those who do not need a loan
+    no_need_loan["balance"] = no_need_loan["balance"] - no_need_loan["tuition_due"]
+
+    ### first loan? if loan is None, then it is the first loan
+    ### first loan we set loan_interest_rate and loan_term
+    ### else we just update the loan
+    first_loan_crit = need_loan["loan"].isna()
+    first_loan = need_loan[first_loan_crit].copy()
+    not_first_loan = need_loan[~first_loan_crit].copy()
+    
+    ### if balance is less than 0, then the person needs a loan to pay for the tuition and nega
+
+    first_loan["loan_term"] = first_loan["future_career"].apply(lambda x: YEARS_OF_STUDY[x]+8)
+    first_loan["interest_rate"] = first_loan["future_career"].apply(lambda x: random.uniform(STUDENT_LOAN_INTEREST_RATES[0], 
+                                                                                             STUDENT_LOAN_INTEREST_RATES[1]))
+    
+    need_loan_p2 = pd.concat([first_loan, not_first_loan]).sort_index()
+    need_loan_p2["loan"] = 0
+
+    ### loan will be the tuition due plus the interest rate - this solves if the balance is negative and add it to the loan
+    need_loan_p2["loan"] += (need_loan_p2["tuition_due"] - need_loan_p2["balance"]) *\
+                            (1 + need_loan_p2["interest_rate"])**need_loan_p2["loan_term"]
+    need_loan_p2["balance"] = 0
+    ### drop the tuition due column
+    need_loan_p2 = need_loan_p2.drop(columns=["tuition_due"], errors='ignore')
+    no_need_loan = no_need_loan.drop(columns=["tuition_due"], errors='ignore')
+
+    ### combine the dataframes
+    updated_df = pd.concat([no_need_loan, need_loan_p2, will_not_get_loan]).sort_index()
+
+    return updated_df
+
+def change_spender_profile(df,crit, spender_prof_mod = 0.1):
+    ### if current rate is less than the SPENDER_PROFILE -0.05, then demote using SPENDER_PROFILE_DECREASE
+    ### if current rate is greater than the SPENDER_PROFILE +0.05, then promote using SPENDER_PROFILE_INCREASE
+    df2 = df.copy()
+    ### get people who has spender_prof
+    spender_prof_crit = ~df2["spender_prof"].isna()
+    if spender_prof_crit.sum() == 0:
+        return df2
+    
+    will_change = crit & spender_prof_crit
+
+    df_will_change = df2[will_change].copy()
+    df_no_change = df2[~will_change].copy()
+    ### reverse the SPENDER_PROFILE_DECREASE
+    SPENDER_PROFILE_INCREASE = {v: k for k, v in SPENDER_PROFILE_DECREASE.items()}
+
+    df_will_change["new_spender_prof_rate"] = df_will_change["spender_prof_rate"] + spender_prof_mod
+
+    current_min_base_rate = df_will_change["spender_prof"].apply(lambda x: SPENDER_PROFILE[x] - 0.05)
+    current_max_base_rate = df_will_change["spender_prof"].apply(lambda x: SPENDER_PROFILE[x] + 0.05)
+
+    ### will demote spender_prof ?
+    demote_crit = df_will_change["new_spender_prof_rate"] < current_min_base_rate
+    df_will_change.loc[demote_crit, "new_spender_prof_rate"] = df_will_change.loc[demote_crit, "spender_prof_rate"].apply(lambda x: SPENDER_PROFILE_DECREASE[x] if x in SPENDER_PROFILE_DECREASE else None)
+
+    ### will promote spender_prof ?
+    promote_crit = df_will_change["new_spender_prof_rate"] > current_max_base_rate
+    df_will_change.loc[promote_crit, "new_spender_prof_rate"] = df_will_change.loc[promote_crit, "spender_prof_rate"].apply(lambda x: SPENDER_PROFILE_INCREASE[x] if x in SPENDER_PROFILE_INCREASE else None)
+
+    df_will_change["spender_prof_rate"] = df_will_change["new_spender_prof_rate"]
+    df_will_change = df_will_change.drop(columns=["new_spender_prof_rate"], errors='ignore')
+
+    updated_df = pd.concat([df_will_change, df_no_change]).sort_index()
+
+    return updated_df             
+
+def pay_loan(df):
+    df2 = df.copy()
+
+    ### check if the person has a loan
+    loan_crit = df2["loan"] > 0
+    if loan_crit.sum() == 0:
+        return df2
+
+    ### get people who has loan
+    loan_df = df2[loan_crit].copy()
+    no_loan_df = df2[~loan_crit].copy()
+
+    ### check if the person is still a student - if so, do not pay the loan it can be paid after graduation
+    student_crit = ~loan_df["career"].isin(list(INITIAL_INCOME_RANGES.keys())[2:-1])
+
+    student_skip_loan_pay_df = loan_df[student_crit].copy()
+    should_pay_loan_df = loan_df[~student_crit].copy()
+
+    ### can the person pay the loan?
+    ### scenario 1: balance is greater than or equal the loan
+    ### subtract the loan from the balance
+    ### subtract the amount paid from the loan
+    ### if loan term is 0, then remove the loan
+
+    ### scenario 2: balance is less than the loan
+    ### 2A: balance is positive
+    ### subtract the balance from the loan
+    ### set the balance to 0
+    ### interest rate is applied to the loan
+    ### reduce the spender_prof_rate by 0.1
+
+    ### 2B: balance is negative
+    ### set the balance to 0
+    ### interest rate is applied to the loan
+    ### reduce the spender_prof_rate by 0.15
+
+    ### scenario 2A and 2B are combined in the same function
+    ### apply change_spender_profile to reduce the spender_prof_rate by 0.1 or 0.15
+
+    ### add a column default count to keep track of the number of defaults
+    amount_to_pay = should_pay_loan_df["loan"]/should_pay_loan_df["loan_term"]
+    low_balance_crit = (should_pay_loan_df["balance"] < amount_to_pay) & (should_pay_loan_df["balance"] > 0)
+    negative_balance_crit = should_pay_loan_df["balance"] < 0
+    can_pay_crit = should_pay_loan_df["balance"] >= amount_to_pay
+
+    ### Scenario 1 - pay the loan
+    should_pay_loan_df.loc[can_pay_crit, "balance"] = should_pay_loan_df.loc[can_pay_crit, "balance"] - amount_to_pay
+    should_pay_loan_df.loc[can_pay_crit, "loan_term"] = should_pay_loan_df.loc[can_pay_crit, "loan_term"] - 1
+    should_pay_loan_df.loc[can_pay_crit, "loan"] = should_pay_loan_df.loc[can_pay_crit, "loan"] - amount_to_pay
+    if should_pay_loan_df["loan_term"].min() == 0:
+        should_pay_loan_df.loc[should_pay_loan_df["loan_term"] == 0, "loan"] = 0
+        should_pay_loan_df.loc[should_pay_loan_df["loan_term"] == 0, "interest_rate"] = 0
+        should_pay_loan_df.loc[should_pay_loan_df["loan_term"] == 0, "event"] = "Loan Payment Complete"
+    else:
+        should_pay_loan_df["event"] = "Loan Payment OK"
+
+    ### Scenario 2 - pay the loan with balance less than the amount to pay and get a default and change slightly spender_prof_rate
+    should_pay_loan_df = change_spender_profile(should_pay_loan_df, low_balance_crit, -0.1)
+    should_pay_loan_df = change_spender_profile(should_pay_loan_df, negative_balance_crit, -0.15)
+
+    should_pay_loan_df.loc[low_balance_crit, "loan"] = (should_pay_loan_df.loc[low_balance_crit, "loan"] -\
+                                                         should_pay_loan_df.loc[low_balance_crit, "balance"])*\
+                                                        (1 + should_pay_loan_df.loc[low_balance_crit, "interest_rate"])
+    should_pay_loan_df.loc[low_balance_crit, "balance"] = 0
+    should_pay_loan_df.loc[low_balance_crit, "default_count"] = should_pay_loan_df.loc[low_balance_crit, "default_count"] + 1
+    should_pay_loan_df.loc[low_balance_crit, "event"] = f"Loan Default {should_pay_loan_df.loc[low_balance_crit, 'default_count']}"
+
+    should_pay_loan_df.loc[negative_balance_crit, "loan"] = (should_pay_loan_df.loc[negative_balance_crit, "loan"])*\
+                                                        (1 + should_pay_loan_df.loc[negative_balance_crit, "interest_rate"])
+    ### balance will continue negative and should not be set to 0
+    should_pay_loan_df.loc[negative_balance_crit, "default_count"] = should_pay_loan_df.loc[negative_balance_crit, "default_count"] + 1
+    should_pay_loan_df.loc[negative_balance_crit, "event"] = f"Loan Default {should_pay_loan_df.loc[negative_balance_crit, 'default_count']}"
+
+    updated_df = pd.concat([should_pay_loan_df, student_skip_loan_pay_df, no_loan_df]).sort_index()
+
+    return updated_df
 
 ### if the person does not have the has_insurance_flag, 
 
@@ -200,4 +368,6 @@ def get_student_loan()
 
 ### life insurance
 
+# %%
+##
 ### buy a house

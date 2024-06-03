@@ -6,7 +6,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from modules.dataframe_mode import *
 
 #%%40000
-### create a complete city
+
 df3 = time_function(generate_complete_city, 100, "Young Adult", 500, 1950,True)
 #%% 
 # check if folder exists

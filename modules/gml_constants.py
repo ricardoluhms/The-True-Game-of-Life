@@ -90,7 +90,7 @@ if True:
     # Business & Commerce: CAD 8,000 - CAD 14,000 (higher for specialized or top-ranked 
     # MBA (Master of Business Administration): CAD 20,000 - CAD 40,000
     YEARS_OF_STUDY = {'Base': 2, 'Medium': 3, 'High': 5, 'Very High': 7}
-    TUITION = {'Base': 6000, 'Medium': 10000, 'High': 18000, 'Very High': 25000} ### yearly values
+    TUITION_FEES = {'Base': 6000, 'Medium': 10000, 'High': 18000, 'Very High': 25000} ### yearly values
     UGRAD_START_AGE = 18
     MAX_UGRAD_START_AGE = 18 + max(YEARS_OF_STUDY.values())
 
@@ -213,7 +213,7 @@ if True:
 
 ### Career Constants
 if True:
-    SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75, 'In-Debt': 0.5, 'Depressed': 0.4}
+    SPENDER_PROFILE = {'Big Spender': 1.1, 'Average': 0.95, 'Small Spender': 0.85, 'In-Debt': 0.75, 'Depressed': 0.65}
     SPENDER_PROFILE_DECREASE = {'Big Spender': 'Average', 'Average': 'Small Spender', 'Small Spender': 'In-Debt', 
                                 'In-Debt': 'Depressed',
                                 'Depressed': 'Depressed'}
