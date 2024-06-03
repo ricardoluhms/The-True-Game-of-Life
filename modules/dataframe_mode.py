@@ -19,10 +19,6 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
 import tqdm
 
-### Generic and Test functions
-### create a function that measures the time it takes to run the function
-import time
-
 ########################################### Generate Functions ###########################################
 def generate_init_df(population, year, age_range):
     """
@@ -70,6 +66,7 @@ def generate_names_and_initial_data(df,population):
     df['future_career'] = None
     df['income'] = 0
     df['balance'] = 0
+    df["has_insurance_flag"] = 0
     df['spender_prof'] = None
     df['partner_type'] = None
     df['spouse_name_id'] = None
@@ -80,6 +77,7 @@ def generate_names_and_initial_data(df,population):
     df['parent_name_id_A'] += " " + df["last_name"]
     df['parent_name_id_B'] = np.random.choice(FEMALE_FIRST_NAMES,population)
     df['parent_name_id_B'] += " " + df["last_name"]
+    df = create_initial_expenditure_values(df)
     return df
 
 def generate_past_events(df, debug_print=False):
@@ -164,12 +162,18 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
         df_length["marriage"] = len(df2)
         df2 = check_function_for_duplication(children_born, df2)
         df_length["children_born"] = len(df2)
-    df2 = check_function_for_duplication(update_account_balance, df2)
+
+    df2 = check_function_for_duplication(update_expenditure_rates, df2)
+    df_length["expenditure_rates"] = len(df2)
+    df2 = check_function_for_duplication(handle_expenditure_value, df2)
+    df_length["expenditure_value"] = len(df2)
+    df2 = check_function_for_duplication(update_account_balance_v2, df2)
+    #df2 = check_function_for_duplication(update_account_balance, df2)
     df_length["account_balance"] = len(df2)
     df2 = pd.concat([df2, dfd])
     df_length["combined"] = len(df2)
     if basic_mode and debug_print:
-        # print(f"Year: {df2['year'].max()} Lengths:\n {df_length}")
+        #print(f"Year: {df2['year'].max()} Lengths:\n {df_length}")
 
         ### print histogram number of children per parent
 
@@ -514,17 +518,4 @@ def handle_marriage_array(df):
     return df2
 
 
-### Plotting Functions
-
-### student loan
-
-### pay off student loan
-
-### get raise
-
-### retirement
-
-### life insurance
-
-### buy a house
 

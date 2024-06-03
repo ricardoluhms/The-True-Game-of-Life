@@ -260,42 +260,42 @@ if True:
                   "Very High": {"chance": RAISE_PROB_CHANGE_BASE+RAISE_PROB_CHANCE_STEPS*3, "hike_range": [RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP, RAISE_HIKE_BASE+RAISE_HIKE_BASE_STEP*2.5]}}
 
 ### Death Constants
+if True:
+    ### extracted from https://www150.statcan.gc.ca/t1/tbl1/en/cv.action?pid=1310013501 - Statistics Canada
+    SEVERE_ACCIDENT_DEATH_PROB = 0.0001
+    INFANT_DEATH_PROB = 0.0045
+    INFANT_DEATH_AGE = 1
 
-### extracted from https://www150.statcan.gc.ca/t1/tbl1/en/cv.action?pid=1310013501 - Statistics Canada
-SEVERE_ACCIDENT_DEATH_PROB = 0.0001
-INFANT_DEATH_PROB = 0.0045
-INFANT_DEATH_AGE = 1
+    ### predict chances of being alive at a certain age (function calculated from the data)
+    DEATH_PROB_MODEL_COEF = {'lin_reg': {'age': -0.0007784946236559146,
+                                        'gender': 0.006999999999999982,
+                                        'constant': 0.0,
+                                        'intercept': 1.0103333333333333},
+                            'lin_reg_log': {'age': -0.023768641037244638,
+                                            'gender': 0.17413385791511007,
+                                            'lin_pred': 0.0012374407646648699,
+                                            'log_age': 0.11574413613333305,
+                                            'intercept': 0.1693725311462318}}
 
-### predict chances of being alive at a certain age (function calculated from the data)
-DEATH_PROB_MODEL_COEF = {'lin_reg': {'age': -0.0007784946236559146,
-                                    'gender': 0.006999999999999982,
-                                    'constant': 0.0,
-                                    'intercept': 1.0103333333333333},
-                        'lin_reg_log': {'age': -0.023768641037244638,
-                                        'gender': 0.17413385791511007,
-                                        'lin_pred': 0.0012374407646648699,
-                                        'log_age': 0.11574413613333305,
-                                        'intercept': 0.1693725311462318}}
-
-### predict chances of being alive at a certain age (function calculated from the data)
-DEATH_PROB_MODEL_COEF_NEW = {'age^1': 0.5350243566594453,
-                            'age^2': -0.09833100187477894,
-                            'age^3': 0.003413713570147637,
-                            'age^4': -4.4700634509943734e-05,
-                            'age^5': 1.8773503441702386e-07,
-                            'gender^1': 0.008583444963261737,
-                            'gender^2': 0.017166889926523522,
-                            'gender^3': 0.034333779853047044,
-                            'gender^4': 0.06866755970609409,
-                            'gender^5': 0.13733511941218818,
-                            'intercept': 108.11623127556327}
-                                    
-### extracted from https://www150.statcan.gc.ca/t1/tbl1/en/cv.action?pid=1310039201
-CRIT_ILL_DEATH_PROB_MODEL_COEF = {'age': 8.16935778e-05,
-                                  'age_sq': -4.45406073e-06,
-                                  'age_cub': 7.38774654e-08,
-                                  'age_qd': -3.32211603e-10,
-                                  'intercept':  -0.00024762657632679795}
+    ### predict chances of being alive at a certain age (function calculated from the data)
+    DEATH_PROB_MODEL_COEF_NEW = {'age^1': 0.5350243566594453,
+                                'age^2': -0.09833100187477894,
+                                'age^3': 0.003413713570147637,
+                                'age^4': -4.4700634509943734e-05,
+                                'age^5': 1.8773503441702386e-07,
+                                'gender^1': 0.008583444963261737,
+                                'gender^2': 0.017166889926523522,
+                                'gender^3': 0.034333779853047044,
+                                'gender^4': 0.06866755970609409,
+                                'gender^5': 0.13733511941218818,
+                                'intercept': 108.11623127556327}
+                                        
+    ### extracted from https://www150.statcan.gc.ca/t1/tbl1/en/cv.action?pid=1310039201
+    CRIT_ILL_DEATH_PROB_MODEL_COEF = {'age': 8.16935778e-05,
+                                    'age_sq': -4.45406073e-06,
+                                    'age_cub': 7.38774654e-08,
+                                    'age_qd': -3.32211603e-10,
+                                    'intercept':  -0.00024762657632679795}
 
 #### TO ADD INFLANTION RATE AND TAXES ON INCOME
 
