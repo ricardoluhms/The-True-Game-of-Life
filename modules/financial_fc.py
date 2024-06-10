@@ -355,6 +355,210 @@ def pay_loan(df):
 
     return updated_df
 
+def lineage_table(df_all_records, df_dead):
+    """
+    df_all_records: dataframe with all records
+    df_dead: dataframe with all dead people in the current year
+    """
+    ### get the last record for each person
+    df_last_record = df_all_records.sort_values(["unique_name_id", "year"]).drop_duplicates("unique_name_id", keep="last")
+    ### this will be the dataframe to use for the lineage table
+    ### check the total max year for the entire dataframe
+    max_year = df_last_record["year"].max()
+    ### flag the dead people in the last record
+    dead_crit = df_last_record["unique_name_id"].isin(df_dead["unique_name_id"])
+    df_last_record["is_dead"] = 0
+    df_last_record.loc[dead_crit, "is_dead"] = 1
+    
+    ### lineage table (deceased_id, relateve_id, relation, priority, share)
+    ### get people ids who are dead
+    dead_cols = ["unique_name_id", "spouse_name_id", "existing_children_count", "balance", "has_insurance_flag"]
+    last_record = ["unique_name_id", "spouse_name_id", "existing_children_count","parent_name_id_A", "parent_name_id_B","is_dead"]
+    dead_people = df_dead[dead_cols].copy()
+    last_record_slice = df_last_record[last_record].copy()
+    ### assume that there is more than one record for each person in the alive_people dataframe
+    ### sort the dataframe by unique_name_id and year and get the last record for each person
+    
+
+    ### spouse criteria
+    spouses_ids = dead_people["spouse_name_id"].unique()
+    spouse_crit = last_record_slice["unique_name_id"].isin(spouses_ids)
+    cols2 = ["unique_name_id", "spouse_name_id"]
+    alive_spouses = last_record_slice[spouse_crit][cols2].copy()
+    ### rename the columns
+    to_rename = {"unique_name_id": "relative_id", "spouse_name_id": "deceased_id"}
+    alive_spouses = alive_spouses.rename(columns=to_rename)
+    alive_spouses["relation"] = "Spouse"
+    alive_spouses["priority"] = 1
+
+    ### children criteria
+    children_crit = dead_people["existing_children_count"] > 0
+    deceased_ids_with_child = dead_people[children_crit]["unique_name_id"].unique()
+
+    ### combine the alive_people so it has only one column for the parent_name_id
+    potential_heirs_cp = alive_people.copy()
+
+    pot_heirsA = potential_heirs_cp[["unique_name_id", "parent_name_id_A"]].copy()
+    to_rename = {"unique_name_id": "relative_id", "parent_name_id_A": "deceased_id"}
+    pot_heirsA = pot_heirsA.rename(columns=to_rename)
+
+    pot_heirsB = potential_heirs_cp[["unique_name_id", "parent_name_id_B"]].copy()
+    to_rename = {"unique_name_id": "relative_id", "parent_name_id_B": "deceased_id"}
+    pot_heirsB = pot_heirsB.rename(columns=to_rename)
+
+    ### drop heirs that are not children of the deceased
+    potential_heirs = pd.concat([pot_heirsA, pot_heirsB]).sort_index()
+    are_heirs = potential_heirs["deceased_id"].isin(deceased_ids_with_child)
+    valid_heirs = potential_heirs[are_heirs].copy()
+    valid_heirs["priority"] = 1
+    valid_heirs["relation"] = "Heir"
+
+    ### get the spouses of the children/heirs
+    heirs_ids = valid_heirs["relative_id"].unique()
+    heir_spouse_crit = alive_people["unique_name_id"].isin(heirs_ids)
+    cols2 = ["unique_name_id", "spouse_name_id"]
+    alive_heir_spouses = alive_people[heir_spouse_crit][cols2].copy()
+    ### rename the columns
+    to_rename = {"unique_name_id": "relative_id", "spouse_name_id": "heir_id"}
+    alive_heir_spouses = alive_heir_spouses.rename(columns=to_rename)
+    ### merge the valid_heirs with the alive_heir_spouses to get deceased_id
+    alive_heir_spouses = alive_heir_spouses.merge(valid_heirs, 
+                                                  left_on="relative_id", 
+                                                  right_on="heir_id", how="left")
+    alive_heir_spouses["relation"] = "Heir Spouse"
+    alive_heir_spouses["priority"] = 2
+    
+
+    ### get the children of the heirs
+    heir_children = potential_heirs.copy()
+    to_rename = {"unique_name_id": "relative_id", "deceased_id": "heir_id"}
+    heir_children = heir_children.rename(columns=to_rename)
+
+    valid_heirs_ids = valid_heirs["relative_id"].unique()
+    heir_children_crit = heir_children["heir_id"].isin(valid_heirs_ids)
+    valid_heir_children = heir_children[heir_children_crit].copy()
+    ### merge the valid_heirs_children with the heir_children to get the deceased_id
+    valid_heir_children = valid_heir_children.merge(valid_heirs, 
+                                                    left_on="heir_id", 
+                                                    right_on="relative_id", how="left")
+    valid_heir_children["relation"] = "Heir Child"
+    valid_heir_children["priority"] = 3
+    
+    ### combine the dataframes
+    lineage_table = pd.concat([alive_spouses, valid_heirs, 
+                               alive_heir_spouses, valid_heir_children]).sort_index()
+    return lineage_table
+
+def lineage_table_share_distribution(lineage_table):
+    ### use priority to distribute the share
+    ### groupby deceased_id and priority and count the number of unique relative_id
+    ### pivot the table to get the count of unique relative_id for each priority
+    priorities = lineage_table.\
+                    groupby(["deceased_id", "priority"])\
+                    ["relative_id"].nunique().reset_index()
+
+
+    priorities_pivot = priorities.pivot(index="deceased_id", columns="priority", values="relative_id").fillna(0).reset_index()
+    priorities_pivot.columns = ["deceased_id", "priority_1", "priority_2", "priority_3"]
+
+
+def estate_at_death(df_alive, df_dead):
+    ### get the current balance and insurance
+    ### if the person dies before insurance expires, then the insurance will added to the balance (no beneficiary assigned)
+    ### criterias for estate_at_death
+    ### count the number of children and check who are they and if they are alive
+    ### check if the person has a spouse and if the spouse is alive
+    ### simplified estate rules:-
+    ### spouse: 50% of the balance
+    ### children: 50% of the balance divided by the number of alive children
+    ### if the person does not have a spouse or spouse is dead, then the children will get 100% of the balance divided by the number of children
+
+    ### if child is dead, check if the child has a spouse and if the spouse is alive
+    ### if the child has a spouse, then the spouse will get the child's share
+    ### if the child has a spouse and the spouse is dead, then the grand children will get the child's share
+    ### else money will be lost
+
+    ### lineage table (deceased_id, relateve_id, relation, priority, share)
+
+
+    ### get people ids who are dead
+    dead_cols = ["unique_name_id", "spouse_name_id", "existing_children_count", "balance", "has_insurance_flag"]
+    alive_cols = ["unique_name_id", "spouse_name_id", "existing_children_count","parent_name_id_A", "parent_name_id_B"]
+    dead_people = df_dead[dead_cols].copy()
+    alive_people = df_alive[alive_cols].copy()
+
+    ### spouse criteria
+    spouses_ids = dead_people["spouse_name_id"].unique()
+    spouse_crit = alive_people["unique_name_id"].isin(spouses_ids)
+    cols2 = ["unique_name_id", "spouse_name_id"]
+    alive_spouses = alive_people[spouse_crit][cols2].copy()
+    ### rename the columns
+    to_rename = {"unique_name_id": "relative_id", "spouse_name_id": "deceased_id"}
+    alive_spouses = alive_spouses.rename(columns=to_rename)
+    alive_spouses["relation"] = "Spouse"
+    alive_spouses["priority"] = 1
+
+    ### children criteria
+    children_crit = dead_people["existing_children_count"] > 0
+    deceased_ids_with_child = dead_people[children_crit]["unique_name_id"].unique()
+
+    ### combine the alive_people so it has only one column for the parent_name_id
+    potential_heirs_cp = alive_people.copy()
+
+    pot_heirsA = potential_heirs_cp[["unique_name_id", "parent_name_id_A"]].copy()
+    to_rename = {"unique_name_id": "relative_id", "parent_name_id_A": "deceased_id"}
+    pot_heirsA = pot_heirsA.rename(columns=to_rename)
+
+    pot_heirsB = potential_heirs_cp[["unique_name_id", "parent_name_id_B"]].copy()
+    to_rename = {"unique_name_id": "relative_id", "parent_name_id_B": "deceased_id"}
+    pot_heirsB = pot_heirsB.rename(columns=to_rename)
+
+    ### drop heirs that are not children of the deceased
+    potential_heirs = pd.concat([pot_heirsA, pot_heirsB]).sort_index()
+    are_heirs = potential_heirs["deceased_id"].isin(deceased_ids_with_child)
+    valid_heirs = potential_heirs[are_heirs].copy()
+    valid_heirs["priority"] = 1
+    valid_heirs["relation"] = "Heir"
+
+    ### get the spouses of the children/heirs
+    heirs_ids = valid_heirs["relative_id"].unique()
+    heir_spouse_crit = alive_people["unique_name_id"].isin(heirs_ids)
+    cols2 = ["unique_name_id", "spouse_name_id"]
+    alive_heir_spouses = alive_people[heir_spouse_crit][cols2].copy()
+    ### rename the columns
+    to_rename = {"unique_name_id": "relative_id", "spouse_name_id": "heir_id"}
+    alive_heir_spouses = alive_heir_spouses.rename(columns=to_rename)
+    ### merge the valid_heirs with the alive_heir_spouses to get deceased_id
+    alive_heir_spouses = alive_heir_spouses.merge(valid_heirs, 
+                                                  left_on="relative_id", 
+                                                  right_on="heir_id", how="left")
+    alive_heir_spouses["relation"] = "Heir Spouse"
+    alive_heir_spouses["priority"] = 2
+    
+
+    ### get the children of the heirs
+    heir_children = potential_heirs.copy()
+    to_rename = {"unique_name_id": "relative_id", "deceased_id": "heir_id"}
+    heir_children = heir_children.rename(columns=to_rename)
+
+    valid_heirs_ids = valid_heirs["relative_id"].unique()
+    heir_children_crit = heir_children["heir_id"].isin(valid_heirs_ids)
+    valid_heir_children = heir_children[heir_children_crit].copy()
+    ### merge the valid_heirs_children with the heir_children to get the deceased_id
+    valid_heir_children = valid_heir_children.merge(valid_heirs, 
+                                                    left_on="heir_id", 
+                                                    right_on="relative_id", how="left")
+    valid_heir_children["relation"] = "Heir Child"
+    valid_heir_children["priority"] = 3
+    
+    ### combine the dataframes
+    lineage_table = pd.concat([alive_spouses, valid_heirs, alive_heir_spouses, valid_heir_children]).sort_index()
+    return lineage_table
+
+
+
+
+
 ### if the person does not have the has_insurance_flag, 
 
 
