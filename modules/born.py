@@ -6,6 +6,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 from  modules.gml_constants import ( BABY_TWINS_MODE, BIRTH_PROB_CURVES_CST,
                                      GENDER_PROBS, MALE_FIRST_NAMES, FEMALE_FIRST_NAMES)
+
+from modules.dataframe_mode import generate_initial_constants
                                      
 ### ignore warnings 
 import warnings
@@ -125,20 +127,7 @@ def generate_names_and_initial_data_babies(df, current_year):
     
     df.drop(columns=["temp_id"], inplace=True)
 
-    df["marriage_status"] = False
-    df["career"] = "No Career"
-    df['years_of_study'] = None
-    df['years_to_study'] = None
-    df['future_career'] = None
-    df['income'] = 0
-    df['balance'] = 0
-    df['spender_prof'] = None
-    df['partner_type'] = None
-    df['spouse_name_id'] = None
-    df["marriage_thresh"] = 0
-    df["marriage_prob"] = 0
-    df["existing_children_count"] = 0
-
+    df = generate_initial_constants(df)
     return df
 #%%
 def birth_prob_curves(age,existing_children_count):

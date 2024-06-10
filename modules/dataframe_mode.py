@@ -39,6 +39,28 @@ def generate_init_df(population, year, age_range):
 
     return df
 
+
+def generate_initial_constants(df):
+
+    df["marriage_status"] = False
+    df["career"] = "No Career"
+    df['years_of_study'] = None
+    df['years_to_study'] = None
+    df['future_career'] = None
+    df['income'] = 0
+    df['balance'] = 0
+    df["has_insurance_flag"] = 0
+    df['spender_prof'] = None
+    df['partner_type'] = None
+    df['spouse_name_id'] = None
+    df["marriage_thresh"] = 0
+    df["marriage_prob"] = 0
+    df["existing_children_count"] = 0
+    df['loan'] = 0
+    df['default_count'] = 0
+
+    return df
+
 def generate_names_and_initial_data(df,population):
     ### count Males and get index
     gd = df['gender'] == "Male"
@@ -58,28 +80,13 @@ def generate_names_and_initial_data(df,population):
                            df["temp_id"].astype(str)
     
     df.drop(columns=["temp_id"], inplace=True)
-    ### add marriage status
-    df["marriage_status"] = False
-    df["career"] = "No Career"
-    df['years_of_study'] = None
-    df['years_to_study'] = None
-    df['future_career'] = None
-    df['income'] = 0
-    df['balance'] = 0
-    df["has_insurance_flag"] = 0
-    df['spender_prof'] = None
-    df['partner_type'] = None
-    df['spouse_name_id'] = None
-    df["marriage_thresh"] = 0
-    df["marriage_prob"] = 0
-    df["existing_children_count"] = 0
+
     df['parent_name_id_A'] = np.random.choice(MALE_FIRST_NAMES,population)
     df['parent_name_id_A'] += " " + df["last_name"]
     df['parent_name_id_B'] = np.random.choice(FEMALE_FIRST_NAMES,population)
     df['parent_name_id_B'] += " " + df["last_name"]
+    df = generate_initial_constants(df)
     df = create_initial_expenditure_values(df)
-    df['loan'] = 0
-    df['default_count'] = 0
     return df
 
 def generate_past_events(df, debug_print=False):
@@ -200,14 +207,17 @@ def generate_complete_city(years, age_range="Young Adult", population=40000, sta
     print("\n ####   Generating past events ####\n")
     df_past = time_function(generate_past_events, df, debug_print)
     df2 = df_past.copy()
-    dfs = []
+    #dfs = []
     for year in tqdm.tqdm(range(years)):
         ### generate new year
-        df2 = generate_complete_year_age_up_pipeline(df2, basic_mode=True, debug_print=debug_print)
-        dfs.append(df2)
+        df2up = generate_complete_year_age_up_pipeline(df2, basic_mode=True, debug_print=debug_print)
+        #dfs.append(df2)
+        df2 = pd.concat([df2, df2up])
 
-    dfs_p1 = pd.concat(dfs)
-    dfs_final = pd.concat([df_past, dfs_p1])
+
+    #dfs_p1 = pd.concat(dfs)
+    #dfs_final = pd.concat([df_past, dfs_p1])
+    dfs_final = pd.concat([df_past, df2])
 
     return dfs_final
 
