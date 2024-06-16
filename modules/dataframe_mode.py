@@ -151,6 +151,7 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
         df_length["marriage"] = len(df2)
         df2 = check_function_for_duplication(children_born, df2)
         df_length["children_born"] = len(df2)
+
     df2 = check_function_for_duplication(update_expenditure_rates, df2)
     df_length["expenditure_rates"] = len(df2)
     df2 = check_function_for_duplication(handle_expenditure_value, df2)
@@ -165,18 +166,6 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
     df_length["share_distribution"] = len(df2)
     df2 = pd.concat([df2, dfd])
     df_length["combined"] = len(df2)
-    if basic_mode and debug_print:
-        #print(f"Year: {df2['year'].max()} Lengths:\n {df_length}")
-
-        ### print histogram number of children per parent
-
-        # cols = ["parent_name_id_A","existing_children_count"]
-
-        # xx = df2[cols].reset_index().groupby(cols).count().reset_index()
-        # ### print histogram number of children per parent
-        # xx.hist(column="existing_children_count", bins=10)
-        # plt.show()
-        pass
 
     return df2
 
@@ -192,27 +181,30 @@ def generate_complete_city(years, age_range="Young Adult", population=40000, sta
     for year in tqdm.tqdm(range(years)):
         ### generate new year
         df2up = generate_complete_year_age_up_pipeline(df2, basic_mode=True, debug_print=debug_print)
-        #dfs.append(df2)
-        #start_time = time.time()
-
-        ### ensure that the dataframe columns are 
-        ### check if df2up has all the columns
-        # cols = df2.columns    
-        # cols2 = df2up.columns
-        # if len(cols) != len(cols2):
-        #     diff = set(cols2) - set(cols)
-        #     print(f"Year {year+1} has missing columns: {diff}")
-        # df2up = df2up[cols]
-
         df2 = pd.concat([df2, df2up], ignore_index=True)
-        #end_time = time.time()
-        ### Print the time to concatenate the dataframes in seconds
-        #print(f"Year {year+1} took {round((end_time - start_time),4)} seconds")
 
-    #dfs_p1 = pd.concat(dfs)
-    #dfs_final = pd.concat([df_past, dfs_p1])
     dfs_final = pd.concat([df_past, df2])
 
+    ### data quality check - marriage status
+    print("Marriage Status Data Quality Check")
+    ### Marriage status should be either True or False or None
+    is_nan = dfs_final["marriage_status"].isna()
+    is_true = dfs_final["marriage_status"] == True
+    is_false = dfs_final["marriage_status"] == False
+    is_valid = is_nan | is_true | is_false
+    ### if not valid print the unique values and replace with None
+    if len(dfs_final[~is_valid]) > 0:
+        # count unique values
+        print(dfs_final[~is_valid]["marriage_status"].value_counts())
+        dfs_final.loc[~is_valid, "marriage_status"] = None
+
+    ### data quality check - Gender should be either Male or Female otherwise drop rows
+    print("Gender Data Quality Check")
+    gender_check = dfs_final["gender"].isin(["Male","Female"])
+    if len(dfs_final[~gender_check]) > 0:
+        print(gender_check.sum())
+        dfs_final = dfs_final[gender_check]
+    
     return dfs_final
 
 ########################################### Event Functions ###########################################
