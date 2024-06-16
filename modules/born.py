@@ -5,9 +5,8 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 import numpy as np
 from  modules.gml_constants import ( BABY_TWINS_MODE, BIRTH_PROB_CURVES_CST,
-                                     GENDER_PROBS, MALE_FIRST_NAMES, FEMALE_FIRST_NAMES)
-
-from modules.dataframe_mode import generate_initial_constants
+                                     GENDER_PROBS, MALE_FIRST_NAMES, FEMALE_FIRST_NAMES,
+                                     generate_initial_constants)
                                      
 ### ignore warnings 
 import warnings

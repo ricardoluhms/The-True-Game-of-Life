@@ -1,4 +1,26 @@
 import pandas as pd
+
+def generate_initial_constants(df):
+
+    df["marriage_status"] = False
+    df["career"] = "No Career"
+    df['years_of_study'] = None
+    df['years_to_study'] = None
+    df['future_career'] = None
+    df['income'] = 0
+    df['balance'] = 0
+    df["has_insurance_flag"] = 0
+    df['spender_prof'] = None
+    df['partner_type'] = None
+    df['spouse_name_id'] = None
+    df["marriage_thresh"] = 0
+    df["marriage_prob"] = 0
+    df["existing_children_count"] = 0
+    df['loan'] = 0
+    df['default_count'] = 0
+
+    return df
+
 ### Name Generation Constants
 if True:
     MALE_FIRST_NAMES = ['Aaron', 'Abel', 'Abraham', 'Adam', 'Adan', 'Adolfo', 'Adrian', 'Agustin', 'Alan', 'Albert', 
@@ -197,9 +219,9 @@ if True:
 
     BABY_TWINS_MODE = {1:0.949, 2:0.04, 3:0.01, 4:0.001}
 
-    BIRTH_PROB_CURVES_CST = {"Base Birth Prob": 0.95,
+    BIRTH_PROB_CURVES_CST = {"Base Birth Prob": 0.50,
                         "Age Exp Constant -> A1": 0.196888965209072, ### the higher the value the lower the prob because it subtracts from the base prob
-                        "Age Sub Constant -> A2": 10, ### the higher the value the lower the prob  ## (age - A2) thus the higher the prob
+                        "Age Sub Constant -> A2": 5, ### the higher the value the lower the prob  ## (age - A2) thus the higher the prob
                         "Age Constant Divider -> C0": 171.989701, ### the higher the value the higher the prob because it divides the input before the exp
                         "Age to Ext. Child. -> C1": 2, ### the higher the value the lower the prob because it multiplies the LN based on the number of children
                         "Non Neg. Ext. Child. Mod. -> C2": 10, ### the higher the value the higher the prob because it adds to the LN based on the number of children
@@ -213,7 +235,8 @@ if True:
 
 ### Career Constants
 if True:
-    SPENDER_PROFILE = {'Big Spender': 1.1, 'Average': 0.95, 'Small Spender': 0.85, 'In-Debt': 0.75, 'Depressed': 0.65}
+    #SPENDER_PROFILE = {'Big Spender': 1.1, 'Average': 0.95, 'Small Spender': 0.85, 'In-Debt': 0.75, 'Depressed': 0.65}
+    SPENDER_PROFILE = {'Big Spender': 1.25, 'Average': 1.1, 'Small Spender': 1.0, 'In-Debt': 0.9, 'Depressed': 0.8}
     SPENDER_PROFILE_DECREASE = {'Big Spender': 'Average', 'Average': 'Small Spender', 'Small Spender': 'In-Debt', 
                                 'In-Debt': 'Depressed',
                                 'Depressed': 'Depressed'}

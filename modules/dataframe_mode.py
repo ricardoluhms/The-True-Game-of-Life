@@ -39,28 +39,6 @@ def generate_init_df(population, year, age_range):
 
     return df
 
-
-def generate_initial_constants(df):
-
-    df["marriage_status"] = False
-    df["career"] = "No Career"
-    df['years_of_study'] = None
-    df['years_to_study'] = None
-    df['future_career'] = None
-    df['income'] = 0
-    df['balance'] = 0
-    df["has_insurance_flag"] = 0
-    df['spender_prof'] = None
-    df['partner_type'] = None
-    df['spouse_name_id'] = None
-    df["marriage_thresh"] = 0
-    df["marriage_prob"] = 0
-    df["existing_children_count"] = 0
-    df['loan'] = 0
-    df['default_count'] = 0
-
-    return df
-
 def generate_names_and_initial_data(df,population):
     ### count Males and get index
     gd = df['gender'] == "Male"
@@ -135,7 +113,7 @@ def generate_past_events(df, debug_print=False):
     df_past_final = pd.concat([df_past, df_past2])
 
     return df_past_final
-
+ 
 def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=False):
     year = df["year"].max()
     mask = df['year'] == year
@@ -182,6 +160,9 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
     df_length["account_balance"] = len(df2)
     df2 = check_function_for_duplication(pay_loan, df2)
     df_length["pay_loan"] = len(df2)
+    #df2 = check_function_for_duplication(share_distribution, df, dfd)
+    df2 = share_distribution(df2, dfd)
+    df_length["share_distribution"] = len(df2)
     df2 = pd.concat([df2, dfd])
     df_length["combined"] = len(df2)
     if basic_mode and debug_print:
@@ -212,8 +193,21 @@ def generate_complete_city(years, age_range="Young Adult", population=40000, sta
         ### generate new year
         df2up = generate_complete_year_age_up_pipeline(df2, basic_mode=True, debug_print=debug_print)
         #dfs.append(df2)
-        df2 = pd.concat([df2, df2up])
+        #start_time = time.time()
 
+        ### ensure that the dataframe columns are 
+        ### check if df2up has all the columns
+        # cols = df2.columns    
+        # cols2 = df2up.columns
+        # if len(cols) != len(cols2):
+        #     diff = set(cols2) - set(cols)
+        #     print(f"Year {year+1} has missing columns: {diff}")
+        # df2up = df2up[cols]
+
+        df2 = pd.concat([df2, df2up], ignore_index=True)
+        #end_time = time.time()
+        ### Print the time to concatenate the dataframes in seconds
+        #print(f"Year {year+1} took {round((end_time - start_time),4)} seconds")
 
     #dfs_p1 = pd.concat(dfs)
     #dfs_final = pd.concat([df_past, dfs_p1])
