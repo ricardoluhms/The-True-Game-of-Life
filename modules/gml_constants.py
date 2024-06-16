@@ -211,11 +211,18 @@ if True:
                                     'High': 0.3,
                                     'Very High': 0.25}
 
+    CAREERS_AND_MARRIAGE_COSTS_MULTIPLIER = {  "No Career": 0,
+                                                'Pocket Money': 0,
+                                                'Part Time': 0.85,
+                                                'Base': 1.0,
+                                                'Medium': 1.2,
+                                                'High': 1.5,
+                                                'Very High': 2.0}
     MIN_MARRIAGE_ALLOWED_AGE = 18 ###
     SAME_GENDER_MARRIAGE_RATIO = 0.03
     ### https://www.statista.com/statistics/1381955/population-lgb-canada-province/
     SEXUAL_ORIENTATION_RATES ={"Heterosexual": 0.967,"Gay/Lesbian":0.015,"Bisexual": 0.018}
-    AVG_MARRIAGE_COST_PER_GUEST = 34000 / 100
+    AVG_MARRIAGE_COST_PER_GUEST = 340
 
     BABY_TWINS_MODE = {1:0.949, 2:0.04, 3:0.01, 4:0.001}
 

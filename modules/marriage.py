@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
+from modules.gml_constants import CAREERS_AND_MARRIAGE_COSTS_MULTIPLIER, SPENDER_PROFILE, AVG_MARRIAGE_COST_PER_GUEST
 #%%
 ### Create a generic function to create the matrix dataframes
 
@@ -242,6 +243,32 @@ def get_marriage_pairs(df: pd.DataFrame) -> pd.DataFrame:
                             rename(columns={'unique_name_id': 'unique_id_2'})
     
     return to_marry_df_non_dups
+
+def calculate_marriage_cost(will_marry_df: pd.DataFrame) -> pd.DataFrame:
+
+    ### retrieve the career cost multiplier from the dictionary constant and add a +- 10% random value
+    career_base_mult = will_marry_df['career'].map(CAREERS_AND_MARRIAGE_COSTS_MULTIPLIER)
+    career_mult = career_base_mult + np.random.uniform(-0.15, 0.15, len(will_marry_df))
+    ### if the career multiplier is less than 0.5, set to 0.5
+    career_mult[career_mult < 0.75] = 0.75
+
+    ### retrieve the spender_prof to create the updated cost
+    spender_prof_base_mult = will_marry_df['spender_prof'].map(SPENDER_PROFILE)
+    spender_prof_mult = spender_prof_base_mult + np.random.uniform(-0.15, 0.15, len(will_marry_df))
+    ### if the spender_prof multiplier is less than 0.5, set to 0.5
+    spender_prof_mult[spender_prof_mult < 0.75] = 0.75
+
+    ### guest will be the 2 + existing_children_count/2 round up + a random value between 50 and 100 times the career and spender_prof multiplier
+    guests = 2 + np.ceil(will_marry_df['existing_children_count']/2) +\
+                                  np.ceil(np.random.uniform(25, 100, len(will_marry_df)) * career_mult * spender_prof_mult)
+    guests = guests.astype(int)
+
+    cost = AVG_MARRIAGE_COST_PER_GUEST * guests * career_mult * spender_prof_mult
+
+    ### subtract the cost from balance
+    will_marry_df['balance'] = will_marry_df['balance'] - cost
+
+    return will_marry_df
 
 # %%
 testing = False

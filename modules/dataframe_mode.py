@@ -6,7 +6,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import pandas as pd
 import numpy as np
-from modules.marriage import get_marriage_pairs
+from modules.marriage import get_marriage_pairs, calculate_marriage_cost
 from modules.born import children_born
 from modules.financial_fc import *
 from modules.utils import *
@@ -515,6 +515,8 @@ def handle_marriage_array(df):
     unique_id_with_pairs = pd.concat([pairsA["unique_name_id"], pairsB["unique_name_id"]])
 
     will_marry_df = pd.concat([will_marry_df_A, will_marry_df_B]).drop_duplicates(subset=["unique_name_id"])
+
+    will_marry_df = calculate_marriage_cost(will_marry_df)
             
     not_paired_mask = ~will_marry_df["unique_name_id"].isin(unique_id_with_pairs)
     not_paired_df = will_marry_df[not_paired_mask]
