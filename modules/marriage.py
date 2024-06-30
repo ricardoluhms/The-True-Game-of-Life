@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
-from modules.gml_constants import CAREERS_AND_MARRIAGE_COSTS_MULTIPLIER, SPENDER_PROFILE, AVG_MARRIAGE_COST_PER_GUEST
+from modules.constants import CAREERS_AND_MARRIAGE_COSTS_MULTIPLIER, SPENDER_PROFILE, AVG_MARRIAGE_COST_PER_GUEST
 #%%
 ### Create a generic function to create the matrix dataframes
 
