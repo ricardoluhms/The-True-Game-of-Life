@@ -35,26 +35,22 @@ def children_born(df):
         return df
     
     ### use apply and lambda and birth_prob_curves
-    total_prob = df_candidates.apply(lambda x: birth_prob_curves(x["age"], 
+    age_exist_child_prob = df_candidates.apply(lambda x: birth_prob_curves(x["age"], 
                                                                  x["existing_children_count"]), axis=1)
-    df_candidates["total_prob"] = total_prob
 
     ### create a random number between 0 and 1
-    df_candidates["children_prob"] = np.random.random(size=len(df_candidates))
-
-    ### check if total_prob is not negative if it is then the person will not have a child 
+    children_prob = np.random.random(size=len(df_candidates))
     
     ### total prob starts high and decreases with age and existing children, a low children_prob is better because it will be easier to have a child 
     #### if adults are young and have no children, and total_prob is high
     #### if adults are old and have children, and total_prob is low 
-    crit = df_candidates["children_prob"] <= df_candidates["total_prob"]
+    will_have_child = children_prob <= age_exist_child_prob
 
     #print("Desc", df_candidates["total_prob"].describe(), crit.sum())
     ### non negative total_prob or children_prob <= total_prob
-    df_candidates["will_have_child"] = crit 
 
-    df_with_new_children = df_candidates[df_candidates["will_have_child"]].copy()
-    df_with_no_new_children = df_candidates[~df_candidates["will_have_child"]].copy()
+    df_with_new_children = df_candidates[will_have_child].copy()
+    df_with_no_new_children = df_candidates[~will_have_child].copy()
 
     temp_baby_count = np.random.choice( list(BABY_TWINS_MODE.keys()),
                                        size=len(df_with_new_children),

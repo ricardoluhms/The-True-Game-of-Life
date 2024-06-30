@@ -1,4 +1,5 @@
 import pandas as pd
+import itertools
 
 def generate_initial_constants(df):
 
@@ -18,6 +19,10 @@ def generate_initial_constants(df):
     df["existing_children_count"] = 0
     df['loan'] = 0
     df['default_count'] = 0
+    df['insurance_chance'] = 0
+    df["house_id"] = None
+    df['house_price'] = 0
+    df['house_size_m2'] = 0
 
     return df
 
@@ -152,54 +157,116 @@ if True:
 
 ### Financial Constants
 if True:    
-    CAR_FINANCING_OPTION_PROBS = {'Self-Financing': 0.1,
-                                'Car Loan': 0.9}
-
-    # Something like the above dict, can be created to handel diffrent ages 
-    # if age is 18 - 22 
-    BASE_DEBT_RATIO = 0.45
-
-    ### REWRITE CAR_MAX_DEBT_RATIO TO USE CAR_BASE_DEBT_VALUE and to be a function of Age and Spender Profile
-
-    MAX_DEBT_RATIO = {"Bucket 1": {"Age Range": [18, 25], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO, 
-                                                                                        "Average": BASE_DEBT_RATIO*0.85, 
-                                                                                        "Small Spender": BASE_DEBT_RATIO*0.7}},
-                            "Bucket 2": {"Age Range": [26, 35], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO*0.9,
-                                                                                            "Average": BASE_DEBT_RATIO*0.75,
-                                                                                            "Small Spender": BASE_DEBT_RATIO*0.6}},
-                            "Bucket 3": {"Age Range": [36, 45], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO*0.8,
-                                                                                            "Average": BASE_DEBT_RATIO*0.65,
-                                                                                            "Small Spender": BASE_DEBT_RATIO*0.5}},
-                            "Bucket 4": {"Age Range": [46, 55], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO*0.7,
-                                                                                            "Average": BASE_DEBT_RATIO*0.55,
-                                                                                            "Small Spender": BASE_DEBT_RATIO*0.4}},
-                            "Bucket 5": {"Age Range": [56, 65], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO*0.6,
-                                                                                            "Average": BASE_DEBT_RATIO*0.45,
-                                                                                            "Small Spender": BASE_DEBT_RATIO*0.3}},
-                            "Bucket 6": {"Age Range": [66, 75], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO*0.5,
-                                                                                            "Average": BASE_DEBT_RATIO*0.35,
-                                                                                            "Small Spender": BASE_DEBT_RATIO*0.2}},
-                            "Bucket 7": {"Age Range": [76, 100], "Max Debt to Income Ratio": {"Big Spender": BASE_DEBT_RATIO*0.4,
-                                                                                            "Average": BASE_DEBT_RATIO*0.25,
-                                                                                            "Small Spender": BASE_DEBT_RATIO*0.1}}}
-
     PRIME_RATE = 4 # 4% prime rate
-
     INTEREST_RATE_PER_TYPE = {"Student Loan": 2 + PRIME_RATE,
-                                "Car Loan": 3.21 + PRIME_RATE,
-                                "Mortgage": 3 + PRIME_RATE,
-                                "Personal Loan": 5 + PRIME_RATE}
+                                "Mortgage": 3 + PRIME_RATE}
+    STUDENT_LOAN_INTEREST_RATES = [INTEREST_RATE_PER_TYPE["Student Loan"], INTEREST_RATE_PER_TYPE["Student Loan"]+7]
 
-    LOAN_TERM_PER_TYPE = {"Student Loan": [10, 15],
-                            "Car Loan": [2,5],
-                            "Mortgage": [15, 30],
-                            "Personal Loan": [1, 5]}
+### House Financial Constants
+if True:
+    # Combined dictionary for all factors and weightings
+    HOUSE_PROB_FACTORS = {
+        'weightings': {
+            'age_range': 0.2,
+            'marriage_status': 0.2,
+            'num_children': 0.2,
+            'career_status': 0.2,
+            'spender_profile': 0.2
+        },
+        'age_ranges': {
+            'Young Adult': 0.1,
+            'Adult': 0.2,
+            'Elder': 0.25
+        },
+        'marriage_status_factors': {
+            False: 0.1,
+            True: 0.2,
+        },
+        'num_children_factors': {
+            0: 0.1,
+            1: 0.2,
+            2: 0.3,
+            3: 0.4,
+            4: 0.5,
+            5: 0.5,
+            6: 0.5,
+            7: 0.5,
+            8: 0.5,
+            9: 0.5,
+        },
+        'career_status_factors': {
+            'Base': 0.1,
+            'Medium': 0.2,
+            'High': 0.3,
+            'Very High': 0.4
+        },
+        'spender_profile_factors': {
+            'Big Spender': 0.6,
+            'Average': 0.4,
+            'Small Spender': 0.3,
+            'In-Debt': 0.01,
+            'Depressed': 0.001
+        }
+    }
 
-    STUDENT_LOAN_INTEREST_RATES = [0.02, 0.07]
+    combinations = list(itertools.product(
+        HOUSE_PROB_FACTORS['age_ranges'].keys(),
+        HOUSE_PROB_FACTORS['marriage_status_factors'].keys(),
+        HOUSE_PROB_FACTORS['num_children_factors'].keys(),
+        HOUSE_PROB_FACTORS['career_status_factors'].keys(),
+        HOUSE_PROB_FACTORS['spender_profile_factors'].keys()
+    ))
 
-    CAR_DOWNPAYMENT_CONSTANT = 3000
+    # Calculate the likelihood score_for each combination
+    house_likelihood_probs_comb_data = []
+    for combo in combinations:
+        age_range, marriage_status, num_children, career_status, spender_profile = combo
+        age_factor = HOUSE_PROB_FACTORS['age_ranges'][age_range]
+        marriage_status_factor = HOUSE_PROB_FACTORS['marriage_status_factors'][marriage_status]
+        num_children_factor = HOUSE_PROB_FACTORS['num_children_factors'][num_children]
+        career_status_factor = HOUSE_PROB_FACTORS['career_status_factors'][career_status]
+        spender_profile_factor = HOUSE_PROB_FACTORS['spender_profile_factors'][spender_profile]
+        
+        likelihood_score = (
+            (HOUSE_PROB_FACTORS['weightings']['age_range'] * age_factor) +
+            (HOUSE_PROB_FACTORS['weightings']['marriage_status'] * marriage_status_factor) +
+            (HOUSE_PROB_FACTORS['weightings']['num_children'] * num_children_factor) +
+            (HOUSE_PROB_FACTORS['weightings']['career_status'] * career_status_factor) +
+            (HOUSE_PROB_FACTORS['weightings']['spender_profile'] * spender_profile_factor)
+        )
+        
+        house_likelihood_probs_comb_data.append({
+            'age_range': age_range,
+            #'age_factor': age_factor,
+            'marriage_status': marriage_status,
+            #'marriage_status_factor': marriage_status_factor,
+            'existing_children_count': num_children,
+            #'existing_children_count_factor': num_children_factor,
+            'career': career_status,
+            #'career_status_factor': career_status_factor,
+            'spender_profile': spender_profile,
+            #'spender_profile_factor': spender_profile_factor,
+            'base_house_likelihood': likelihood_score
+        })
 
-    CAR_SELF_FINANCING_CONSTANT= [10000,20000,70000]
+    HOUSE_PROBABILITY_FACTORS = pd.DataFrame(house_likelihood_probs_comb_data)
+
+    HOUSE_SIZE_PER_ROOM = {
+        1: {"house_size_range_m2": [30, 50], "min_price_per_m2": 4200, "max_price_per_m2": 8500},
+        2: {"house_size_range_m2": [60, 80], "min_price_per_m2": 4000, "max_price_per_m2": 8000},
+        3: {"house_size_range_m2": [80, 100], "min_price_per_m2": 3800, "max_price_per_m2": 7500},
+        4: {"house_size_range_m2": [100, 130], "min_price_per_m2": 3600, "max_price_per_m2": 7200},
+        5: {"house_size_range_m2": [130, 160], "min_price_per_m2": 3400, "max_price_per_m2": 7000},
+        6: {"house_size_range_m2": [160, 200], "min_price_per_m2": 3200, "max_price_per_m2": 6800}
+                                }
+
+    RELATIVE_PRICE_MULTIPLIER = 1.5
+
+    HOUSE_DF = pd.DataFrame.from_dict(HOUSE_SIZE_PER_ROOM, orient='index').reset_index()
+    HOUSE_DF = HOUSE_DF.rename(columns={'index': 'rooms'})
+    ### multiply prices by RELATIVE_PRICE_MULTIPLIER
+    HOUSE_DF["min_price_per_m2"] = HOUSE_DF["min_price_per_m2"] * RELATIVE_PRICE_MULTIPLIER
+    HOUSE_DF["max_price_per_m2"] = HOUSE_DF["max_price_per_m2"] * RELATIVE_PRICE_MULTIPLIER
 
 ### Marriage and Family Constants
 if True:
@@ -329,23 +396,22 @@ if True:
 
 #### TO ADD INFLANTION RATE AND TAXES ON INCOME
 
+EXPEND_MULTIPLIER_BY_EXPENDITURE_GROUP = {'Baby': {'Housing': 0, 'Transportation & Food': 0, 'Healthcare': 0, 'Entertainment': 0, 'Insurance': 0, 'Savings': 1},
+                                          'Child': {'Housing': 0, 'Transportation & Food': 0.4, 'Healthcare': 0, 'Entertainment': 0.4, 'Insurance': 0, 'Savings': 0.2},
+                                          'Teenager': {'Housing': 0, 'Transportation & Food': 0.45, 'Healthcare': 0, 'Entertainment': 0.45, 'Insurance': 0, 'Savings': 0.1},
+                                          'Young Adult': {'Housing': 0.4, 'Transportation & Food': 0.25, 'Healthcare': 0.1, 'Entertainment': 0.1, 'Insurance': 0.05, 'Savings': 0.1},
+                                          'Adult': {'Housing': 0.4, 'Transportation & Food': 0.25, 'Healthcare': 0.1, 'Entertainment': 0.1, 'Insurance': 0.05, 'Savings': 0.1},
+                                          'Elder': {'Housing': 0.35, 'Transportation & Food': 0.2, 'Healthcare': 0.3, 'Entertainment': 0.15, 'Insurance': 0, 'Savings': 0}} 
 
+def create_base_expenditure_df():
+    df = pd.DataFrame(EXPEND_MULTIPLIER_BY_EXPENDITURE_GROUP).T
+    df = df.reset_index()
+    df = df.rename(columns={"index": "age_range"})
+    ### rename columns to lowercase and replace spaces with underscore and add _rate
+    df.columns = [col.replace(" & ", "_").replace(" ", "_").lower() + "_exp_rate" if col != "age_range" else col for col in df.columns]
+    return df
 
-# Define the data in a Python dictionary
-expenditure_data = {
-    "Category": ["Housing", "Transportation", "Food", "Personal Insurance and Pensions", 
-                 "Healthcare", "Entertainment", "Other Expenditures", "Cash Contributions", 
-                 "Apparel and Services", "Education"],
-    "Single Person": [33.3, 16.8, 12.8, 12, 8, 4.7, 4.1, 3.8, 2.7, 1.8],
-    "Married Couple (No Kids)": [31, 15, 13, 11, 9, 5, 6, 3, 4, 3],
-    "Family of Four": [30, 15, 15, 10, 10, 5, 5, 3, 5, 2],
-    "Retired Couple": [27, 14, 13, 9, 15, 4, 6, 5, 3, 2],
-    "Low-Income Household": [40, 10, 20, 5, 5, 3, 5, 2, 5, 5]
-}
-
-# Create a pandas DataFrame
-df_expenditure = pd.DataFrame(expenditure_data)
-
+EXPEND_MULTIPLIER_BY_EXPENDITURE_GROUP_DF = create_base_expenditure_df()
 # import ace_tools as tools; tools.display_dataframe_to_user(name="Monthly Expenditure by Persona", dataframe=df_expenditure)
 
 # # Display the DataFrame
