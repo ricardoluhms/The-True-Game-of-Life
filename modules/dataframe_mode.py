@@ -10,8 +10,6 @@ from modules.marriage import get_marriage_pairs, calculate_marriage_cost
 from modules.born import children_born
 from modules.financial_fc import *
 from modules.utils import *
-from modules.city import City
-from modules.person import Person_Life
 from modules.gml_constants import *
 import warnings
 import matplotlib.pyplot as plt
@@ -127,6 +125,9 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
     df2, dfd = remove_dead_people(df2)
     df_length["non_dead_people"] = len(df2)
 
+    df2 = share_distribution(df2, dfd)
+    df_length["share_distribution"] = len(df2)
+
     df2 = check_function_for_duplication(age_up_df, df2)
     df_length["age_up"] = len(df2)
 
@@ -177,8 +178,6 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
     df2  = solve_couples_distinct_house(df2)
     df_length["couples_distinct_households"] = len(df2)
 
-    
-
     df2 = life_moment_score(df2,dfd)
     df_length["life_moment_score"] = len(df2)
     
@@ -188,8 +187,7 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
 
 
 
-    df2 = share_distribution(df2, dfd)
-    df_length["share_distribution"] = len(df2)
+
     df2 = pd.concat([df2, dfd])
     df_length["combined"] = len(df2)
 
@@ -256,6 +254,57 @@ def age_up_df(df):
 
     return df2
 
+def calculate_death_chance_v2(age,gender):
+    #print(age)
+    ### the model predicts the probability of living and returns the probability of dying
+    if gender == "Male":
+        gender_val =  1.2
+    elif gender == "Female":
+        gender_val = 2
+
+    ### pred_poly values ranges from 1 100 - a value of 100 means will live, 0 means will die 
+    pred_poly = DEATH_PROB_MODEL_COEF_NEW['age^1']*age +\
+                DEATH_PROB_MODEL_COEF_NEW['age^2']*age**2 +\
+                DEATH_PROB_MODEL_COEF_NEW['age^3']*age**3 +\
+                DEATH_PROB_MODEL_COEF_NEW['age^4']*age**4 +\
+                DEATH_PROB_MODEL_COEF_NEW['age^5']*age**5 +\
+                DEATH_PROB_MODEL_COEF_NEW['gender^1']*gender_val +\
+                DEATH_PROB_MODEL_COEF_NEW['gender^2']*gender_val**2 +\
+                DEATH_PROB_MODEL_COEF_NEW['gender^3']*gender_val**3 +\
+                DEATH_PROB_MODEL_COEF_NEW['gender^4']*gender_val**4 +\
+                DEATH_PROB_MODEL_COEF_NEW['gender^5']*gender_val**5 +\
+                DEATH_PROB_MODEL_COEF_NEW['intercept']
+    
+    if pred_poly > 100:
+        death_prob = 0.000001
+
+    elif age > 100:
+        death_prob = 0.999999
+    else:
+        death_prob = 1- pred_poly/100 #
+
+    return death_prob
+
+def calculate_death_chance_crit_ill(age):
+    prob = CRIT_ILL_DEATH_PROB_MODEL_COEF['age']*age +\
+            CRIT_ILL_DEATH_PROB_MODEL_COEF['age_sq']*age**2 +\
+            CRIT_ILL_DEATH_PROB_MODEL_COEF['age_cub']*age**3 +\
+            CRIT_ILL_DEATH_PROB_MODEL_COEF['age_qd']*age**4 +\
+            CRIT_ILL_DEATH_PROB_MODEL_COEF['intercept']
+    # if age <20:
+    #     prob = 0
+    # elif age >=20 and age < 40:
+    #     prob = np.abs(prob)
+
+    # elif age >=40 and age < 55:
+    #     prob = np.abs(prob)/3
+
+    # elif age >=55 and age < 60:
+    #     prob = np.abs(prob)
+    prob = np.abs(prob)
+
+    return prob
+
 def calculate_death_df(df):
     df2 = df.copy()
     ### remove people who has age nan
@@ -263,7 +312,7 @@ def calculate_death_df(df):
     ### remove dead people
     try:
         df2['age_death_thresh'] = df2.apply(
-                lambda x: Person_Life.calculate_death_chance_v2(x['age'], x['gender']), axis=1)
+                lambda x: calculate_death_chance_v2(x['age'], x['gender']), axis=1)
     except:
         print(f"{len(df2)} people in dataframe")
         return df2
@@ -271,7 +320,7 @@ def calculate_death_df(df):
     df2["age_death_prob"] = np.random.rand(len(df2))
     ### use calculate_death_chance_crit_ill
     df2['ci_death_thresh'] = df2.apply(
-        lambda x: Person_Life.calculate_death_chance_crit_ill(x['age']), axis=1)
+        lambda x: calculate_death_chance_crit_ill(x['age']), axis=1)
     ### generate random number to compare with death threshold
     df2["ci_death_prob"] = np.random.rand(len(df2))
     df2["servere_accident_prob"] = np.random.rand(len(df2))
@@ -365,7 +414,7 @@ def handle_part_time(df):
     return df2
 
 def handle_fut_career(df):
-    ### use Person_Life and define_study_and_fut_career
+    ### use define_study_and_fut_career
     df2 = df.copy()
 
     ### select people who are young adults with no career
