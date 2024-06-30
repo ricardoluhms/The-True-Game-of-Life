@@ -3,7 +3,7 @@
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from modules.dataframe_mode import *
+from modules.core_functions import *
 
 #%%40000
 
