@@ -310,7 +310,9 @@ if True:
 ### Career Constants
 if True:
     #SPENDER_PROFILE = {'Big Spender': 1.1, 'Average': 0.95, 'Small Spender': 0.85, 'In-Debt': 0.75, 'Depressed': 0.65}
+    #SPENDER_PROFILE = {'Average': 0.9, 'Big Spender': 1.05, 'Small Spender': 0.75, 'In-Debt': 0.5, 'Depressed': 0.4}
     SPENDER_PROFILE = {'Big Spender': 1.25, 'Average': 1.1, 'Small Spender': 1.0, 'In-Debt': 0.9, 'Depressed': 0.8}
+
     SPENDER_PROFILE_DECREASE = {'Big Spender': 'Average', 'Average': 'Small Spender', 'Small Spender': 'In-Debt', 
                                 'In-Debt': 'Depressed',
                                 'Depressed': 'Depressed'}
@@ -395,6 +397,18 @@ if True:
                                     'intercept':  -0.00024762657632679795}
 
 #### TO ADD INFLANTION RATE AND TAXES ON INCOME
+
+
+### Expenditure Constants
+### limitations: 
+# 01 - A couple will have always a proportional part of the income set to housing
+# This means that if their salary increases, the housing part will increase as well
+# 02 - A family with children will will not consider the increase in other expenses for each child
+# 03 - Inflation is not considered
+
+### percentage of expenditure based on age group sum should be 1 and
+### housing & insurance multiplier for child and teenager should be the same 0
+### transform EXPEND_MULTIPLIER_BY_EXPENDITURE_GROUP into a dataframe
 
 EXPEND_MULTIPLIER_BY_EXPENDITURE_GROUP = {'Baby': {'Housing': 0, 'Transportation & Food': 0, 'Healthcare': 0, 'Entertainment': 0, 'Insurance': 0, 'Savings': 1},
                                           'Child': {'Housing': 0, 'Transportation & Food': 0.4, 'Healthcare': 0, 'Entertainment': 0.4, 'Insurance': 0, 'Savings': 0.2},

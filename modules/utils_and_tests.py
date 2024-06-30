@@ -6,7 +6,7 @@ import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import numpy as np
-from modules.gml_constants import *
+from modules.constants import *
 import warnings
 import matplotlib.pyplot as plt
 warnings.simplefilter(action='ignore', category=FutureWarning)
