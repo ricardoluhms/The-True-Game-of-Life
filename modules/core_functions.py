@@ -9,8 +9,8 @@ import numpy as np
 from modules.marriage import get_marriage_pairs, calculate_marriage_cost
 from modules.born import children_born
 from modules.financial_fc import *
-from modules.utils import *
-from modules.gml_constants import *
+from modules.utils_and_tests import *
+from modules.constants import *
 import warnings
 import matplotlib.pyplot as plt
 warnings.simplefilter(action='ignore', category=FutureWarning)
