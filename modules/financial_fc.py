@@ -6,9 +6,9 @@ from matplotlib import pyplot as plt
 import random
 import numpy as np
 try:
-    from  modules.gml_constants import *
+    from  modules.constants import *
 except :
-    from  gml_constants import *
+    from  modules.constants import *
 ### create a column to generate the initial values of expenditure rates, spender_prof_rate and expenditure values
 def create_initial_expenditure_values(df):
     df2 = df.copy()
