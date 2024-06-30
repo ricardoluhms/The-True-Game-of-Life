@@ -6,9 +6,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import pandas as pd
 import numpy as np
-from modules.marriage import get_marriage_pairs, calculate_marriage_cost
-from modules.born import children_born
-from modules.financial_fc import *
+from modules.marriage_functions import get_marriage_pairs, calculate_marriage_cost
+from modules.born_functions import children_born
+from modules.financial_functions import *
 from modules.utils_and_tests import *
 from modules.constants import *
 import warnings
