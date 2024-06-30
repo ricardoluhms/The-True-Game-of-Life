@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
 import tqdm
-
+from logging import getLogger
+logger = getLogger(__name__)
 ########################################### Generate Functions ###########################################
 def generate_init_df(population, year, age_range):
     """
