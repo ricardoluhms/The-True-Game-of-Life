@@ -123,22 +123,22 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
     df2 = df[mask].copy()
     df_length["year_lenght"] = len(df2)
 
-    df2, dfd = remove_dead_people(df2)
-    df_length["non_dead_people"] = len(df2)
-
-    df2 = share_distribution(df2, dfd)
-    df_length["share_distribution"] = len(df2)
-
     df2 = check_function_for_duplication(age_up_df, df2)
     df_length["age_up"] = len(df2)
 
     df2 = check_function_for_duplication(calculate_death_df, df2)
     df_length["death_calc"] = len(df2)
 
+    df2, dfd = remove_dead_people(df2)
+    df_length["non_dead_people"] = len(df2)
+
+    df2 = share_distribution(df2, dfd) ### moved closer to remove_dead_people - this allows heirs to receive inheritance earlier
+    df_length["share_distribution"] = len(df2)
+
     df2 = check_function_for_duplication(handle_pocket_money, df2)
     df_length["pocket_money"] = len(df2)
 
-    df2 = check_function_for_duplication( handle_fut_career, df2)
+    df2 = check_function_for_duplication(handle_fut_career, df2)
     df_length["fut_career"] = len(df2)
 
     df2 = check_function_for_duplication(student_loan, df2)
@@ -167,31 +167,31 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
         df2 = check_function_for_duplication(children_born, df2)
         df_length["children_born"] = len(df2)
 
-    df2 = check_function_for_duplication(update_expenditure_rates, df2)
-    df_length["expenditure_rates"] = len(df2)
-
-    df2 = check_function_for_duplication(handle_expenditure_value, df2)
-    df_length["expenditure_value"] = len(df2)
-
-    df2 = check_function_for_duplication(update_account_balance_v2, df2)
-    df_length["account_balance"] = len(df2)
-
     df2  = solve_couples_distinct_house(df2)
     df_length["couples_distinct_households"] = len(df2)
 
-    df2 = life_moment_score(df2,dfd)
-    df_length["life_moment_score"] = len(df2)
-    
+    ### buy house - New
+    df2 = check_function_for_duplication(buy_or_upgrade_house, df2)
+    df_length["buy_house"] = len(df2)
+
+    ### moved closer to allow loan_expenditure to be calculated before other functions
     df2 = check_function_for_duplication(pay_loan, df2)
     df_length["pay_loan"] = len(df2)
-    #df2 = check_function_for_duplication(share_distribution, df, dfd)
 
+    df2 = check_function_for_duplication(update_expenditure_rates, df2)
+    df_length["expenditure_rates"] = len(df2)
 
+    df2 = check_function_for_duplication(handle_expenditure_values, df2)
+    df_length["expenditure_value"] = len(df2)
 
+    df2 = check_function_for_duplication(update_account_balance, df2)
+    df_length["account_balance"] = len(df2)
+
+    # df2 = life_moment_score(df2,dfd)
+    # df_length["life_moment_score"] = len(df2) ### will activate after insurance is added
 
     df2 = pd.concat([df2, dfd])
     df_length["combined"] = len(df2)
-
 
     return df2
 
