@@ -9,6 +9,7 @@ try:
     from  modules.constants import *
 except :
     from  modules.constants import *
+import math
 
 ### Student Functions
 def student_loan(df):
@@ -685,10 +686,10 @@ def handle_expenditure_values(df):
     # Update XXX_exp_value based on income and XXX_exp_rate columns
     ### cols that does not update directly from the rate housing_exp_value, savings_exp_value and loan_exp_value
 
-    ### loan_exp_rate should not be updated
-
+    ### loan_exp_rate should not be updated AND insurance_exp_rate should not be updated
+    dont_update = ["loan_exp_rate", "insurance_exp_rate"]
     for col in rate_cols:
-        if col != "loan_exp_rate":
+        if col not in dont_update:
             has_income_df[col.replace("rate", "value")] = has_income_df[col] * has_income_df["income"]
 
     ### special cases for those who have a house and those who have a loan
@@ -757,7 +758,7 @@ def update_account_balance(df):
     ### except for savings values that are added to the balance, the rest are subtracted from the balance
     ### savings_exp_value continues in the balance because there is no need to subtract it (no savings account)
     ### loan value is also not subtracted from the balance because it is handled in the pay_loan function
-    do_not_subtract = ["savings_exp_value", "loan_exp_value"]
+    do_not_subtract = ["savings_exp_value", "loan_exp_value","insurance_exp_value"]
 
     for col in val_cols:
         if col not in do_not_subtract:
@@ -958,66 +959,87 @@ def life_moment_score(df_all_records, df_dead):
     df2 = df2.drop(columns=["life_moment_score_x", "life_moment_score_y"], errors='ignore')
     return df2
 
-def calculate_health_score(df):
-    # Normalize and calculate the health score
-    df['bmi_score'] = np.where((df['bmi'] >= 18.5) & (df['bmi'] <= 24.9), 1, 0)
-    df['bp_score'] = np.where((df['blood_pressure_systolic'] < 130) & (df['blood_pressure_diastolic'] < 85), 1, 0)
-    df['cholesterol_score'] = np.where((df['cholesterol_ldl'] < 130) & (df['cholesterol_hdl'] > 40), 1, 0)
-    df['blood_sugar_score'] = np.where(df['blood_sugar'] < 100, 1, 0)
-    df['physical_activity_score'] = np.where(df['physical_activity'] >= 3, 1, 0)
-    df['diet_score'] = np.where(df['diet_score'] >= 7, 1, 0)
-    df['sleep_score'] = np.where((df['sleep_hours'] >= 7) & (df['sleep_hours'] <= 9), 1, 0)
-    df['chronic_conditions_score'] = np.where(df['chronic_conditions'] == 0, 1, 0)
-    df['smoking_score'] = np.where(df['smoking_status'] == 0, 1, 0)
-    df['alcohol_score'] = np.where(df['alcohol_consumption'] <= 2, 1, 0)
-    df['stress_score'] = np.where(df['stress_level'] <= 4, 1, 0)
-    df['mental_health_score'] = np.where(df['mental_health_conditions'] == 0, 1, 0)
-    df['checkup_score'] = df['regular_checkups']
-    
-    df['health_score'] = (
-        df['bmi_score'] + df['bp_score'] + df['cholesterol_score'] + df['blood_sugar_score'] +
-        df['physical_activity_score'] + df['diet_score'] + df['sleep_score'] + df['chronic_conditions_score'] +
-        df['smoking_score'] + df['alcohol_score'] + df['stress_score'] + df['mental_health_score'] +
-        df['checkup_score']
-    ) / 13 * 100  # Scale to 0-100
-    
+def calculate_insurance_values(df, rate=0.05):
+    ### use  compounding interest formula to calculate the present value of the insurance
+    ### PV = FV / (1 + r)^n
+    ### PV = present value
+    ### FV = future value = Face Amount of the insurance
+    ### r = interest rate
+    ### n = number of years = lifetime
+    life_time = 65 - df['age']
+    df['face_amount'] = df['income'] * (life_time) * 0.35
+    potential_premium = df['face_amount'] / (1 + rate) ** life_time
+    df['yearly_premium'] = potential_premium / life_time
     return df
 
-def calculate_term_insurance_premium(df):
-    # Base premium rate per $1000 face amount
-    base_rate = 0.05
-    
-    # Calculate premium based on age, face amount, and other criteria
-    df['premium'] = (
-        df['face_amount'] / 1000 * base_rate *
-        (1 + (df['age'] - 25) * 0.05) *  # Age factor
-        (1.2 if df['gender'] == 'male' else 1.1) *  # Gender factor
-        (2 if df['smoker'] else 1) *  # Smoking factor
-        (1 + (100 - df['health_score']) / 100) *  # Health factor
-        (1 + df['occupation_risk'] / 10) *  # Occupation risk factor
-        (1.5 if df['risky_hobbies'] else 1)  # Risky hobbies factor
-    )
-    
-    return df
+def life_score_to_insurance(score):
+    #=0.3-(1/(LOG(A1+2,1.4)+1))
+    prob = 0.3 - (1/(math.log(score+2, 1.4)+1)) ### values range from -0.02 to 0.2 (score of 20)
+    random_val = random.uniform(-0.05, 0.1)
+    prob += random_val
+    ### if score is less than 0, set it to 0
+    if prob < 0:
+        prob = 0
+    return prob
 
-def calculate_risk_tolerance_and_insurance(df):
-    # Calculate risk tolerance based on quantified metrics
-    df['risk_tolerance'] = (
-        df['num_children'] * -1 +  # More children, lower risk tolerance
-        df['homeowner'].astype(int) * 2 +  # Homeownership increases risk tolerance
-        (df['income_level'] // 10000) +  # Higher income increases risk tolerance
-        (df['health_score'] // 10)  # Better health increases risk tolerance
-    )
+def buy_insurance(df):
+    df2 = df.copy()
+    ### get people who has income
+    income_crit = df2["income"] > 0
+    ### get people who has life_moment_score
+    life_moment_crit = df2["life_moment_score"] >= 0
+    ### drop people who has insurance
+    no_insurance_crit = df2["has_insurance_flag"] == 0
+    ### age should be less than 65
+    age_crit = df2["age"] < 65
+    ### balance should be greater than 0
+    balance_crit = df2["balance"] > 0
+
+    can_buy_crit = income_crit & life_moment_crit & no_insurance_crit & age_crit & balance_crit
+    if can_buy_crit.sum() == 0:
+        return df2
+    ### split the dataframe into 2 - those who can buy insurance and those who cannot/already have insurance
+    can_buy_df = df2[can_buy_crit].copy()
+    no_insurance_df = df2[~can_buy_crit].copy()
+
+    ### calculate the chance of buying insurance
+    insurane_prob = can_buy_df["life_moment_score"].apply(life_score_to_insurance)
+    ### get random number between 0 and 1
+    random_vals = np.random.uniform(0, 1, can_buy_df.shape[0])
+    ### check if the random number is less than the insurance_chance
+    buy_crit = random_vals < insurane_prob
+    ### set has_insurance_flag to 1 for those who bought insurance
+    can_buy_df.loc[buy_crit, "has_insurance_flag"] = 1
+    ### calculate the insurance values for those who bought insurance - face_amount and yearly_premium
+    temp_df = calculate_insurance_values(can_buy_df)
+    can_buy_df[buy_crit, "face_amount"] = temp_df[buy_crit, "face_amount"]
+    can_buy_df[buy_crit, "yearly_premium"] = temp_df[buy_crit, "yearly_premium"]
+
+    updated_df = pd.concat([can_buy_df, no_insurance_df]).sort_index()
+
+    return updated_df
+
+def pay_insurance(df):
+    df2 = df.copy()
+    ### get people who has insurance
+    insurance_crit = df2["has_insurance_flag"] == 1
+    ### age should be less than or equal to 65 - the insurance is paid until the person is 65
+    age_crit = df2["age"] <= 65
+    ### get people who has income
+    income_crit = df2["income"] > 0
     
-    # Determine likelihood of buying life insurance based on life events
-    df['likely_to_buy_life_insurance'] = (
-        (df['num_children'] > 0) |
-        (df['marital_status'] == 'married') |
-        (df['homeowner'] == True) |
-        (df['income_level'] > 75000) |
-        (df['health_score'] < 80) |
-        (df['divorce_status'] == True) |
-        (df['bereavement_status'] == True)
-    )
-    
-    return df
+    pay_crit = insurance_crit & age_crit & income_crit
+    if pay_crit.sum() == 0:
+        return df2
+    ### split the dataframe into 2 - those who can pay insurance and those who cannot
+    can_pay_df = df2[pay_crit].copy()
+    does_not_need_to_pay_df = df2[~pay_crit].copy()
+
+    ### pay the insurance
+    can_pay_df["balance"] = can_pay_df["balance"] - can_pay_df["yearly_premium"]
+    can_pay_df["insurance_exp_value"] = can_pay_df["yearly_premium"]
+    can_pay_df["insurance_exp_rate"] = can_pay_df["yearly_premium"]/can_pay_df["income"]
+
+    updated_df = pd.concat([can_pay_df, does_not_need_to_pay_df]).sort_index()
+
+    return updated_df

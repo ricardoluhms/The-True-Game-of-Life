@@ -413,8 +413,8 @@ if True:
 EXPEND_MULTIPLIER_BY_EXPENDITURE_GROUP = {'Baby': {'Housing': 0, 'Transportation & Food': 0, 'Healthcare': 0, 'Entertainment': 0, 'Insurance': 0, 'Savings': 1},
                                           'Child': {'Housing': 0, 'Transportation & Food': 0.4, 'Healthcare': 0, 'Entertainment': 0.4, 'Insurance': 0, 'Savings': 0.2},
                                           'Teenager': {'Housing': 0, 'Transportation & Food': 0.45, 'Healthcare': 0, 'Entertainment': 0.45, 'Insurance': 0, 'Savings': 0.1},
-                                          'Young Adult': {'Housing': 0.4, 'Transportation & Food': 0.25, 'Healthcare': 0.1, 'Entertainment': 0.1, 'Insurance': 0.05, 'Savings': 0.1},
-                                          'Adult': {'Housing': 0.4, 'Transportation & Food': 0.25, 'Healthcare': 0.1, 'Entertainment': 0.1, 'Insurance': 0.05, 'Savings': 0.1},
+                                          'Young Adult': {'Housing': 0.4, 'Transportation & Food': 0.25, 'Healthcare': 0.1, 'Entertainment': 0.1, 'Insurance': 0, 'Savings': 0.1},
+                                          'Adult': {'Housing': 0.4, 'Transportation & Food': 0.25, 'Healthcare': 0.1, 'Entertainment': 0.1, 'Insurance': 0, 'Savings': 0.1},
                                           'Elder': {'Housing': 0.35, 'Transportation & Food': 0.2, 'Healthcare': 0.3, 'Entertainment': 0.15, 'Insurance': 0, 'Savings': 0}} 
 
 def create_base_expenditure_df():
@@ -423,6 +423,8 @@ def create_base_expenditure_df():
     df = df.rename(columns={"index": "age_range"})
     ### rename columns to lowercase and replace spaces with underscore and add _rate
     df.columns = [col.replace(" & ", "_").replace(" ", "_").lower() + "_exp_rate" if col != "age_range" else col for col in df.columns]
+    df['loan_exp_rate'] = 0
+
     return df
 
 EXPEND_MULTIPLIER_BY_EXPENDITURE_GROUP_DF = create_base_expenditure_df()

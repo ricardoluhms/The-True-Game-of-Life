@@ -178,6 +178,15 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
     df2 = check_function_for_duplication(pay_loan, df2)
     df_length["pay_loan"] = len(df2)
 
+    df2 = life_moment_score(df2,dfd)
+    df_length["life_moment_score"] = len(df2) ### will activate after insurance is added
+
+    df2 = check_function_for_duplication(buy_insurance, df2)
+    df_length["buy_insurance"] = len(df2)
+
+    df2 = check_function_for_duplication(pay_insurance, df2)
+    df_length["pay_insurance"] = len(df2)
+
     df2 = check_function_for_duplication(update_expenditure_rates, df2)
     df_length["expenditure_rates"] = len(df2)
 
@@ -187,8 +196,6 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
     df2 = check_function_for_duplication(update_account_balance, df2)
     df_length["account_balance"] = len(df2)
 
-    # df2 = life_moment_score(df2,dfd)
-    # df_length["life_moment_score"] = len(df2) ### will activate after insurance is added
 
     df2 = pd.concat([df2, dfd])
     df_length["combined"] = len(df2)
