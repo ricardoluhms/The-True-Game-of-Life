@@ -138,7 +138,7 @@ def check_career_and_study_func_test(func, df, *args):
 
     print(f"Year {year}")
     print(f"Futur Career Before:\n {gb_count_before}\n"\
-          f" Future Career After:\n {gb_count_after}\n")
+        f" Future Career After:\n {gb_count_after}\n")
     print(f"Career Before:\n {gb_count_before2}\n"\
-          f" Career After:\n {gb_count_after2}\n")
+        f" Career After:\n {gb_count_after2}\n")
     return df2

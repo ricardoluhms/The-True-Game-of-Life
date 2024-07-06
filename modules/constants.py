@@ -18,11 +18,15 @@ def generate_initial_constants(df):
     df["marriage_prob"] = 0
     df["existing_children_count"] = 0
     df['loan'] = 0
+    df['loan_term'] = None
+    df['loan_interest_rate'] = None
     df['default_count'] = 0
     df['insurance_chance'] = 0
     df["house_id"] = None
     df['house_price'] = 0
     df['house_size_m2'] = 0
+    df["room_count"] = 0
+    df["life_moment_score"] = 0
 
     return df
 
@@ -167,14 +171,14 @@ if True:
     # Combined dictionary for all factors and weightings
     HOUSE_PROB_FACTORS = {
         'weightings': {
-            'age_range': 0.2,
-            'marriage_status': 0.2,
+            'age_range': 0.25,
+            'marriage_status': 0.15,
             'num_children': 0.2,
             'career_status': 0.2,
-            'spender_profile': 0.2
+            'spender_prof': 0.2
         },
         'age_ranges': {
-            'Young Adult': 0.1,
+            'Young Adult': 0.01,
             'Adult': 0.2,
             'Elder': 0.25
         },
@@ -183,7 +187,7 @@ if True:
             True: 0.2,
         },
         'num_children_factors': {
-            0: 0.1,
+            0: 0.05,
             1: 0.2,
             2: 0.3,
             3: 0.4,
@@ -201,9 +205,9 @@ if True:
             'Very High': 0.4
         },
         'spender_profile_factors': {
-            'Big Spender': 0.6,
-            'Average': 0.4,
-            'Small Spender': 0.3,
+            'Big Spender': 0.5,
+            'Average': 0.3,
+            'Small Spender': 0.2,
             'In-Debt': 0.01,
             'Depressed': 0.001
         }
@@ -232,7 +236,7 @@ if True:
             (HOUSE_PROB_FACTORS['weightings']['marriage_status'] * marriage_status_factor) +
             (HOUSE_PROB_FACTORS['weightings']['num_children'] * num_children_factor) +
             (HOUSE_PROB_FACTORS['weightings']['career_status'] * career_status_factor) +
-            (HOUSE_PROB_FACTORS['weightings']['spender_profile'] * spender_profile_factor)
+            (HOUSE_PROB_FACTORS['weightings']['spender_prof'] * spender_profile_factor)
         )
         
         house_likelihood_probs_comb_data.append({
@@ -244,7 +248,7 @@ if True:
             #'existing_children_count_factor': num_children_factor,
             'career': career_status,
             #'career_status_factor': career_status_factor,
-            'spender_profile': spender_profile,
+            'spender_prof': spender_profile,
             #'spender_profile_factor': spender_profile_factor,
             'base_house_likelihood': likelihood_score
         })
@@ -263,7 +267,7 @@ if True:
     RELATIVE_PRICE_MULTIPLIER = 1.5
 
     HOUSE_DF = pd.DataFrame.from_dict(HOUSE_SIZE_PER_ROOM, orient='index').reset_index()
-    HOUSE_DF = HOUSE_DF.rename(columns={'index': 'rooms'})
+    HOUSE_DF = HOUSE_DF.rename(columns={'index': 'room_count'})
     ### multiply prices by RELATIVE_PRICE_MULTIPLIER
     HOUSE_DF["min_price_per_m2"] = HOUSE_DF["min_price_per_m2"] * RELATIVE_PRICE_MULTIPLIER
     HOUSE_DF["max_price_per_m2"] = HOUSE_DF["max_price_per_m2"] * RELATIVE_PRICE_MULTIPLIER
