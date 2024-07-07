@@ -254,14 +254,20 @@ if True:
         })
 
     HOUSE_PROBABILITY_FACTORS = pd.DataFrame(house_likelihood_probs_comb_data)
-
+    MAX_PRICE_PER_M2 = 10000
+    MIN_PRICE_PER_M2 = 4000
     HOUSE_SIZE_PER_ROOM = {
-        1: {"house_size_range_m2": [30, 50], "min_price_per_m2": 4200, "max_price_per_m2": 8500},
-        2: {"house_size_range_m2": [60, 80], "min_price_per_m2": 4000, "max_price_per_m2": 8000},
-        3: {"house_size_range_m2": [80, 100], "min_price_per_m2": 3800, "max_price_per_m2": 7500},
-        4: {"house_size_range_m2": [100, 130], "min_price_per_m2": 3600, "max_price_per_m2": 7200},
-        5: {"house_size_range_m2": [130, 160], "min_price_per_m2": 3400, "max_price_per_m2": 7000},
-        6: {"house_size_range_m2": [160, 200], "min_price_per_m2": 3200, "max_price_per_m2": 6800}
+        1: {"house_size_range_m2": [30, 50], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        2: {"house_size_range_m2": [60, 80], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        3: {"house_size_range_m2": [80, 100], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        4: {"house_size_range_m2": [100, 130], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        5: {"house_size_range_m2": [130, 160], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        6: {"house_size_range_m2": [160, 200], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        7: {"house_size_range_m2": [200, 250], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        8: {"house_size_range_m2": [250, 300], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        9: {"house_size_range_m2": [300, 350], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        10: {"house_size_range_m2": [350, 400], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        11: {"house_size_range_m2": [400, 450], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
                                 }
 
     RELATIVE_PRICE_MULTIPLIER = 1.5

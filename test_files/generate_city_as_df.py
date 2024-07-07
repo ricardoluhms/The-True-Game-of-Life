@@ -7,7 +7,7 @@ from modules.core_functions import *
 
 #%%40000
 
-df3 = time_function(generate_complete_city, 130, "Young Adult", 5000, 1920,True)
+df3 = time_function(generate_complete_city, 130, "Young Adult", 500, 1920,True)
 #%% 
 # check if folder exists
 if not os.path.exists("C:/Users/ricar/Documents/GitHub/TGoL/test_files/data/new_pipeline"):
