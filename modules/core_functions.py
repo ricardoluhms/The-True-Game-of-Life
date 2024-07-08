@@ -119,139 +119,134 @@ def generate_past_events(df, debug_print=False):
 def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=False):
     year = df["year"].max()
     mask = df['year'] == year
-    #print(f"Generating year {year+1}")
     df_length = {"Total": len(df)}
     if mask.sum() == 0:
         return df
     df2 = df[mask].copy()
     df_length["year_lenght"] = len(df2)
 
-    #df2 = check_function_for_duplication(age_up_df, df2)
     df2 = age_up_df (df2)
-    df_length["age_up"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after age up function")
     gender_quality_issues(df2, f"Year {year+1} after age up function")
+    df_length["age_up"] = len(df2)
 
-    #df2 = check_function_for_duplication(calculate_death_df, df2)
     df2 = calculate_death_df(df2)
-    df_length["death_calc"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after death calculation")
     gender_quality_issues(df2, f"Year {year+1} after death calculation")
+    df_length["death_calc"] = len(df2)
 
     df2, dfd = remove_dead_people(df2)
-    df_length["non_dead_people"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after remove dead people")
     gender_quality_issues(df2, f"Year {year+1} after remove dead people")
+    df_length["non_dead_people"] = len(df2)
 
     df2 = share_distribution(df2, dfd) ### moved closer to remove_dead_people - this allows heirs to receive inheritance earlier
-    df_length["share_distribution"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after share distribution")
     gender_quality_issues(df2, f"Year {year+1} after share distribution")
+    df_length["share_distribution"] = len(df2)
 
-    #df2 = check_function_for_duplication(handle_pocket_money, df2)
     df2 = handle_pocket_money(df2)
-    df_length["pocket_money"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after pocket money")
     gender_quality_issues(df2, f"Year {year+1} after pocket money")
+    df_length["pocket_money"] = len(df2)
 
-    #df2 = check_function_for_duplication(handle_fut_career, df2)
     df2 = handle_fut_career(df2)
-    df_length["fut_career"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after future career")
     gender_quality_issues(df2, f"Year {year+1} after future career")
+    df_length["fut_career"] = len(df2)
 
-    #df2 = check_function_for_duplication(student_loan, df2)
     df2 = student_loan(df2)
-    df_length["student_loan"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after student loan")
     gender_quality_issues(df2, f"Year {year+1} after student loan")
+    df_length["student_loan"] = len(df2)
 
-    #df2 = check_function_for_duplication(update_years_of_study, df2)
     df2 = update_years_of_study(df2)
-    df_length["years_of_study"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after update years of study")
     gender_quality_issues(df2, f"Year {year+1} after years of study")
+    df_length["years_of_study"] = len(df2)
 
-    #df2 = check_function_for_duplication(handle_finished_studies, df2)
     df2 = handle_finished_studies(df2)
-    df_length["finished_studies"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after finished studies")
     gender_quality_issues(df2, f"Year {year+1} after finished studies")
+    df_length["finished_studies"] = len(df2)
 
-    #df2 = check_function_for_duplication(handle_part_time, df2)
     df2 = handle_part_time(df2) 
-    df_length["part_time"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after part time")
     gender_quality_issues(df2, f"Year {year+1} after part time")
+    df_length["part_time"] = len(df2)
 
-    #df2 = check_function_for_duplication(get_a_raise, df2)
     df2 = get_a_raise(df2)
-    df_length["raise"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after raise")
     gender_quality_issues(df2, f"Year {year+1} after raise")
+    df_length["raise"] = len(df2)
 
-    #df2 = check_function_for_duplication(define_partner_type, df2)
     df2 = define_partner_type(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after partner type")
     gender_quality_issues(df2, f"Year {year+1} after partner type")
     df_length["partner_type"] = len(df2)
 
     if basic_mode:
-        #df2 = check_function_for_duplication(handle_marriage_array, df2)
         df2 = time_function(handle_marriage_array, df2)
+        df2 = drop_duplicates_check(df2, f"Year {year+1} after marriage array")
         gender_quality_issues(df2, f"Year {year+1} after marriage array")
         df_length["marriage"] = len(df2)
 
-        #df2 = check_function_for_duplication(children_born, df2)
         df2 = children_born(df2)
-        df_length["children_born"] = len(df2)
+        df2 = drop_duplicates_check(df2, f"Year {year+1} after children born")
         gender_quality_issues(df2, f"Year {year+1} after children born")
+        df_length["children_born"] = len(df2)
 
-        #df2 = check_function_for_duplication(solve_couples_distinct_house, df2)
         df2  = solve_couples_distinct_house(df2)
-        df_length["couples_distinct_households"] = len(df2)
+        df2 = drop_duplicates_check(df2, f"Year {year+1} after couples distinct house")
         gender_quality_issues(df2, f"Year {year+1} after couples distinct households")
+        df_length["couples_distinct_households"] = len(df2)
 
         ### buy house - New
         df2 = time_function(buy_or_upgrade_house, df2)
-        #df2 = buy_or_upgrade_house(df2)
-        df_length["buy_house"] = len(df2)
+        df2 = drop_duplicates_check(df2, f"Year {year+1} after buy house")
         gender_quality_issues(df2, f"Year {year+1} after buy house")
+        df_length["buy_house"] = len(df2)
 
-    ### moved closer to allow loan_expenditure to be calculated before other functions
-    #df2 = time_function(pay_loan, df2)
     df2 = pay_loan(df2)
-    df_length["pay_loan"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after pay loan")
     gender_quality_issues(df2, f"Year {year+1} after pay loan")
+    df_length["pay_loan"] = len(df2)
 
-    #df2 = time_function(life_moment_score, df2, dfd)
     df2 = life_moment_score(df2,dfd)
-    df_length["life_moment_score"] = len(df2) ### will activate after insurance is added
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after life moment score")
     gender_quality_issues(df2, f"Year {year+1} after life moment score")
+    df_length["life_moment_score"] = len(df2) ### will activate after insurance is added
 
-    #df2 = check_function_for_duplication(buy_insurance, df2)
-    #df2 = time_function(buy_insurance, df2)
     df2 = buy_insurance(df2)
-    df_length["buy_insurance"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after buy insurance")
     gender_quality_issues(df2, f"Year {year+1} after buy insurance")
+    df_length["buy_insurance"] = len(df2)
 
-    #df2 = check_function_for_duplication(pay_insurance, df2)
-    #df2 = time_function(pay_insurance, df2)
     df2 = pay_insurance(df2)
-    df_length["pay_insurance"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after pay insurance")
     gender_quality_issues(df2, f"Year {year+1} after pay insurance")
+    df_length["pay_insurance"] = len(df2)
 
-    #df2 = check_function_for_duplication(update_expenditure_rates, df2)
-    #df2 = time_function(update_expenditure_rates, df2)
     df2 = update_expenditure_rates(df2)
-    df_length["expenditure_rates"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after update expenditure rates")
     gender_quality_issues(df2, f"Year {year+1} after update expenditure rates")
+    df_length["expenditure_rates"] = len(df2)
 
-    #df2 = check_function_for_duplication(handle_expenditure_values, df2)
-    #df2 = time_function(handle_expenditure_values, df2)
     df2 = handle_expenditure_values(df2)
-    df_length["expenditure_value"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after handle expenditure values")
     gender_quality_issues(df2, f"Year {year+1} after handle expenditure values")
+    df_length["expenditure_value"] = len(df2)
 
-    #df2 = check_function_for_duplication(update_account_balance, df2)
-    #df2 = time_function(update_account_balance, df2)
     df2 = update_account_balance(df2)
-    df_length["account_balance"] = len(df2)
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after update account balance")
     gender_quality_issues(df2, f"Year {year+1} after update account balance")
+    df_length["account_balance"] = len(df2)
 
     df2 = special_concat_list([df2, dfd])
+    df2 = drop_duplicates_check(df2, f"Year {year+1} after dead people merge")
     gender_quality_issues(df2, f"Year {year+1} after dead people merge")
-    #df2 = pd.concat([df2, dfd], ignore_index=True)
-    logger.info(f"Year: {year+1} Columns: {len(df2.columns)}")
     df_length["combined"] = len(df2)
+    logger.info(f"Year: {year+1} Columns: {len(df2.columns)}")
     if basic_mode:
         print(f"Year: {year+1} Lengths: {df_length}")
 

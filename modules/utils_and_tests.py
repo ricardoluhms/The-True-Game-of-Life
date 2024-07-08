@@ -170,3 +170,19 @@ def gender_quality_issues(df,print_str=""):
         gcheck = gender_check.sum()
         if gcheck > 0:
             print("Issues with sex column:", gcheck, print_str)
+
+def drop_duplicates_check(df,print_str=""):
+    ### check if there are any duplicates
+    df2 = df.drop_duplicates("unique_name_id")
+    before = len(df)
+    after = len(df2)
+    if before != after:
+        print(f"Drop duplicates in {print_str}- Before:", before, 
+                "After:", after)
+        ### group by unique_name_id and check if there are any duplicates
+        #df3 = df.groupby("unique_name_id").size().reset_index(name="count")
+        #print(df3[df3["count"] > 1])
+    else:
+        df2 = df
+
+    return df2

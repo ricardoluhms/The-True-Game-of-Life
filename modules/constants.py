@@ -270,6 +270,9 @@ if True:
         9: {"house_size_range_m2": [300, 350], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
         10: {"house_size_range_m2": [350, 400], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
         11: {"house_size_range_m2": [400, 450], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        12: {"house_size_range_m2": [450, 500], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        13: {"house_size_range_m2": [500, 550], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
+        14: {"house_size_range_m2": [550, 600], "min_price_per_m2": MIN_PRICE_PER_M2, "max_price_per_m2": MAX_PRICE_PER_M2},
                                 }
 
     RELATIVE_PRICE_MULTIPLIER = 1.5
