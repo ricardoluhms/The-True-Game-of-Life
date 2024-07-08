@@ -4,6 +4,7 @@ import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
 import numpy as np
+from modules.utils_and_tests import special_concat_list
 from  modules.constants import ( BABY_TWINS_MODE, BIRTH_PROB_CURVES_CST,
                                      GENDER_PROBS, MALE_FIRST_NAMES, FEMALE_FIRST_NAMES,
                                      generate_initial_constants)
@@ -88,7 +89,11 @@ def children_born(df):
     df_babies = generate_names_and_initial_data_babies(df_babies, current_year)
     print("New Babies: ", df_babies.shape[0])
 
-    df2 = pd.concat([df_non_candidates, df_with_no_new_children, df_with_new_children, df_babies], ignore_index=True)
+    concat_list = [df_non_candidates, df_with_no_new_children, df_with_new_children, df_babies]
+
+    df2 = special_concat_list(concat_list)
+
+    #df2 = pd.concat([df_non_candidates, df_with_no_new_children, df_with_new_children, df_babies], ignore_index=True)
 
     return df2                       
 

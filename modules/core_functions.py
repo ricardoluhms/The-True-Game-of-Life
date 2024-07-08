@@ -107,9 +107,12 @@ def generate_past_events(df, debug_print=False):
 
             dfs_temp.append(df_temp)
             dfs.append(df_temp)
-    df_past2 = pd.concat(dfs, ignore_index=True)
 
-    df_past_final = pd.concat([df_past, df_past2], ignore_index=True)
+    df_past2 = special_concat_list(dfs)
+    #df_past2 = pd.concat(dfs, ignore_index=True)
+
+    df_past_final = special_concat_list([df_past, df_past2])
+    #df_past_final = pd.concat([df_past, df_past2], ignore_index=True)
 
     return df_past_final
  
@@ -126,105 +129,131 @@ def generate_complete_year_age_up_pipeline(df, debug_print=False, basic_mode=Fal
     #df2 = check_function_for_duplication(age_up_df, df2)
     df2 = age_up_df (df2)
     df_length["age_up"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after age up function")
 
     #df2 = check_function_for_duplication(calculate_death_df, df2)
     df2 = calculate_death_df(df2)
     df_length["death_calc"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after death calculation")
 
     df2, dfd = remove_dead_people(df2)
     df_length["non_dead_people"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after remove dead people")
 
     df2 = share_distribution(df2, dfd) ### moved closer to remove_dead_people - this allows heirs to receive inheritance earlier
     df_length["share_distribution"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after share distribution")
 
     #df2 = check_function_for_duplication(handle_pocket_money, df2)
     df2 = handle_pocket_money(df2)
     df_length["pocket_money"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after pocket money")
 
     #df2 = check_function_for_duplication(handle_fut_career, df2)
     df2 = handle_fut_career(df2)
     df_length["fut_career"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after future career")
 
     #df2 = check_function_for_duplication(student_loan, df2)
     df2 = student_loan(df2)
     df_length["student_loan"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after student loan")
 
     #df2 = check_function_for_duplication(update_years_of_study, df2)
     df2 = update_years_of_study(df2)
     df_length["years_of_study"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after years of study")
 
     #df2 = check_function_for_duplication(handle_finished_studies, df2)
     df2 = handle_finished_studies(df2)
     df_length["finished_studies"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after finished studies")
 
     #df2 = check_function_for_duplication(handle_part_time, df2)
     df2 = handle_part_time(df2) 
     df_length["part_time"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after part time")
 
     #df2 = check_function_for_duplication(get_a_raise, df2)
     df2 = get_a_raise(df2)
     df_length["raise"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after raise")
 
     #df2 = check_function_for_duplication(define_partner_type, df2)
     df2 = define_partner_type(df2)
+    gender_quality_issues(df2, f"Year {year+1} after partner type")
     df_length["partner_type"] = len(df2)
 
     if basic_mode:
         #df2 = check_function_for_duplication(handle_marriage_array, df2)
         df2 = time_function(handle_marriage_array, df2)
+        gender_quality_issues(df2, f"Year {year+1} after marriage array")
         df_length["marriage"] = len(df2)
 
         #df2 = check_function_for_duplication(children_born, df2)
         df2 = children_born(df2)
         df_length["children_born"] = len(df2)
+        gender_quality_issues(df2, f"Year {year+1} after children born")
 
         #df2 = check_function_for_duplication(solve_couples_distinct_house, df2)
         df2  = solve_couples_distinct_house(df2)
         df_length["couples_distinct_households"] = len(df2)
+        gender_quality_issues(df2, f"Year {year+1} after couples distinct households")
 
         ### buy house - New
         df2 = time_function(buy_or_upgrade_house, df2)
         #df2 = buy_or_upgrade_house(df2)
         df_length["buy_house"] = len(df2)
+        gender_quality_issues(df2, f"Year {year+1} after buy house")
 
     ### moved closer to allow loan_expenditure to be calculated before other functions
     #df2 = time_function(pay_loan, df2)
     df2 = pay_loan(df2)
     df_length["pay_loan"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after pay loan")
 
     #df2 = time_function(life_moment_score, df2, dfd)
     df2 = life_moment_score(df2,dfd)
     df_length["life_moment_score"] = len(df2) ### will activate after insurance is added
+    gender_quality_issues(df2, f"Year {year+1} after life moment score")
 
     #df2 = check_function_for_duplication(buy_insurance, df2)
     #df2 = time_function(buy_insurance, df2)
     df2 = buy_insurance(df2)
     df_length["buy_insurance"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after buy insurance")
 
     #df2 = check_function_for_duplication(pay_insurance, df2)
     #df2 = time_function(pay_insurance, df2)
     df2 = pay_insurance(df2)
     df_length["pay_insurance"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after pay insurance")
 
     #df2 = check_function_for_duplication(update_expenditure_rates, df2)
     #df2 = time_function(update_expenditure_rates, df2)
     df2 = update_expenditure_rates(df2)
     df_length["expenditure_rates"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after update expenditure rates")
 
     #df2 = check_function_for_duplication(handle_expenditure_values, df2)
     #df2 = time_function(handle_expenditure_values, df2)
     df2 = handle_expenditure_values(df2)
     df_length["expenditure_value"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after handle expenditure values")
 
     #df2 = check_function_for_duplication(update_account_balance, df2)
     #df2 = time_function(update_account_balance, df2)
     df2 = update_account_balance(df2)
     df_length["account_balance"] = len(df2)
+    gender_quality_issues(df2, f"Year {year+1} after update account balance")
 
-
-    df2 = pd.concat([df2, dfd], ignore_index=True)
+    df2 = special_concat_list([df2, dfd])
+    gender_quality_issues(df2, f"Year {year+1} after dead people merge")
+    #df2 = pd.concat([df2, dfd], ignore_index=True)
     logger.info(f"Year: {year+1} Columns: {len(df2.columns)}")
     df_length["combined"] = len(df2)
+    if basic_mode:
+        print(f"Year: {year+1} Lengths: {df_length}")
 
     return df2
 
@@ -237,12 +266,17 @@ def generate_complete_city(years, age_range="Young Adult", population=40000, sta
     df_past = time_function(generate_past_events, df, debug_print)
     df2 = df_past.copy()
     #dfs = []
+    gender_quality_issues(df2, f"Year After past events")
     for year in tqdm.tqdm(range(years)):
         ### generate new year
         df2up = generate_complete_year_age_up_pipeline(df2, basic_mode=True, debug_print=debug_print)
-        df2 = pd.concat([df2, df2up], ignore_index=True)
-
-    dfs_final = pd.concat([df_past, df2], ignore_index=True)
+        gender_quality_issues(df2up, f"Year {year +1} after age up")
+        df2 = special_concat_list([df2, df2up])
+        gender_quality_issues(df2, f"Year {year +1} after past events merge with age up")
+        #df2 = pd.concat([df2, df2up], ignore_index=True)
+    dfs_final = special_concat_list([df_past, df2])
+    gender_quality_issues(dfs_final, f"Year {year +1} after past events merge with age up")
+    #dfs_final = pd.concat([df_past, df2], ignore_index=True)
 
     ### data quality check - marriage status
     print("Marriage Status Data Quality Check")
@@ -257,14 +291,6 @@ def generate_complete_city(years, age_range="Young Adult", population=40000, sta
         print(dfs_final[~is_valid]["marriage_status"].value_counts())
         dfs_final.loc[~is_valid, "marriage_status"] = None
 
-    ### data quality check - Gender should be either Male or Female otherwise drop rows
-    print("Gender Data Quality Check")
-    gender_check = dfs_final["gender"].isin(["Male","Female"])
-    if len(dfs_final[~gender_check]) > 0:
-        print("Issues with sex column", (~gender_check).sum())
-        dfs_final = dfs_final[gender_check]
-
-    ### 
     ### initial population vs final population
     print("Initial Population", population, 
           "vs Final Population", len(dfs_final["unique_name_id"].unique()))
@@ -424,7 +450,8 @@ def handle_pocket_money(df):
                                             len(df2),
                                             p = np.array(list(SPENDER_PROFILE_PROBS.values())))
     #print(f"Pocket Money Before: {len(df2)}")
-    df2 = pd.concat([df2, df_rest],ignore_index=True)
+    df2 = special_concat_list([df2, df_rest])
+    #df2 = pd.concat([df2, df_rest],ignore_index=True)
     #print(f"Pocket Money After: {len(df2)}")
 
     return df2
@@ -449,7 +476,8 @@ def handle_part_time(df):
     std_deviation = INITIAL_INCOME_RANGES['Part Time'][1]
     part_time_income = np.abs(np.round(np.random.normal(base_income, std_deviation, combined_crit.sum()),2))
     df2["income"] = np.where(part_time_job_crit, part_time_income, df2["income"])
-    df2 = pd.concat([df2, df_rest], ignore_index=True)
+    df2 = special_concat_list([df2, df_rest])
+    #df2 = pd.concat([df2, df_rest], ignore_index=True)
     return df2
 
 def handle_fut_career(df):
@@ -489,7 +517,8 @@ def handle_fut_career(df):
     if len(df_rest) == 0:
         df2 = df2_fut_career.copy()
     else:
-        df2 = pd.concat([df2_fut_career, df_rest], ignore_index=True)
+        df2 = special_concat_list([df2_fut_career, df_rest])
+        #df2 = pd.concat([df2_fut_career, df_rest], ignore_index=True)
 
     return df2
 
@@ -509,7 +538,8 @@ def update_years_of_study(df):
     will_update_years["years_of_study"] += 1
 
     # Merge the two parts back together
-    updated_df = pd.concat([will_update_years, will_not_update_years], ignore_index=True)
+    updated_df = special_concat_list([will_update_years, will_not_update_years])
+    #updated_df = pd.concat([will_update_years, will_not_update_years], ignore_index=True)
 
     return updated_df
 
@@ -553,7 +583,8 @@ def handle_finished_studies(df, debug_print=False):
         print(f"Finished studies: {combined_crit.sum()}")
 
     # Merge the updated dataframes back together
-    updated_df = pd.concat([df_first_income, df_rest], ignore_index=True)
+    updated_df = special_concat_list([df_first_income, df_rest])
+    #updated_df = pd.concat([df_first_income, df_rest], ignore_index=True)
 
     return updated_df
 
@@ -572,8 +603,8 @@ def define_partner_type(df):
     df_partner["partner_type"] = np.random.choice(list(SEXUAL_ORIENTATION_RATES.keys()), 
                                         combined_crit.sum(),
                                          p=np.array(list(SEXUAL_ORIENTATION_RATES.values())))
-    
-    df2 = pd.concat([df_partner, df_other], ignore_index=True)
+    df2 = special_concat_list([df_partner, df_other])
+    #df2 = pd.concat([df_partner, df_other], ignore_index=True)
     return df2
 
 def handle_marriage_array(df):
@@ -620,8 +651,9 @@ def handle_marriage_array(df):
 
     ### check those in will_marry_df that are not in pairs
     unique_id_with_pairs = pd.concat([pairsA["unique_name_id"], pairsB["unique_name_id"]],ignore_index=True)
-
-    will_marry_df = pd.concat([will_marry_df_A, will_marry_df_B],ignore_index=True).drop_duplicates(subset=["unique_name_id"])
+    
+    will_marry_df = special_concat_list([will_marry_df_A, will_marry_df_B]).drop_duplicates(subset=["unique_name_id"])
+    #will_marry_df = pd.concat([will_marry_df_A, will_marry_df_B],ignore_index=True).drop_duplicates(subset=["unique_name_id"])
 
     will_marry_df = calculate_marriage_cost(will_marry_df)
             
@@ -630,10 +662,16 @@ def handle_marriage_array(df):
     #print(f"Will Marry: {len(will_marry_df)}")
     #print(f"Not Paired: {len(not_paired_df)}")
 
-    df2 = pd.concat([will_marry_df, will_not_marry_df, not_paired_df, df_cannot_mar],ignore_index=True).\
-            drop_duplicates(subset=["unique_name_id"])
+    df2 = special_concat_list([will_marry_df, will_not_marry_df, not_paired_df, df_cannot_mar]).drop_duplicates(subset=["unique_name_id"])
+    # df2 = pd.concat([will_marry_df, will_not_marry_df, not_paired_df, df_cannot_mar],ignore_index=True).\
+    #         drop_duplicates(subset=["unique_name_id"])
 
     return df2
+
+
+
+
+
 
 
 

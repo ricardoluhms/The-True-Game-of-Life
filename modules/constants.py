@@ -10,7 +10,6 @@ def generate_initial_constants(df):
     df['future_career'] = None
     df['income'] = 0
     df['balance'] = 0
-    df["has_insurance_flag"] = 0
     df['spender_prof'] = None
     df['partner_type'] = None
     df['spouse_name_id'] = None
@@ -21,12 +20,15 @@ def generate_initial_constants(df):
     df['loan_term'] = None
     df['loan_interest_rate'] = None
     df['default_count'] = 0
-    df['insurance_chance'] = 0
     df["house_id"] = None
     df['house_price'] = 0
     df['house_size_m2'] = 0
     df["room_count"] = 0
+    df["has_insurance_flag"] = 0
+    df['insurance_chance'] = 0
     df["life_moment_score"] = 0
+    df["face_amount"] = None
+    df["yearly_premium"] = None
 
     return df
 

@@ -142,3 +142,31 @@ def check_career_and_study_func_test(func, df, *args):
     print(f"Career Before:\n {gb_count_before2}\n"\
         f" Career After:\n {gb_count_after2}\n")
     return df2
+
+def special_concat_list(dfs_list):
+    ### check if dfs have different columns
+    columns = []
+    for df in dfs_list:
+        columns+=list(df.columns)
+
+    columns = list(set(columns))
+
+    ### check which columns are missing for each dataframe
+    for pos, df in enumerate(dfs_list):
+        missing_columns = set(columns) - set(df.columns)
+        for col in missing_columns:
+            df[col] = None
+        df = df[columns]
+        dfs_list[pos] = df
+        #gender_quality_issues(df)
+
+    return pd.concat(dfs_list, ignore_index=True)
+
+def gender_quality_issues(df,print_str=""):
+    ### check if there are any
+    ### data quality check - Gender should be either Male or Female otherwise drop rows
+    if "gender" in df.columns:
+        gender_check = ~df["gender"].isin(["Male","Female"])
+        gcheck = gender_check.sum()
+        if gcheck > 0:
+            print("Issues with sex column:", gcheck, print_str)

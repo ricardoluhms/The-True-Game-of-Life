@@ -5,6 +5,7 @@ import numpy as np
 #from matplotlib import pyplot as plt
 import random
 import numpy as np
+from modules.utils_and_tests import special_concat_list
 try:
     from  modules.constants import *
 except :
@@ -51,7 +52,9 @@ def student_loan(df):
                                                                                              STUDENT_LOAN_INTEREST_RATES[1]))
     first_loan["loan_interest_rate"] = first_loan["loan_interest_rate"]/100
     
-    need_loan_p2 = pd.concat([first_loan, not_first_loan],ignore_index=True).sort_index()
+    
+    need_loan_p2 = special_concat_list([first_loan, not_first_loan])
+    #need_loan_p2 = pd.concat([first_loan, not_first_loan],ignore_index=True).sort_index()
     need_loan_p2["loan"] = 0
 
     ### loan will be the tuition due plus the interest rate - this solves if the balance is negative and add it to the loan
@@ -63,7 +66,8 @@ def student_loan(df):
     no_need_loan = no_need_loan.drop(columns=["tuition_due"], errors='ignore')
 
     ### combine the dataframes
-    updated_df = pd.concat([no_need_loan, need_loan_p2, will_not_get_loan],ignore_index=True).sort_index()
+    updated_df = special_concat_list([no_need_loan, need_loan_p2, will_not_get_loan])
+    #updated_df = pd.concat([no_need_loan, need_loan_p2, will_not_get_loan],ignore_index=True).sort_index()
 
     return updated_df
 
@@ -96,7 +100,8 @@ def get_a_raise(df):
     df_gets_raise['event'] += "Got a Raise"
        
     # Combine the two parts back together
-    updated_df = pd.concat([df_gets_raise, df_no_raise,df_no_career],ignore_index=True).sort_index()
+    updated_df = special_concat_list([df_gets_raise, df_no_raise,df_no_career])
+    #updated_df = pd.concat([df_gets_raise, df_no_raise,df_no_career],ignore_index=True).sort_index()
 
     # Drop the temporary columns
     updated_df = updated_df.drop(columns=['raise_event', 'raise_prob', 'hike_range', 'random_rate'], errors='ignore')
@@ -162,7 +167,8 @@ def lineage_table(df_all_records, df_dead):
     pot_heirsB = pot_heirsB.rename(columns=to_rename)
 
     ### Drop heirs that are not children of the deceased
-    potential_heirs = pd.concat([pot_heirsA, pot_heirsB],ignore_index=True).sort_index()
+    potential_heirs = special_concat_list([pot_heirsA, pot_heirsB])
+    #potential_heirs = pd.concat([pot_heirsA, pot_heirsB],ignore_index=True).sort_index()
     are_heirs = potential_heirs["deceased_id"].isin(deceased_ids_with_child)
     valid_heirs = potential_heirs[are_heirs].copy()
     valid_heirs["priority"] = 1
@@ -223,8 +229,9 @@ def lineage_table(df_all_records, df_dead):
     valid_heir_children = heir_children[valid_heir_children_crit].copy()
     
     ### Combine the dataframes
-    lineage_table = pd.concat([all_spouses, valid_heirs, 
-                               alive_heir_spouses, valid_heir_children],ignore_index=True).sort_index()
+    lineage_table = special_concat_list([all_spouses, valid_heirs, alive_heir_spouses, valid_heir_children])
+    # lineage_table = pd.concat([all_spouses, valid_heirs, 
+    #                            alive_heir_spouses, valid_heir_children],ignore_index=True).sort_index()
     return lineage_table
 
 def lineage_table_share_distribution(lineage_table):
@@ -296,23 +303,55 @@ def share_distribution(df_all_records, df_dead):
     return current_year_df
 
 ### Housing Functions
+def couples_refinance_loan(df):
+    df2 = df.copy()
+    houses_sum = df2["house_price_a"] + df2["house_price_b"]
+    df2["house_price_a"] = houses_sum/2
+    df2["house_price_b"] = houses_sum/2
+
+    ### review the loan and loan term for A and B - refinance both loans
+    ### bring the loan to the current base value, use the same loan term
+    base_value_a = df2["loan_a"]/\
+                     ((1 + df2["loan_interest_rate_a"])**\
+                        df2["loan_term_a"])
+    
+    base_value_b = df2["loan_b"]/\
+                        ((1 + df2["loan_interest_rate_b"])**\
+                            df2["loan_term_b"])
+    
+    ### get min rate and max loan term to refinance the loan and split the loan
+    min_rate = df2[["loan_interest_rate_a", "loan_interest_rate_b"]].min(axis=1)
+    max_term = df2[["loan_term_a", "loan_term_b"]].max(axis=1)
+
+    total_value = (base_value_a + base_value_b)* (1 + min_rate)**max_term
+
+    income_ratio = df2["income_a"]/(df2["income_a"] + df2["income_b"])
+
+    df2["loan_a"] = total_value*income_ratio
+    df2["loan_b"] = total_value*(1 - income_ratio)
+    df2["loan_term_a"] = max_term
+    df2["loan_term_b"] = max_term
+    df2["loan_interest_rate_a"] = min_rate
+    df2["loan_interest_rate_b"] = min_rate
+
+    return df2
+
 def solve_couples_distinct_house(df):
     ### get the current year and check if there are married people that have distinct houses
-    max_year = df["year"].max()
-    max_year_crit = df["year"] == max_year
+
+    df2 = df.copy()
     married_crit = df["marriage_status"] == True
     
     cols = ["unique_name_id", "spouse_name_id","house_id","house_price",
             "loan","loan_term","loan_interest_rate",'income']
     
-    married_current = max_year_crit & married_crit
+    married_current = married_crit
     current_year_df = df[married_current].copy()[cols]
     if married_current.sum() == 0:
         return df
     
     person_a = current_year_df.copy().drop(columns=["spouse_name_id"], errors='ignore')
     person_b = current_year_df.copy().drop(columns=["unique_name_id"], errors='ignore')
-    ### rename spouse_name_id to unique_name_id
     person_b = person_b.rename(columns={"spouse_name_id": "unique_name_id"})
     ### merge the two dataframes and add suffixes
     merged_df = person_a.merge(person_b, on="unique_name_id", how="left", suffixes=("_a", "_b"))
@@ -322,85 +361,38 @@ def solve_couples_distinct_house(df):
     ### drop the same house_id
     differnt_houses_df = merged_df[~same_house_crit].copy()
 
+    if differnt_houses_df.shape[0] == 0:
+        return df
+
     ### criteria 1 - A has a house and B does not have a house (None)
+    ### split the house price 
     a_has_house_crit = differnt_houses_df["house_id_a"].notna()
     b_has_no_house_crit = differnt_houses_df["house_id_b"].isna()
+    a_has_H_b_has_no_H = differnt_houses_df[a_has_house_crit & b_has_no_house_crit].copy()
+    a_has_H_b_has_no_H = couples_refinance_loan(a_has_H_b_has_no_H)
+    a_has_H_b_has_no_H["house_id_b"] = a_has_H_b_has_no_H["house_id_a"].copy()
 
-    a_has_H_b_nH = differnt_houses_df[a_has_house_crit & b_has_no_house_crit].copy()
-    a_has_H_b_nH["house_id_b"] = a_has_H_b_nH["house_id_a"]
-    ### split the house price to A and B
-    a_has_H_b_nH["house_price_b"] = a_has_H_b_nH["house_price_a"]/2
-    a_has_H_b_nH["house_price_a"] = a_has_H_b_nH["house_price_a"]/2
-
-    ### review the loan and loan term for A and B - refinance both loans
-    ### bring the loan to the current base value, use the same loan term
-
-    base_value_a = a_has_H_b_nH["loan_a"]/\
-                   ((1 + a_has_H_b_nH["loan_interest_rate_a"])**\
-                   a_has_H_b_nH["loan_term_a"])
-    
-    base_value_b = a_has_H_b_nH["loan_b"]/\
-                   ((1 + a_has_H_b_nH["loan_interest_rate_b"])**\
-                    a_has_H_b_nH["loan_term_b"])
-
-    ### get min rate and max loan term to refinance the loan and split the loan
-    min_rate = a_has_H_b_nH[["loan_interest_rate_a", "loan_interest_rate_b"]].min(axis=1)
-    max_term = a_has_H_b_nH[["loan_term_a", "loan_term_b"]].max(axis=1)
-
-    total_value = (base_value_a + base_value_b)* (1 + min_rate)**max_term
-
-    a_has_H_b_nH["loan_a"] = total_value/2
-    a_has_H_b_nH["loan_b"] = total_value/2
-    a_has_H_b_nH["loan_term_a"] = max_term
-    a_has_H_b_nH["loan_term_b"] = max_term
-    a_has_H_b_nH["loan_interest_rate_a"] = min_rate
-    a_has_H_b_nH["loan_interest_rate_b"] = min_rate
-
-    ### criteria 2 - A does not have a house and B has a house - Solved in criteria 1
+    ### criteria 2 - A does not have a house and B has a house
+    a_has_no_house_crit = differnt_houses_df["house_id_a"].isna()
+    b_has_house_crit = differnt_houses_df["house_id_b"].notna()
+    a_has_no_H_b_has_H = differnt_houses_df[a_has_no_house_crit & b_has_house_crit].copy()
+    a_has_no_H_b_has_H = couples_refinance_loan(a_has_no_H_b_has_H)
+    a_has_no_H_b_has_H["house_id_a"] = a_has_no_H_b_has_H["house_id_b"].copy()
 
     ### criteria 3 - A has a house and B has a house but different house_id
-    a_has_house_crit = differnt_houses_df["house_id_a"].notna()
-    b_has_house_crit = differnt_houses_df["house_id_b"].notna()
     diff_house_id_crit = differnt_houses_df["house_id_a"] != differnt_houses_df["house_id_b"]
     diff_crit = a_has_house_crit & b_has_house_crit & diff_house_id_crit
-
     a_has_H_b_has_H = differnt_houses_df[diff_crit].copy()
-    
-    ### sum the house price for A and B
-    a_has_H_b_has_H["house_price_a"] = a_has_H_b_has_H["house_price_a"] + a_has_H_b_has_H["house_price_b"]
-    a_has_H_b_has_H["house_price_b"] = a_has_H_b_has_H["house_price_a"] + a_has_H_b_has_H["house_price_b"]
-
-    ### refinance the loan for A and B using the highest loan term and the lowest interest rate
-    ### generate a new house_id for A and B that combines the house_id_a and house_id_b
+    a_has_H_b_has_H = couples_refinance_loan(a_has_H_b_has_H)
     a_has_H_b_has_H["house_id_a"] = a_has_H_b_has_H["house_id_a"].astype(str) +\
                                     a_has_H_b_has_H["house_id_b"].astype(str)
-    a_has_H_b_has_H["house_id_b"] = a_has_H_b_has_H["house_id_a"]
+    a_has_H_b_has_H["house_id_b"] = a_has_H_b_has_H["house_id_a"].copy()
 
-    ### refinance the loan for A and B
-    base_value_a = a_has_H_b_has_H["loan_a"]/\
-                     ((1 + a_has_H_b_has_H["loan_interest_rate_a"])**\
-                        a_has_H_b_has_H["loan_term_a"])
-    
-    base_value_b = a_has_H_b_has_H["loan_b"]/\
-                        ((1 + a_has_H_b_has_H["loan_interest_rate_b"])**\
-                            a_has_H_b_has_H["loan_term_b"]) 
-    
-    min_rate = a_has_H_b_has_H[["loan_interest_rate_a", "loan_interest_rate_b"]].min(axis=1)
-    max_term = a_has_H_b_has_H[["loan_term_a", "loan_term_b"]].max(axis=1)
-
-    total_value = (base_value_a + base_value_b)* (1 + min_rate)**max_term
-
-    income_ratio = a_has_H_b_has_H["income_a"]/(a_has_H_b_has_H["income_a"] + a_has_H_b_has_H["income_b"])
-
-    a_has_H_b_has_H["loan_a"] = total_value*income_ratio
-    a_has_H_b_has_H["loan_b"] = total_value*(1 - income_ratio)
-    a_has_H_b_has_H["loan_term_a"] = max_term
-    a_has_H_b_has_H["loan_term_b"] = max_term
-    a_has_H_b_has_H["loan_interest_rate_a"] = min_rate
-    a_has_H_b_has_H["loan_interest_rate_b"] = min_rate
 
     ### update the current_year_df with the new values
-    combined_changes_df = pd.concat([a_has_H_b_nH, a_has_H_b_has_H],ignore_index=True).sort_index()
+    combined_changes_df = special_concat_list([a_has_H_b_has_no_H, a_has_no_H_b_has_H, a_has_H_b_has_H])
+
+    #combined_changes_df = pd.concat([a_has_H_b_nH, a_has_H_b_has_H],ignore_index=True).sort_index()
     ### select cols that end with _a into a new dataframe and cols that end with _b into a new dataframe
     dfa = combined_changes_df.copy()
     dfb = combined_changes_df.copy()
@@ -414,29 +406,27 @@ def solve_couples_distinct_house(df):
     to_rename = {col: col.replace("_a", "") for col in dfa.columns}
     dfa = dfa.rename(columns=to_rename)
     ### concat the two dataframes and sort by index
-    combined_changes_df_part2 = pd.concat([dfa, dfb],ignore_index=True).sort_index()
-    if combined_changes_df_part2.shape[0] == 0:
-        return df
+    combined_changes_df_part2 = special_concat_list([dfa, dfb])
+
+
+    cols_to_update = ["house_id","house_price","loan","loan_term","loan_interest_rate"]
+    sel_cols = cols_to_update + ["unique_name_id"]
+    cols_new = [col + "_new" for col in cols_to_update]
 
     ### merge the combined_changes_df_part2 with the current_year_df and replace the values with the new values
-    current_year_df = current_year_df.merge(combined_changes_df_part2, 
+    df2 = df2.merge(combined_changes_df_part2[sel_cols], 
                                             on="unique_name_id", 
                                             how="left", 
                                             suffixes=("", "_new"))
-    ### replace the values with the new values when the new values are not null
-    for col in combined_changes_df_part2.columns[1:]:
-        crit = current_year_df[col + "_new"].notna()
-        current_year_df.loc[crit, col] = current_year_df.loc[crit, col + "_new"]
-    ### drop the cols that end with _new
-    current_year_df = current_year_df.drop(columns=[col for col in current_year_df.columns if col.endswith("_new")], errors='ignore')
+    
+    #for col in combined_changes_df_part2.columns[1:]:
+    for col in cols_to_update:
+        crit = df2[col + "_new"].notna()
+        df2.loc[crit, col] = df2.loc[crit, col + "_new"]
 
-    ### update the df with the new values
-    ### drop the unique_name_id that are in current_year_df
-    to_drop = current_year_df["unique_name_id"].unique()
-    to_drop_crit = df["unique_name_id"].isin(to_drop) & max_year_crit
-    df2 = df[~to_drop_crit].copy()
-    ### concat the current_year_df with the df2
-    df2 = pd.concat([df2, current_year_df],ignore_index=True).sort_index()
+    ### drop the cols that end with _new
+    df2 = df2.drop(columns=cols_new, errors='ignore')
+
     return df2
 
 def get_house_price_from_room_count(room_count:int):
@@ -453,12 +443,19 @@ def get_house_price_from_room_count(room_count:int):
     return house_price
 
 def singles_vs_couples_split_buy_house(df, married_crit, combined_crit):
-
-    df2 = df.copy()
+    ### check if df has more than one person use unique_name_id and combine the unique_name_id of the married people
+    
+    ### drop the duplicates
+    df_non_duplicates = df.drop_duplicates("unique_name_id")
+    if df_non_duplicates.shape[0] != df.shape[0]:
+        print("Duplicates were found and dropped")
+        df2 = df_non_duplicates.copy()
+    else:
+        df2 = df.copy()
 
     singles_list = df2["unique_name_id"][~married_crit & combined_crit].unique()
     main_spouse = df2["unique_name_id"][married_crit & combined_crit].unique()
-
+    
     if len(singles_list) != 0:
         will_buy_a_house_single_crit = df2["unique_name_id"].isin(singles_list)
         new_cols_df_single = df2[will_buy_a_house_single_crit].copy()
@@ -533,40 +530,40 @@ def amount_due_house_couples(df, married_list):
     partner_a = df2[partner_a_filter].copy()
     partner_b = df2[~partner_a_filter].copy()
     partner_b = partner_b.drop(columns=["spouse_name_id"], errors='ignore').rename(columns={"unique_name_id": "spouse_name_id"})
-    couples_df = partner_a.merge(partner_b, on = "spouse_name_id", how="left", suffixes=("_a", "_b"))
+    couples_merge_df = partner_a.merge(partner_b, on = "spouse_name_id", how="left", suffixes=("_a", "_b"))
 
     ### get highest loan term, lowest interest rate min new house price, mean previous house price, sum loan, sum balance
-    couples_df["loan_term_new"] = couples_df[["loan_term_new_a", "loan_term_new_b"]].max(axis=1)
-    couples_df["loan_interest_rate_new"] = couples_df[["loan_interest_rate_new_a", "loan_interest_rate_new_b"]].min(axis=1)
-    couples_df["house_price_new"] = couples_df[["house_price_new_a", "house_price_new_b"]].min(axis=1)
+    couples_merge_df["loan_term_new"] = couples_merge_df[["loan_term_new_a", "loan_term_new_b"]].max(axis=1)
+    couples_merge_df["loan_interest_rate_new"] = couples_merge_df[["loan_interest_rate_new_a", "loan_interest_rate_new_b"]].min(axis=1)
+    couples_merge_df["house_price_new"] = couples_merge_df[["house_price_new_a", "house_price_new_b"]].min(axis=1)
     
-    couples_df["house_price"] = couples_df[["house_price_previous_a", "house_price_previous_b"]].mean(axis=1)
-    couples_df["down_payment_new"] = couples_df[["down_payment_new_a", "down_payment_new_b"]].min(axis=1)
-    couples_df["loan_base"] = couples_df[["loan_base_a", "loan_base_b"]].sum(axis=1)
-    couples_df["balance"] = couples_df[["balance_a", "balance_b"]].sum(axis=1)
-    amount_due_couples = couples_df["house_price_new"] - couples_df["house_price"] + couples_df["loan_base"]
-    down_payment_val_couples = couples_df["down_payment_new"]*amount_due_couples.fillna(0)
+    couples_merge_df["house_price"] = couples_merge_df[["house_price_previous_a", "house_price_previous_b"]].mean(axis=1)
+    couples_merge_df["down_payment_new"] = couples_merge_df[["down_payment_new_a", "down_payment_new_b"]].min(axis=1)
+    couples_merge_df["loan_base"] = couples_merge_df[["loan_base_a", "loan_base_b"]].sum(axis=1)
+    couples_merge_df["balance"] = couples_merge_df[["balance_a", "balance_b"]].sum(axis=1)
+    amount_due_couples = couples_merge_df["house_price_new"] - couples_merge_df["house_price"] + couples_merge_df["loan_base"]
+    down_payment_val_couples = couples_merge_df["down_payment_new"]*amount_due_couples.fillna(0)
     ### loan_exp_val and loan_exp_rate should consider the down payment and each person's income
-    income_exp_sharing_rate = couples_df["income_a"]/(couples_df["income_a"] + couples_df["income_b"]) ### this way the loan_exp_rate will be shared according to the income
+    income_exp_sharing_rate = couples_merge_df["income_a"]/(couples_merge_df["income_a"] + couples_merge_df["income_b"]) ### this way the loan_exp_rate will be shared according to the income
 
     ### this only includes the down payment - loan payment will be calculated later and will update the loan_exp_val and loan_exp_rate (pay_loan function)
-    couples_df["loan_exp_val_a"] = down_payment_val_couples*income_exp_sharing_rate
-    couples_df["loan_exp_val_b"] = down_payment_val_couples*(1 - income_exp_sharing_rate)
-    couples_df["loan_exp_rate_a"] = couples_df["loan_exp_val_a"]/couples_df["income_a"]
-    couples_df["loan_exp_rate_b"] = couples_df["loan_exp_val_b"]/couples_df["income_b"]
+    couples_merge_df["loan_exp_val_a"] = down_payment_val_couples*income_exp_sharing_rate
+    couples_merge_df["loan_exp_val_b"] = down_payment_val_couples*(1 - income_exp_sharing_rate)
+    couples_merge_df["loan_exp_rate_a"] = couples_merge_df["loan_exp_val_a"]/couples_merge_df["income_a"]
+    couples_merge_df["loan_exp_rate_b"] = couples_merge_df["loan_exp_val_b"]/couples_merge_df["income_b"]
 
-    couples_df["loan_base_new_couples"] = amount_due_couples * (1 - couples_df["down_payment_new"])
-    couples_df["balance_new_couples"] = couples_df["balance"] - couples_df["loan_base_new_couples"]*couples_df["down_payment_new"]
-    couples_df["balance_a"] = couples_df["balance_new_couples"]*income_exp_sharing_rate
-    couples_df["balance_b"] = couples_df["balance_new_couples"]*(1 - income_exp_sharing_rate)
-    couples_df["loan_new_couples"] = couples_df["loan_base_new_couples"]*((1 + couples_df["loan_interest_rate_new"])**couples_df["loan_term_new"])
+    couples_merge_df["loan_base_new_couples"] = amount_due_couples * (1 - couples_merge_df["down_payment_new"])
+    couples_merge_df["balance_new_couples"] = couples_merge_df["balance"] - couples_merge_df["loan_base_new_couples"]*couples_merge_df["down_payment_new"]
+    couples_merge_df["balance_a"] = couples_merge_df["balance_new_couples"]*income_exp_sharing_rate
+    couples_merge_df["balance_b"] = couples_merge_df["balance_new_couples"]*(1 - income_exp_sharing_rate)
+    couples_merge_df["loan_new_couples"] = couples_merge_df["loan_base_new_couples"]*((1 + couples_merge_df["loan_interest_rate_new"])**couples_merge_df["loan_term_new"])
     ### split the loan total between the two partners
-    couples_df["loan_new_a"] = couples_df["loan_new_couples"]*income_exp_sharing_rate
-    couples_df["loan_new_b"] = couples_df["loan_new_couples"]*(1 - income_exp_sharing_rate)
-    couples_df["house_id_new"] = couples_df["house_id_new_a"] ### to ensure that the house_id_new will be the same for both partners
-    return couples_df
+    couples_merge_df["loan_new_a"] = couples_merge_df["loan_new_couples"]*income_exp_sharing_rate
+    couples_merge_df["loan_new_b"] = couples_merge_df["loan_new_couples"]*(1 - income_exp_sharing_rate)
+    couples_merge_df["house_id_new"] = couples_merge_df["house_id_new_a"] ### to ensure that the house_id_new will be the same for both partners
+    return couples_merge_df
 
-def buy_or_upgrade_house_values_update(df_main, df_temp, list_values, mode = "singles_list"):
+def buy_or_upgrade_house_values_update(df_main, list_values, mode = "singles_list"):
 
     if mode == "singles_list":
         multiplier = 1
@@ -574,7 +571,7 @@ def buy_or_upgrade_house_values_update(df_main, df_temp, list_values, mode = "si
         balance_col = "balance_new_single"
         loan_exp_col = "loan_exp_value_single"
         loan_exp_rate_col = "loan_exp_rate_single"
-        df_temp = df_temp.rename(columns={"loan_exp_value": "loan_exp_value_single", 
+        df_main = df_main.rename(columns={"loan_exp_value": "loan_exp_value_single", 
                                           "loan_exp_rate": "loan_exp_rate_single"})
 
     elif mode == "spouse_a":
@@ -592,11 +589,10 @@ def buy_or_upgrade_house_values_update(df_main, df_temp, list_values, mode = "si
         loan_exp_rate_col = "loan_exp_rate_b"
 
     ### merge the values
-    df_temp_cols = ["unique_name_id", "house_id_new", "house_price_new", 
+    temp_cols = ["unique_name_id", "house_id_new", "house_price_new", 
                     loan_col, balance_col, "loan_term_new", "loan_interest_rate_new", 
                     loan_exp_col, loan_exp_rate_col]
     
-    df_main = df_main.merge(df_temp[df_temp_cols], on="unique_name_id", how="left")
     critA = df_main["unique_name_id"].isin(list_values)
 
     df_main.loc[critA, "house_id"] = df_main.loc[critA, "house_id_new"]
@@ -610,7 +606,7 @@ def buy_or_upgrade_house_values_update(df_main, df_temp, list_values, mode = "si
     
     ## drop df_temp_cols
     
-    df_main = df_main.drop(columns=df_temp_cols[1:], errors='ignore')
+    df_main = df_main.drop(columns= temp_cols[1:], errors='ignore')
 
     return df_main
 
@@ -626,61 +622,124 @@ def buy_or_upgrade_house(df):
     if True:
         df2 = df.copy()
         
-        buy_or_upg_cols = ["unique_name_id", 'age', 'career','spender_prof',"age_range","income","marriage_status","existing_children_count",
-                            'loan','house_price','house_id', 'balance','loan_term','loan_interest_rate','spouse_name_id']
+        # buy_or_upg_cols = ["unique_name_id", 'age', 'career','spender_prof',"age_range","income","marriage_status","existing_children_count",
+        #                     'loan','house_price','house_id', 'balance','loan_term','loan_interest_rate','spouse_name_id']
         prob_merge_cols = ["career", "spender_prof","age_range","marriage_status","existing_children_count"]
 
-        current_year_df = df2[buy_or_upg_cols].copy()
-        current_year_df = current_year_df.merge( HOUSE_PROBABILITY_FACTORS[prob_merge_cols+["base_house_likelihood"]], 
+        df2 = df2.merge( HOUSE_PROBABILITY_FACTORS[prob_merge_cols+["base_house_likelihood"]], 
                                                 on=prob_merge_cols, how="left").fillna(0) ### add the base_house_likelihood column
 
-        married_crit = current_year_df["marriage_status"] == True
+        married_crit = df2["marriage_status"] == True
 
-        new_cols_df = current_year_df.copy()
-        new_cols_df["room_count"] = new_cols_df["marriage_status"].fillna(0).astype(int)+\
-                                    new_cols_df["existing_children_count"].fillna(0).astype(int) + 1
-        
-        if len(new_cols_df) == 0:
-            return df2
-        
-        try:
-            new_cols_df["house_price_new"] = new_cols_df.apply(lambda x: get_house_price_from_room_count(x["room_count"]), axis=1)
-        except:
-            print("Error in get_house_price_from_room_count function")
-        new_cols_df["house_price_previous"] = new_cols_df["house_price"].fillna(0)
-        new_cols_df.loc[married_crit, "house_price_previous"] = new_cols_df.loc[married_crit, "house_price_previous"]*2
-        
-        buy_house_prob = np.random.uniform(0, 1, new_cols_df.shape[0])
-        might_buy_crit = buy_house_prob < new_cols_df["base_house_likelihood"]
-        upgrade_check = new_cols_df["house_price_previous"] < new_cols_df["house_price_new"]
-        might_buy_crit = buy_house_prob < new_cols_df["base_house_likelihood"]
+        df2["room_count"] = df2["marriage_status"].fillna(0).astype(int)+\
+                                    df2["existing_children_count"].fillna(0).astype(int) + 1
+              
+        df2["house_price_new"] = df2.apply(lambda x: get_house_price_from_room_count(x["room_count"]), axis=1)
+        df2["house_price_previous"] = df2["house_price"].fillna(0)
+        df2.loc[married_crit, "house_price_previous"] = df2.loc[married_crit, "house_price_previous"]*2
 
-        career_crit = new_cols_df["career"].isin(list(INITIAL_INCOME_RANGES.keys())[2:-1])
-        combined_crit = might_buy_crit & career_crit & upgrade_check
+        buy_house_prob = np.random.uniform(0, 1, df2.shape[0])
+        will_buy_house = buy_house_prob < df2["base_house_likelihood"]
+        could_upgrade_house = (df2["house_price_new"] > df2["house_price_previous"].fillna(0))
+      
+        career_crit = df2["career"].isin(list(INITIAL_INCOME_RANGES.keys())[2:-1])
+        combined_crit = will_buy_house & career_crit & could_upgrade_house
 
     if combined_crit.sum() == 0:
         return df2
     
-    new_cols_df_single, new_cols_df_couples, dict_pack = singles_vs_couples_split_buy_house(new_cols_df, 
-                                                                                                married_crit, 
-                                                                                                combined_crit)
+    if True:
+        will_not_buy_df = df2[~combined_crit].copy()
+        will_buy_df = df2[combined_crit].copy()
+
+        married_crit2 = will_buy_df["marriage_status"] == True
+
+        singles_df = will_buy_df[~married_crit2].copy()
+        couples_df = will_buy_df[married_crit2].copy()
+
+        ### check if there are spouses in the couples_df unique_name_id
+        spouse_check1 = couples_df["unique_name_id"].isin(couples_df["spouse_name_id"])
+        if spouse_check1.sum() > 0:
+            ### remove them from couples_df and append them to singles_df
+            spouse_df1 = couples_df[spouse_check1].copy()
+            couples_df = couples_df[~spouse_check1].copy()
+
+        ### search in will_not_buy_df if the spouse in couples_df is there
+        spouse_check2 = will_not_buy_df["unique_name_id"].isin(couples_df["spouse_name_id"].unique())
+        if spouse_check2.sum() > 0:
+            ### remove them from will_not_buy_df and append them to couples_df
+            spouse_df2 = will_not_buy_df[spouse_check2].copy()
+            will_not_buy_df = will_not_buy_df[~spouse_check2].copy()
+
+        if spouse_check1.sum() > 0 and spouse_check2.sum() > 0:
+            ### merge the two spouse dataframes
+            spouse_df = special_concat_list([spouse_df1, spouse_df2])
+        elif spouse_check1.sum() > 0:
+            spouse_df = spouse_df1.copy()
+        elif spouse_check2.sum() > 0:
+            spouse_df = spouse_df2.copy()
+
+
+        singles_list = list(singles_df["unique_name_id"].unique())
+
+        spouse_list = list(set(  list(spouse_df1["unique_name_id"].unique()) +
+                                list(spouse_df2["unique_name_id"].unique())))
+        main_spouse = list(couples_df["unique_name_id"].unique())
+
+        dict_pack = {"singles_list": singles_list, "spouse_a": main_spouse, "spouse_b": spouse_list}
+
+        ids = pd.Series(np.random.randint(0, 1000000, singles_df.shape[0])).astype(str)
+        singles_df["house_id_new"] = "house_" + ids
+
+        ids = pd.Series(np.random.randint(1000001, 2000000, couples_df.shape[0])).astype(str)
+        couples_df["house_id_new"] = "house_" + ids
+
+        ### apply the house_id_new to the spouse_df
+        ### sort the values by unique_name_id
+        spouse_df = spouse_df.sort_values("unique_name_id").copy()
+        ### sort couples_df by unique_name_id
+        couples_df = couples_df.sort_values("unique_name_id").copy()
+
+        ### merge the house_id_new from couples_df to spouse_df
+        new_ids_to_merge = couples_df[["unique_name_id", "house_id_new"]].copy().\
+                            rename(columns={"unique_name_id": "spouse_name_id"})
+        spouse_df["house_id_new"] = ""
+        spouse_df = spouse_df.merge(new_ids_to_merge, on="spouse_name_id", how="left", suffixes=("", "_a"))
+        spouse_df["house_id_new"] = spouse_df["house_id_new_a"].copy()
+        spouse_df = spouse_df.drop(columns=["house_id_new_a"], errors='ignore')
+
+        ### combine couples_df and spouse_df
+        couples_df = special_concat_list([couples_df, spouse_df])
 
     ### get the amount due for each single person
-    if df_not_none_shape_check(new_cols_df_single)> 0:
+    if df_not_none_shape_check(singles_df)> 0:
         modea = "singles_list"
-        new_cols_df_single = base_mortgage_info(new_cols_df_single)
-        new_cols_df_single = amount_due_house_single(new_cols_df_single)
-        df2 = buy_or_upgrade_house_values_update(df2, new_cols_df_single, dict_pack[modea], mode = modea)
+        singles_df = base_mortgage_info(singles_df)
+        singles_df = amount_due_house_single(singles_df)
+        singles_final_df = buy_or_upgrade_house_values_update(singles_df, dict_pack[modea], mode = modea)
     
     ### get the amount due for each couple
-    if df_not_none_shape_check(new_cols_df_couples)> 0:
-        new_cols_df_couples = base_mortgage_info(new_cols_df_couples)
-        new_cols_df_couples_merged = amount_due_house_couples(new_cols_df_couples, dict_pack["spouse_a"])
+    if df_not_none_shape_check(couples_df)> 0:
+        couples_df = base_mortgage_info(couples_df)
+        couples_merge_df = amount_due_house_couples(couples_df, dict_pack["spouse_a"])
         modea = "spouse_a"
         modeb = "spouse_b"
-        df2 = buy_or_upgrade_house_values_update(df2, new_cols_df_couples_merged, dict_pack[modea], mode = modea)
-        df2 = buy_or_upgrade_house_values_update(df2, new_cols_df_couples_merged, dict_pack[modeb], mode = modeb)
+        main_spouse_final_df = buy_or_upgrade_house_values_update(couples_merge_df,  dict_pack[modea], mode = modea)
+        spouse_final_df = buy_or_upgrade_house_values_update(couples_merge_df,  dict_pack[modeb], mode = modeb)
 
+    ### check if df2 lenght is the same of the sum of the lengths of will_not_buy_df, singles_final_df and couples_final_df
+    main_len = df2.shape[0]
+    sum_len = df_not_none_shape_check(will_not_buy_df) +\
+              df_not_none_shape_check(singles_final_df)+\
+              df_not_none_shape_check(main_spouse_final_df)+\
+              df_not_none_shape_check(spouse_final_df)
+    
+    if main_len != sum_len:
+        print("Error in buy_or_upgrade_house")
+        print(main_len, sum_len, main_len == sum_len)
+    
+    df2 = special_concat_list([will_not_buy_df, singles_final_df, main_spouse_final_df, spouse_final_df])[df.columns]
+    
     return df2
 
 ### Expenses Rates and Values Functions
@@ -735,8 +794,8 @@ def update_expenditure_rates(df):
     ### replace the _rate columns from the original dataframe df with the _rate columns from df2
     for col in rate_cols+["spender_prof_rate"]:
         df3[col] = df2[col]
-
-    df3 = pd.concat([df3, df3_rest],ignore_index=True).sort_index()
+    df3 = special_concat_list([df3, df3_rest])
+    #df3 = pd.concat([df3, df3_rest],ignore_index=True).sort_index()
 
     return df3
 
@@ -804,9 +863,11 @@ def handle_expenditure_values(df):
     has_house_has_loan_df_plus["housing_exp_rate"] = 0
     has_house_has_loan_df_minus["savings_exp_rate"] = has_house_has_loan_df_minus["savings_exp_value"]/has_house_has_loan_df_minus["income"]
 
-    updated_df = pd.concat([no_income_df, no_house_no_loan_df, no_house_has_loan_df, 
-                            has_house_no_loan_df, has_house_has_loan_df_plus, has_house_has_loan_df_minus],
-                            ignore_index=True).sort_index()
+    df_list= [no_income_df, no_house_no_loan_df, no_house_has_loan_df, 
+                            has_house_no_loan_df, has_house_has_loan_df_plus, has_house_has_loan_df_minus]
+    
+    updated_df = special_concat_list(df_list)
+    #updated_df = pd.concat(df_list,ignore_index=True).sort_index()
     
     return updated_df
 
@@ -872,7 +933,8 @@ def change_spender_profile(df,crit, spender_prof_mod = 0.1):
     df_will_change["spender_prof_rate"] = df_will_change["new_spender_prof_rate"]
     df_will_change = df_will_change.drop(columns=["new_spender_prof_rate"], errors='ignore')
 
-    updated_df = pd.concat([df_will_change, df_no_change],ignore_index=True).sort_index()
+    #updated_df = pd.concat([df_will_change, df_no_change],ignore_index=True).sort_index()
+    updated_df = special_concat_list([df_will_change, df_no_change])
 
     return updated_df             
 
@@ -886,13 +948,16 @@ def pay_loan(df):
 
     ### get people who has loan
     loan_df = df2[loan_crit].copy()
-    no_loan_df = df2[~loan_crit].copy()
+    no_loan_df = df2[~loan_crit].copy().reset_index(drop=True)
 
     ### check if the person is still a student - if so, do not pay the loan it can be paid after graduation
     student_crit = ~loan_df["career"].isin(list(INITIAL_INCOME_RANGES.keys())[2:-1])
 
-    student_skip_loan_pay_df = loan_df[student_crit].copy()
-    should_pay_loan_df = loan_df[~student_crit].copy()
+    student_skip_loan_pay_df = loan_df[student_crit].copy().reset_index(drop=True)
+    should_pay_loan_df = loan_df[~student_crit].copy().reset_index(drop=True)
+
+    if (~student_crit).sum() == 0:
+        return df2
 
     ### can the person pay the loan?
     ### scenario 1: balance is greater than or equal the loan
@@ -962,7 +1027,8 @@ def pay_loan(df):
     should_pay_loan_df.loc[negative_balance_crit, "default_count"] = should_pay_loan_df.loc[negative_balance_crit, "default_count"] + 1
     should_pay_loan_df.loc[negative_balance_crit, "event"] = f"Loan Default {should_pay_loan_df.loc[negative_balance_crit, 'default_count']}"
 
-    updated_df = pd.concat([should_pay_loan_df, student_skip_loan_pay_df, no_loan_df],ignore_index=True).sort_index()
+    #updated_df = pd.concat([should_pay_loan_df, student_skip_loan_pay_df, no_loan_df],ignore_index=True).sort_index()
+    updated_df = special_concat_list([should_pay_loan_df, student_skip_loan_pay_df, no_loan_df])
 
     return updated_df
 
@@ -1019,17 +1085,18 @@ def life_moment_score(df_all_records, df_dead):
 
     parent_grief_crit = life_moments["unique_name_id"].isin(parent_a_ids) | life_moments["unique_name_id"].isin(parent_b_ids)
     life_moments.loc[parent_grief_crit, "life_moment_score"] += 1
+    ### check if there are more than on unique_name_id in life_moments - if so, then groupby unique_name_id get the max life_moment_score
+    life_moments_score = life_moments.groupby("unique_name_id").agg({"life_moment_score": "max"}).reset_index()
 
     ### update the life_moment_score df2 in the current year only
-    df2 = df2.merge(life_moments[["unique_name_id", "life_moment_score"]], on="unique_name_id", how="left")
+    df2 = df2.merge(life_moments_score[["unique_name_id", "life_moment_score"]], on="unique_name_id", how="left", suffixes=("", "_new"))
     ### this generates 2 columns - life_moment_score_x and life_moment_score_y
     ### keep only the life_moment_score_y for the current year and keep
-    df2["life_moment_score"] = df2["life_moment_score_x"]
-    ### replace life_moment_score current year with life_moment_score_y
-    max_year_crit = df2["year"] == max_year
-    df2.loc[max_year_crit, "life_moment_score"] = df2.loc[max_year_crit, "life_moment_score_y"]
-    ### drop the life_moment_score_x and life_moment_score_y columns
-    df2 = df2.drop(columns=["life_moment_score_x", "life_moment_score_y"], errors='ignore')
+    ### check if life_moment_score_new is higher than life_moment_score and update life_moment_score
+    life_moment_score_crit = df2["life_moment_score_new"].fillna(0).astype(int) >\
+                             df2["life_moment_score"].fillna(0).astype(int)
+    df2.loc[life_moment_score_crit, "life_moment_score"] = df2.loc[life_moment_score_crit, "life_moment_score_new"]
+    df2 = df2.drop(columns=["life_moment_score_new"], errors='ignore')
     return df2
 
 def calculate_insurance_values(df, rate=0.05):
@@ -1075,28 +1142,20 @@ def buy_insurance(df):
     can_buy_df = df2[can_buy_crit].copy()
     no_insurance_df = df2[~can_buy_crit].copy()
 
-    
+    can_buy_df["insurance_chance"] = can_buy_df["life_moment_score"].apply(life_score_to_insurance)
+    can_buy_df["random_val"] = np.random.uniform(0, 1, can_buy_df.shape[0])
+    can_buy_df["can_buy_insurance"] = can_buy_df["random_val"] < can_buy_df["insurance_chance"]
 
-    ### calculate the chance of buying insurance
-    insurane_prob = can_buy_df["life_moment_score"].apply(life_score_to_insurance)
-    ### get random number between 0 and 1
-    random_vals = np.random.uniform(0, 1, can_buy_df.shape[0])
+    will_buy_df = can_buy_df[can_buy_df["can_buy_insurance"]].copy()
+    will_not_buy_df = can_buy_df[~can_buy_df["can_buy_insurance"]].copy()
+
     ### check if the random number is less than the insurance_chance
-    buy_crit = random_vals < insurane_prob
+
     ### set has_insurance_flag to 1 for those who bought insurance
-    can_buy_df.loc[buy_crit, "has_insurance_flag"] = 1
+    will_buy_df["has_insurance_flag"] = 1
     ### calculate the insurance values for those who bought insurance - face_amount and yearly_premium
-    temp_df = calculate_insurance_values(can_buy_df)
-
-    ### merge temp_df with can_buy_df on unique_name_id
-    can_buy_df = can_buy_df.merge(temp_df[["unique_name_id", "face_amount", "yearly_premium"]], on="unique_name_id", how="left", suffixes=("", "_temp"))
-
-    ### use loc to update the face_amount and yearly_premium columns
-    can_buy_df.loc[buy_crit, "face_amount"] = can_buy_df[buy_crit, "face_amount_temp"]
-    can_buy_df.loc[buy_crit, "yearly_premium"] = can_buy_df[buy_crit, "yearly_premium_temp"]
-    can_buy_df = can_buy_df.drop(columns=["face_amount_temp", "yearly_premium_temp"], errors='ignore')
-
-    updated_df = pd.concat([can_buy_df, no_insurance_df],ignore_index=True).sort_index()
+    will_buy_df = calculate_insurance_values(will_buy_df)
+    updated_df = special_concat_list([will_buy_df, will_not_buy_df, no_insurance_df])
 
     return updated_df
 
@@ -1121,6 +1180,7 @@ def pay_insurance(df):
     can_pay_df["insurance_exp_value"] = can_pay_df["yearly_premium"]
     can_pay_df["insurance_exp_rate"] = can_pay_df["yearly_premium"]/can_pay_df["income"]
 
-    updated_df = pd.concat([can_pay_df, does_not_need_to_pay_df],ignore_index=True).sort_index()
+    #updated_df = pd.concat([can_pay_df, does_not_need_to_pay_df],ignore_index=True).sort_index()
+    updated_df = special_concat_list([can_pay_df, does_not_need_to_pay_df])
 
     return updated_df
